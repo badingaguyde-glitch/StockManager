@@ -57,13 +57,13 @@ namespace StockManager.Server.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.products = await _context.Products
+                ViewBag.Products = await _context.Products
                     .Find(FilterDefinition<Product>.Empty)
                     .ToListAsync();
-                ViewBag.suppliers = await _context.Suppliers
+                ViewBag.Suppliers = await _context.Suppliers
                     .Find(FilterDefinition<Supplier>.Empty)
                     .ToListAsync();
-                ViewBag.customers = await _context.Customers
+                ViewBag.Customers = await _context.Customers
                     .Find(FilterDefinition<Customer>.Empty)
                     .ToListAsync();
 
