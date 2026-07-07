@@ -1,44 +1,44 @@
 using MongoDB.Driver;
+using Microsoft.Extensions.Configuration;
 using StockManager.Server.Models;
 
-namespace StockManager.Server.Data;
-
-public class MongoDbContext
+namespace StockManager.Server.Data  
 {
-    private readonly IMongoDatabase _database;
-
-    public MongoDbContext(IConfiguration configuration)
+    public class MongoDBContext
     {
-        var settings = configuration.GetSection("MongoDbSettings").Get<MongoDbSettings>() ?? new MongoDbSettings();
-        var client = new MongoClient(settings.ConnectionString);
-        _database = client.GetDatabase(settings.DatabaseName);
+        private readonly IMongoDatabase _database;
 
-        SeedDefaultData();
-    }
-
-    public IMongoCollection<Category> Categories => _database.GetCollection<Category>("Categories");
-    public IMongoCollection<Product> Products => _database.GetCollection<Product>("Products");
-    public IMongoCollection<Supplier> Suppliers => _database.GetCollection<Supplier>("Suppliers");
-    public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
-    public IMongoCollection<StockMovement> StockMovements => _database.GetCollection<StockMovement>("StockMovements");
-    public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("Sales");
-
-    private void SeedDefaultData()
-    {
-        if (Categories.CountDocuments(FilterDefinition<Category>.Empty) == 0)
+        public MongoDBContext(IConfiguration configuration)
         {
-            Categories.InsertMany(new[]
+            var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") ?? configuration.GetSection("MongoDbSettings:ConnectionString").Value;
+            var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
+
+            var client = new MongoClient(connectionString);
+            _database = client.GetDatabase(databaseName);
+
+            SeedData();
+        }
+
+        public IMongoCollection<Product> Products => _database.GetCollection<Product>("Products");
+        public IMongoCollection<Category> Categories => _database.GetCollection<Category>("Categories");
+        public IMongoCollection<Supplier> Suppliers => _database.GetCollection<Supplier>("Suppliers");
+        public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
+        public IMongoCollection<StockMovement> StockMovements => _database.GetCollection<StockMovement>("StockMovements");
+        public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("Sales");
+        
+
+        private void SeedData()
+        {
+            if (Categories.EstimatedDocumentCount() == 0)
             {
-                new Category { Name = "Kablo", Description = "Elektrik kabloları" },
-                new Category { Name = "Aydınlatma", Description = "Aydınlatma ürünleri" },
-                new Category { Name = "Sigorta", Description = "Sigorta ve koruma elemanları" }
-            });
+                var defaultCategories = new List<Category>
+                {
+                    new Category { Name = "Electronics" },
+                    new Category { Name = "Clothing" },
+                    new Category { Name = "Books" }
+                };
+                Categories.InsertMany(defaultCategories);
+            }
         }
     }
-}
-
-public class MongoDbSettings
-{
-    public string ConnectionString { get; set; } = "mongodb://localhost:27017";
-    public string DatabaseName { get; set; } = "StockManagerDb";
 }
