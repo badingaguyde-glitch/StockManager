@@ -25,7 +25,7 @@ namespace StockManager.Server.Data
         public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
         public IMongoCollection<StockMovement> StockMovements => _database.GetCollection<StockMovement>("StockMovements");
         public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("Sales");
-
+        
 
         private void SeedData()
         {
