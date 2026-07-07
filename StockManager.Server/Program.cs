@@ -7,12 +7,12 @@ DotEnv.Load();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<MongoDBContext>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<MongoDBContext>();
 
 var app = builder.Build();
 
