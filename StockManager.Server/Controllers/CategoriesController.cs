@@ -7,9 +7,9 @@ namespace StockManager.Server.Controllers;
 
 public class CategoriesController : Controller
 {
-    private readonly MongoDbContext _context;
+    private readonly MongoDBContext _context;
 
-    public CategoriesController(MongoDbContext context)
+    public CategoriesController(MongoDBContext context)
     {
         _context = context;
     }
