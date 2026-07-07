@@ -3,3 +3,4 @@ bin/
 obj/
 .env/
 StockManager.server/.env
+StockManager.Server/Data/MongoDBContext.cs
