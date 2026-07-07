@@ -1,0 +1,23 @@
+@model StockManager.Server.Models.Supplier
+
+@{
+    ViewData["Title"] = "Tedarikçi Detayı";
+}
+
+<h2>Tedarikçi Detayı</h2>
+
+<dl class="row">
+    <dt class="col-sm-3">Firma Adı</dt>
+    <dd class="col-sm-9">@Model.CompanyName</dd>
+    <dt class="col-sm-3">Yetkili Kişi</dt>
+    <dd class="col-sm-9">@Model.ContactName</dd>
+    <dt class="col-sm-3">Telefon</dt>
+    <dd class="col-sm-9">@Model.Phone</dd>
+    <dt class="col-sm-3">E-posta</dt>
+    <dd class="col-sm-9">@Model.Email</dd>
+    <dt class="col-sm-3">Bakiye</dt>
+    <dd class="col-sm-9">@Model.Balance</dd>
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Düzenle</a>
+<a asp-action="Index" class="btn btn-outline-secondary">Listeye Dön</a>
