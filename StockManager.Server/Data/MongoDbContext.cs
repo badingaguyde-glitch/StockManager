@@ -2,13 +2,13 @@ using MongoDB.Driver;
 using Microsoft.Extensions.Configuration;
 using StockManager.Server.Models;
 
-namespace StockManager.Server.Data  
+namespace StockManager.Server.Data
 {
-    public class MongoDBContext
+    public class MongoDbContext
     {
         private readonly IMongoDatabase _database;
 
-        public MongoDBContext(IConfiguration configuration)
+        public MongoDbContext(IConfiguration configuration)
         {
             var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") ?? configuration.GetSection("MongoDbSettings:ConnectionString").Value;
             var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
@@ -25,7 +25,7 @@ namespace StockManager.Server.Data
         public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
         public IMongoCollection<StockMovement> StockMovements => _database.GetCollection<StockMovement>("StockMovements");
         public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("Sales");
-        
+
 
         private void SeedData()
         {
