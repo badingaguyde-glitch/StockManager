@@ -1,6 +1,9 @@
 using StockManager.Server.Data;
+using dotenv.net;
+
 
 var builder = WebApplication.CreateBuilder(args);
+DotEnv.Load();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

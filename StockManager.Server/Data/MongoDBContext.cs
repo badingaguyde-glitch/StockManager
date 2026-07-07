@@ -10,7 +10,7 @@ namespace StockManager.Server.Data
 
         public MongoDBContext(IConfiguration configuration)
         {
-            var connectionString = configuration.GetSection("MongoDbSettings:ConnectionString").Value;
+            var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") ?? configuration.GetSection("MongoDbSettings:ConnectionString").Value;
             var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
 
             var client = new MongoClient(connectionString);
