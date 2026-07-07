@@ -7,9 +7,9 @@ namespace StockManager.Server.Controllers
 {
     public class StockMovementController : Controller
     {
-        private readonly MongoDBContext _context;
+        private readonly MongoDbContext _context;
 
-        public StockMovementController(MongoDBContext context)
+        public StockMovementController(MongoDbContext context)
         {
             _context = context;
         }
@@ -30,7 +30,7 @@ namespace StockManager.Server.Controllers
                 .FirstOrDefaultAsync();
 
             if (movement == null) return NotFound();
-            
+
             return View(movement);
         }
 
@@ -50,14 +50,14 @@ namespace StockManager.Server.Controllers
 
             return View();
         }
-        
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(StockMovement movement)
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.products =await _context.Products
+                ViewBag.products = await _context.Products
                     .Find(FilterDefinition<Product>.Empty)
                     .ToListAsync();
                 ViewBag.suppliers = await _context.Suppliers
@@ -77,12 +77,12 @@ namespace StockManager.Server.Controllers
             if (movement.Type == StockMovementType.StockIn)
             {
                 var increaseQty = Builders<Product>.Update
-                    .Inc(p=> p.Quantity, movement.Quantity);
+                    .Inc(p => p.Quantity, movement.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, increaseQty);
 
                 if (!string.IsNullOrEmpty(movement.SupplierId))
                 {
-                    var product =await _context.Products
+                    var product = await _context.Products
                         .Find(productFilter)
                         .FirstOrDefaultAsync();
 
@@ -102,13 +102,13 @@ namespace StockManager.Server.Controllers
                     .Inc(p => p.Quantity, -movement.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
             }
-            else if (movement.Type ==StockMovementType.Adjustment)
+            else if (movement.Type == StockMovementType.Adjustment)
             {
                 var setQty = Builders<Product>.Update
-                    .Set(p=> p.Quantity, movement.Quantity);
+                    .Set(p => p.Quantity, movement.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, setQty);
             }
-        return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Index));
         }
     }
 }

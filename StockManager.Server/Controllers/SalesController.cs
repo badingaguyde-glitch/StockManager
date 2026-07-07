@@ -7,9 +7,9 @@ namespace StockManager.Server.Controllers
 {
     public class SalesController : Controller
     {
-        private readonly MongoDBContext _context;
+        private readonly MongoDbContext _context;
 
-        public SalesController(MongoDBContext context)
+        public SalesController(MongoDbContext context)
         {
             _context = context;
         }
@@ -31,26 +31,26 @@ namespace StockManager.Server.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddToCart(String barcode)
         {
-            var product = await _context.Products  
+            var product = await _context.Products
                 .Find(p => p.Barcode == barcode)
                 .FirstOrDefaultAsync();
 
-                if (product == null)
-                {
-                    return Json(new {success= false, message = "Ürün bulunamadı."});
-                }
-                if (product.Quantity <= 0)
-                {
-                    return Json(new { success = false, message = "Ürün stokta yok." });
-                }
-                return Json(new
-                {
-                    success = true,
-                    id =product.Id,
-                    name = product.Name,
-                    salePrice =product.SalePrice,
-                    quantity = product.Quantity
-                });
+            if (product == null)
+            {
+                return Json(new { success = false, message = "Ürün bulunamadı." });
+            }
+            if (product.Quantity <= 0)
+            {
+                return Json(new { success = false, message = "Ürün stokta yok." });
+            }
+            return Json(new
+            {
+                success = true,
+                id = product.Id,
+                name = product.Name,
+                salePrice = product.SalePrice,
+                quantity = product.Quantity
+            });
         }
 
         [HttpPost]
@@ -65,7 +65,7 @@ namespace StockManager.Server.Controllers
 
             sale.SaleDate = DateTime.UtcNow;
             var count = await _context.Sales.CountDocumentsAsync(FilterDefinition<Sale>.Empty);
-            sale.InvoiceNumber= $"INV-{DateTime.UtcNow:yyyyMMdd}-{count + 1:D3}";
+            sale.InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{count + 1:D3}";
 
             sale.TotalAmount = sale.Items.Sum(i => i.Quantity * i.UnitPrice);
 
@@ -73,7 +73,7 @@ namespace StockManager.Server.Controllers
 
             foreach (var item in sale.Items)
             {
-                var productFilter = Builders<Product>.Filter.Eq(p=>p.Id,item.ProductId);
+                var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
                 var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
             }
@@ -84,16 +84,16 @@ namespace StockManager.Server.Controllers
                 await _context.Customers.UpdateOneAsync(customerFilter, increaseBalance);
             }
 
-            return RedirectToAction(nameof(Invoice), new {id = sale.Id});
+            return RedirectToAction(nameof(Invoice), new { id = sale.Id });
         }
 
         public async Task<IActionResult> Invoice(string id)
         {
             var sale = await _context.Sales
-                .Find(s=>s.Id ==id)
+                .Find(s => s.Id == id)
                 .FirstOrDefaultAsync();
 
-            if (sale== null)
+            if (sale == null)
             {
                 return NotFound();
             }
