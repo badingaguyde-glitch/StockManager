@@ -4,11 +4,11 @@ using StockManager.Server.Models;
 
 namespace StockManager.Server.Data
 {
-    public class MongoDbContext
+    public class MongoDBContext
     {
         private readonly IMongoDatabase _database;
 
-        public MongoDbContext(IConfiguration configuration)
+        public MongoDBContext(IConfiguration configuration)
         {
             var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") ?? configuration.GetSection("MongoDbSettings:ConnectionString").Value;
             var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
