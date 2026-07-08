@@ -1,12 +1,30 @@
+using Microsoft.Extensions.Options;
 using StockManager.Server.Data;
+using StockManager.Server.Models;
+using StockManager.Server.Services;
 using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
 
+// Load Stripe settings from environment variables.
+builder.Services.Configure<StripeSettings>(options =>
+{
+    options.PublicKey = Environment.GetEnvironmentVariable("STRIPE_PUBLIC_KEY") ?? string.Empty;
+    options.SecretKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY") ?? string.Empty;
+    options.Currency = Environment.GetEnvironmentVariable("STRIPE_CURRENCY") ?? "try";
+});
+
+builder.Services.AddSingleton<MongoDBContext>();
+builder.Services.AddSingleton<StripePaymentService>(sp =>
+{
+    var settings = sp.GetRequiredService<IOptions<StripeSettings>>().Value;
+    return new StripePaymentService(settings);
+});
+builder.Services.AddSingleton<ReceiptPdfService>();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddSingleton<MongoDBContext>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
