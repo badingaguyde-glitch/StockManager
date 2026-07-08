@@ -1,0 +1,53 @@
+@model StockManager.Server.Models.StockMovement
+
+@{
+    ViewData["Title"]= "Stock Hareketi Detayı";
+}
+
+<h2>Stock Hareketi Detayı</h2>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">İşlem Tarihi</dt>
+            <dd class="col-sm-9">@Model.Date.ToString("yyyy-MM-dd HH:mm:ss")</dd>
+            <dt class="col-sm-3">Ürün</dt>
+            <dd class="col-sm-9">@ViewBag.ProductName</dd>
+            <dt class="col-sm-3">İşlem Türü</dt>
+            <dd class="col-sm-9">
+                @switch (Model.Type)
+                {
+                    case StockManager.Server.Models.StockMovementType.StockIn:
+                        <span class="badge bg-success">Stok Girişi</span>
+                        break;
+                    case StockManager.Server.Models.StockMovementType.StockOut:
+                        <span class="badge bg-danger">Stok Çıkışı</span>
+                        break;
+                    case StockManager.Server.Models.StockMovementType.Adjustment:
+                        <span class="badge bg-info text-dark">Düzeltme</span>
+                        break;
+                }
+            </dd>
+
+            <dt class="col-sm-3">Miktar</dt>
+            <dd class="col-sm-9 fw-bold fs-5 text-primary">@Model.Quantity</dd>
+
+            @if (Model.Type == StockManager.Server.Models.StockMovementType.StockIn && ViewBag.SupplierName !=null)
+            {
+                <dt class="col-sm-3">Tedarikçi</dt>
+                <dd class="col-sm-9">@ViewBag.SupplierName</dd>
+            }else if (Model.Type == StockManager.Server.Models.StockMovementType.StockOut && 
+            ViewBag.CustomerName !=null)
+            {
+                <dt class="col-sm-3">Müşteri</dt>
+                <dd class="col-sm-9">@ViewBag.CustomerName</dd>
+            }
+            <dt class="col-sm-3">Notlar / Açıklamalar</dt>
+            <dd class="col-sm-9 text-secondary">@(string.IsNullOrEmpty(Model.Notes) ? "Not yok" : Model.Notes)</dd>
+        </dl>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Listeye Dön</a>
+</div>

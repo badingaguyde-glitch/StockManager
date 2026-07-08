@@ -1,15 +1,16 @@
 using Microsoft.AspNetCore.Mvc;
 using StockManager.Server.Data;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using StockManager.Server.Models;
 using MongoDB.Driver;
 
 namespace StockManager.Server.Controllers
 {
-    public class StockMovementController : Controller
+    public class StockMovementsController : Controller
     {
         private readonly MongoDBContext _context;
 
-        public StockMovementController(MongoDBContext context)
+        public StockMovementsController(MongoDBContext context)
         {
             _context = context;
         }
@@ -31,23 +32,33 @@ namespace StockManager.Server.Controllers
 
             if (movement == null) return NotFound();
 
+            var product = await _context.Products.Find(p => p.Id == movement.ProductId).FirstOrDefaultAsync();
+            ViewBag.ProductName = product?.Name ?? "Bilinmeyen Ürün";
+
+            if (!string.IsNullOrEmpty(movement.SupplierId))
+            {
+                var supplier = await _context.Suppliers.Find(s => s.Id == movement.SupplierId).FirstOrDefaultAsync();
+                ViewBag.SupplierName = supplier?.CompanyName ?? "Bilinmeyen Tedarikçi";
+
+            }
+
+            if (!string.IsNullOrEmpty(movement.CustomerId))
+            {
+                var customer = await _context.Customers.Find(c => c.Id == movement.CustomerId).FirstOrDefaultAsync();
+                ViewBag.CustomerName = customer?.FullName ?? "Bilinmeyen Müşteri";
+            }
+
             return View(movement);
         }
 
         public async Task<IActionResult> Create()
         {
-            ViewBag.Products = await _context.Products
-                .Find(FilterDefinition<Product>.Empty)
-                .ToListAsync();
-
-            ViewBag.Suppliers = await _context.Suppliers
-                .Find(FilterDefinition<Supplier>.Empty)
-                .ToListAsync();
-
-            ViewBag.Customers = await _context.Customers
-                .Find(FilterDefinition<Customer>.Empty)
-                .ToListAsync();
-
+            var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
+            var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
+            var customers = await _context.Customers.Find(FilterDefinition<Customer>.Empty).SortBy(c => c.FullName).ToListAsync();
+            ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity})", p.Id)).ToList();
+            ViewBag.Suppliers = suppliers.Select(s => new SelectListItem(s.CompanyName, s.Id)).ToList();
+            ViewBag.Customers = customers.Select(c => new SelectListItem(c.FullName, c.Id)).ToList();
             return View();
         }
 
@@ -57,16 +68,12 @@ namespace StockManager.Server.Controllers
         {
             if (!ModelState.IsValid)
             {
-                ViewBag.Products = await _context.Products
-                    .Find(FilterDefinition<Product>.Empty)
-                    .ToListAsync();
-                ViewBag.Suppliers = await _context.Suppliers
-                    .Find(FilterDefinition<Supplier>.Empty)
-                    .ToListAsync();
-                ViewBag.Customers = await _context.Customers
-                    .Find(FilterDefinition<Customer>.Empty)
-                    .ToListAsync();
-
+                var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
+                var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
+                var customers = await _context.Customers.Find(FilterDefinition<Customer>.Empty).SortBy(c => c.FullName).ToListAsync();
+                ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity})", p.Id)).ToList();
+                ViewBag.Suppliers = suppliers.Select(s => new SelectListItem(s.CompanyName, s.Id)).ToList();
+                ViewBag.Customers = customers.Select(c => new SelectListItem(c.FullName, c.Id)).ToList();
                 return View(movement);
             }
             movement.Date = DateTime.UtcNow;

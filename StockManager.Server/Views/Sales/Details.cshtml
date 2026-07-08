@@ -1,0 +1,85 @@
+@model StockManager.Server.Models.Sale
+
+@{
+    ViewData["Title"] = "Satış Detayi";
+}
+
+<h2>Satış Detayi</h2>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Fatura No:</dt>
+            <dd class="col-sm-9">@Model.InvoiceNumber</dd>
+
+            <dt class="col-sm-3">Tarih:</dt>
+            <dd class="col-sm-9">@Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy")</dd>
+
+            <dt class="col-sm-3">Ürün Sayısı:</dt>
+            <dd class="col-sm-9">@Model.Items.Count</dd>
+
+            <dt class="col-sm-3">Ödeme Tipi:</dt>
+            <dd class="col-sm-9">
+                @switch (Model.PaymentType)
+                {
+                    case StockManager.Server.Models.PaymentType.Cash:
+                        <span class="badge bg-success">Nakit</span>
+                        break;
+                    case StockManager.Server.Models.PaymentType.Card:
+                        <span class="badge bg-primary">Kart</span>
+                        break;
+                    case StockManager.Server.Models.PaymentType.Debt:
+                        <span class="badge bg-warning text-dark">Veresiye</span>
+                        break;
+                }
+            </dd>
+            @if (ViewBag.Customer != null)
+            {
+                <dt class="col-sm-3">Müşteri:</dt>
+                <dd class="col-sm-9">
+                    <a asp-controller="Customers" asp-action="Details" asp-route-id="@ViewBag.Customer.Id">
+                        @ViewBag.Customer.FullName
+                    </a>
+                </dd>
+            }
+
+            <dt class="col-sm-3">Toplam Tutar:</dt>
+            <dd class="col-sm-9">@Model.TotalAmount.ToString("0.00")</dd>
+        </dl>
+    </div>
+</div>
+
+<h4>Satılan Ürünler</h4>
+
+<table class="table table-striped">
+    <thread>
+        <tr>
+            <th>Ürün</th>
+            <th>Miktar</th>
+            <th>Birim Fiyat</th>
+            <th>Satır Toplamı</th>
+        </tr>
+    </thread>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.Quantity</td>
+                <td>@item.UnitPrice.ToString("0.00")</td>
+                <td>@item.TotalLinePrice.ToString("0.00")</td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="3" class="text-end"><strong>Genel Toplam</strong></td>
+            <td><strong>@Model.TotalAmount.ToString("0.00")</strong></td>
+        </tr>
+    </tfoot>
+</table>
+
+<div class="d-flex gap-2">
+    <a asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-outline-primary">Fatura Görüntüle</a>
+    <a asp-action="History" class="btn btn-outline-secondary">Satış Geçmişine Dön</a>
+</div>
