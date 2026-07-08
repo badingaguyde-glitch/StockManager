@@ -44,32 +44,56 @@ public class ProductsController : Controller
     public async Task<IActionResult> Create()
     {
         await PopulateDropdowns();
-        return View();
+        return View(new ProductInputModel());
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Product product)
+    public async Task<IActionResult> Create(ProductInputModel model)
     {
         if (!ModelState.IsValid)
         {
             await PopulateDropdowns();
-            return View(product);
+            return View(model);
         }
 
-        if (!string.IsNullOrWhiteSpace(product.Barcode))
+        if (!string.IsNullOrWhiteSpace(model.Barcode))
         {
             var barcodeExists = await _context.Products
-                .Find(p => p.Barcode == product.Barcode)
+                .Find(p => p.Barcode == model.Barcode)
                 .AnyAsync();
 
             if (barcodeExists)
             {
-                ModelState.AddModelError(nameof(Product.Barcode), "Bu barkod zaten kayıtlı.");
+                ModelState.AddModelError(nameof(model.Barcode), "Bu barkod zaten kayıtlı.");
                 await PopulateDropdowns();
-                return View(product);
+                return View(model);
             }
         }
+
+        if (!string.IsNullOrWhiteSpace(model.SupplierName))
+        {
+            var supplier = new Supplier
+            {
+                CompanyName = model.SupplierName
+            };
+
+            await _context.Suppliers.InsertOneAsync(supplier);
+            model.SupplierId = supplier.Id;
+        }
+
+        var product = new Product
+        {
+            Barcode = model.Barcode,
+            Name = model.Name,
+            Description = model.Description,
+            PurchasePrice = model.PurchasePrice,
+            SalePrice = model.SalePrice,
+            Quantity = model.Quantity,
+            LowStockThreshold = model.LowStockThreshold,
+            CategoryId = model.CategoryId,
+            SupplierId = model.SupplierId
+        };
 
         await _context.Products.InsertOneAsync(product);
         return RedirectToAction(nameof(Index));
@@ -84,44 +108,69 @@ public class ProductsController : Controller
         }
 
         await PopulateDropdowns();
-        return View(product);
+        var model = new ProductInputModel
+        {
+            Id = product.Id,
+            Barcode = product.Barcode,
+            Name = product.Name,
+            Description = product.Description,
+            PurchasePrice = product.PurchasePrice,
+            SalePrice = product.SalePrice,
+            Quantity = product.Quantity,
+            LowStockThreshold = product.LowStockThreshold,
+            CategoryId = product.CategoryId,
+            SupplierId = product.SupplierId
+        };
+
+        return View(model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Product product)
+    public async Task<IActionResult> Edit(ProductInputModel model)
     {
         if (!ModelState.IsValid)
         {
             await PopulateDropdowns();
-            return View(product);
+            return View(model);
         }
 
-        if (!string.IsNullOrWhiteSpace(product.Barcode))
+        if (!string.IsNullOrWhiteSpace(model.Barcode))
         {
             var barcodeExists = await _context.Products
-                .Find(p => p.Barcode == product.Barcode && p.Id != product.Id)
+                .Find(p => p.Barcode == model.Barcode && p.Id != model.Id)
                 .AnyAsync();
 
             if (barcodeExists)
             {
-                ModelState.AddModelError(nameof(Product.Barcode), "Bu barkod başka bir ürün tarafından kullanılıyor.");
+                ModelState.AddModelError(nameof(model.Barcode), "Bu barkod başka bir ürün tarafından kullanılıyor.");
                 await PopulateDropdowns();
-                return View(product);
+                return View(model);
             }
         }
 
-        var filter = Builders<Product>.Filter.Eq(p => p.Id, product.Id);
+        if (!string.IsNullOrWhiteSpace(model.SupplierName))
+        {
+            var supplier = new Supplier
+            {
+                CompanyName = model.SupplierName
+            };
+
+            await _context.Suppliers.InsertOneAsync(supplier);
+            model.SupplierId = supplier.Id;
+        }
+
+        var filter = Builders<Product>.Filter.Eq(p => p.Id, model.Id);
         var update = Builders<Product>.Update
-            .Set(p => p.Barcode, product.Barcode)
-            .Set(p => p.Name, product.Name)
-            .Set(p => p.Description, product.Description)
-            .Set(p => p.PurchasePrice, product.PurchasePrice)
-            .Set(p => p.SalePrice, product.SalePrice)
-            .Set(p => p.Quantity, product.Quantity)
-            .Set(p => p.LowStockThreshold, product.LowStockThreshold)
-            .Set(p => p.CategoryId, product.CategoryId)
-            .Set(p => p.SupplierId, product.SupplierId);
+            .Set(p => p.Barcode, model.Barcode)
+            .Set(p => p.Name, model.Name)
+            .Set(p => p.Description, model.Description)
+            .Set(p => p.PurchasePrice, model.PurchasePrice)
+            .Set(p => p.SalePrice, model.SalePrice)
+            .Set(p => p.Quantity, model.Quantity)
+            .Set(p => p.LowStockThreshold, model.LowStockThreshold)
+            .Set(p => p.CategoryId, model.CategoryId)
+            .Set(p => p.SupplierId, model.SupplierId);
 
         await _context.Products.UpdateOneAsync(filter, update);
         return RedirectToAction(nameof(Index));
