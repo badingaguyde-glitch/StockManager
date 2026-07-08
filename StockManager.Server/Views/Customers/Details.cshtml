@@ -14,7 +14,7 @@
     <dt class="col-sm-3">E-posta</dt>
     <dd class="col-sm-9">@Model.Email</dd>
     <dt class="col-sm-3">Bakiye</dt>
-    <dd class="col-sm-9">@Model.Balance</dd>
+    <dd class="col-sm-9">@Model.Balance.ToString("0.00")</dd>
 </dl>
 
 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Düzenle</a>
