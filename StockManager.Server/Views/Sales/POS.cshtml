@@ -1,0 +1,42 @@
+@{
+    ViewData["Title"] = "POS";
+}
+
+<h2>POS Satış Ekranı</h2>
+
+<form asp-action="Checkout" method="post">
+    <input type="hidden" name="Currency" value="TRY" />
+    <div class="mb-3">
+        <label for="customerId" class="form-label">Müşteri</label>
+        <select id="customerId" name="CustomerId" class="form-select">
+            <option value="">Yok</option>
+            @foreach (var customer in ViewBag.Customers)
+            {
+                <option value="@customer.Id">@customer.FullName</option>
+            }
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="paymentType" class="form-label">Ödeme Türü</label>
+        <select id="paymentType" name="PaymentType" class="form-select">
+            <option value="Cash">Nakit</option>
+            <option value="Card">Kart</option>
+            <option value="Debt">Borç</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="barcode" class="form-label">Ürün Barkodu</label>
+        <input id="barcode" name="barcode" type="text" class="form-control" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Ödeme Başlat</button>
+</form>
+
+@section Scripts {
+    <script>
+        // Bu örnek view, temel POST akışı için placeholder görevi görür.
+        // Daha gelişmiş bir POS arayüzü için JavaScript üzerinden ürün ekleme/ sepet yönetimi ekleyebilirsiniz.
+    </script>
+}
