@@ -1,0 +1,39 @@
+@model StockManager.Server.Models.Sale
+
+@{
+    ViewData["Title"] = "Satış Fişi";
+}
+
+<h2>Satış Fişi</h2>
+
+<div class="mb-4">
+    <p><strong>Fiş No:</strong> @Model.InvoiceNumber</p>
+    <p><strong>Tarih:</strong> @Model.SaleDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</p>
+    <p><strong>Toplam:</strong> @Model.TotalAmount.ToString("0.00") @Model.Currency</p>
+    <p><strong>Ödeme Türü:</strong> @Model.PaymentType</p>
+    <p><strong>Stripe Durumu:</strong> @Model.StripeStatus</p>
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Ürün</th>
+            <th>Adet</th>
+            <th>Birim Fiyat</th>
+            <th>Tutar</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model.Items)
+        {
+            <tr>
+                <td>@item.ProductName</td>
+                <td>@item.Quantity</td>
+                <td>@item.UnitPrice.ToString("0.00")</td>
+                <td>@item.TotalLinePrice.ToString("0.00")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Fiş PDF İndir</a>
