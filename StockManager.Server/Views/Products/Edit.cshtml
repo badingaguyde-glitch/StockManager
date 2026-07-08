@@ -1,4 +1,4 @@
-@model StockManager.Server.Models.Product
+@model StockManager.Server.Models.ProductInputModel
 
 @{
     ViewData["Title"] = "Ürünü Düzenle";
@@ -58,6 +58,12 @@
         <select asp-for="SupplierId" class="form-select" asp-items="ViewBag.Suppliers">
             <option value="">Seçiniz</option>
         </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SupplierName" class="form-label">Yeni Tedarikçi Adı</label>
+        <input asp-for="SupplierName" class="form-control" placeholder="Tedarikçi adı girin" />
+        <span asp-validation-for="SupplierName" class="text-danger"></span>
     </div>
 
     <button type="submit" class="btn btn-primary">Kaydet</button>
