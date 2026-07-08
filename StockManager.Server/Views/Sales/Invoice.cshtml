@@ -1,0 +1,136 @@
+@model StockManager.Server.Models.Sale
+
+@{
+    ViewData["Title"] = "Fatura / Fiş";
+}
+
+<!-- Baskı esnasında butonları gizleyen CSS stili -->
+<style>
+    @@media print {
+        .no-print {
+            display: none !important;
+        }
+
+        body {
+            background-color: white;
+            color: black;
+            padding: 0;
+            margin: 0;
+        }
+
+        .container {
+            width: 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+
+        .card {
+            border: none !important;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Yazdırma ve Kontrol Butonları (Baskıda gizlenir) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <h2>Fatura / Fiş Ayrıntısı</h2>
+        <div>
+            <button onclick="window.print();" class="btn btn-primary">
+                <i class="bi bi-printer"></i> Yazdır
+            </button>
+            <a asp-action="POS" class="btn btn-secondary">Yeni Satışa Dön</a>
+            <a asp-action="History" class="btn btn-outline-secondary">Satış Geçmişi</a>
+        </div>
+    </div>
+
+    <!-- Fatura İçeriği -->
+    <div class="card">
+        <div class="card-body">
+            <!-- Başlık ve Fatura Numarası -->
+            <div class="row mb-4">
+                <div class="col-sm-6">
+                    <h3 class="fw-bold">STOCK MANAGER</h3>
+                    <p class="text-muted">Stok ve Satış Yönetim Sistemi</p>
+                </div>
+                <div class="col-sm-6 text-sm-end">
+                    <h4 class="text-primary fw-bold">FATURA / FİŞ</h4>
+                    <p class="mb-0"><strong>Fatura No:</strong> @Model.InvoiceNumber</p>
+                    <p><strong>Tarih:</strong> @Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                </div>
+            </div>
+
+            <hr />
+
+            <!-- Müşteri ve Ödeme Bilgileri -->
+            <div class="row mb-4">
+                <div class="col-sm-6">
+                    <h6 class="text-muted fw-bold">Müşteri Bilgileri:</h6>
+                    @if (ViewBag.Customer != null)
+                    {
+                        <div><strong>@ViewBag.Customer.FullName</strong></div>
+                        <div>Telefon: @(ViewBag.Customer.Phone ?? "-")</div>
+                        <div>E-posta: @(ViewBag.Customer.Email ?? "-")</div>
+                    }
+                    else
+                    {
+                        <div><em>Bilinmeyen / Perakende Müşteri</em></div>
+                    }
+                </div>
+                <div class="col-sm-6 text-sm-end">
+                    <h6 class="text-muted fw-bold">Ödeme Yöntemi:</h6>
+                    <div>
+                        @switch (Model.PaymentType)
+                        {
+                            case StockManager.Server.Models.PaymentType.Cash:
+                                <strong class="text-success">Nakit</strong>
+                                break;
+                            case StockManager.Server.Models.PaymentType.Card:
+                                <strong class="text-primary">Kart</strong>
+                                break;
+                            case StockManager.Server.Models.PaymentType.Debt:
+                                <strong class="text-danger">Veresiye (Cari Hesap)</strong>
+                                break;
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ürün Listesi Tablosu -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead>
+                        <tr class="bg-light">
+                            <th style="width: 50%">Ürün Adı</th>
+                            <th class="text-center" style="width: 15%">Birim Fiyat</th>
+                            <th class="text-center" style="width: 15%">Miktar</th>
+                            <th class="text-end" style="width: 20%">Toplam Fiyat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>@item.ProductName</td>
+                                <td class="text-center">@item.UnitPrice.ToString("0.00") ₺</td>
+                                <td class="text-center">@item.Quantity</td>
+                                <td class="text-end">@item.TotalLinePrice.ToString("0.00") ₺</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Toplam Tutar:</td>
+                            <td class="text-end fw-bold text-primary fs-5">@Model.TotalAmount.ToString("0.00") ₺</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Bilgilendirme Notu -->
+            <div class="mt-5 text-center text-muted fs-7 no-print">
+                <p>Bu fatura StockManager sistemi tarafından otomatik olarak üretilmiştir.</p>
+            </div>
+        </div>
+    </div>
+</div>

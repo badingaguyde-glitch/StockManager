@@ -1,0 +1,111 @@
+@model StockManager.Server.Models.StockMovement
+@using StockManager.Server.Models
+
+@{
+    ViewData["Title"] = "Stok Hareketi Ekle";
+}
+
+<h2>Yeni Stok Hareketi</h2>
+
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <!-- Ürün Seçimi -->
+    <div class="mb-3">
+        <label asp-for="ProductId" class="form-label fw-bold">Ürün</label>
+        <select asp-for="ProductId" class="form-select" asp-items="ViewBag.Products" required>
+            <option value="">Seçiniz...</option>
+        </select>
+        <span asp-validation-for="ProductId" class="text-danger"></span>
+    </div>
+
+    <!-- Hareket Türü -->
+    <div class="mb-3">
+        <label asp-for="Type" class="form-label fw-bold">Hareket Türü</label>
+        <select asp-for="Type" class="form-select" id="movement-type" asp-items="Html.GetEnumSelectList<StockMovementType>()" onchange="onTypeChange()" required>
+            <option value="">Seçiniz...</option>
+        </select>
+        <span asp-validation-for="Type" class="text-danger"></span>
+    </div>
+
+    <!-- Miktar -->
+    <div class="mb-3">
+        <label asp-for="Quantity" class="form-label fw-bold">Miktar</label>
+        <input asp-for="Quantity" class="form-control" type="number" min="1" required />
+        <span asp-validation-for="Quantity" class="text-danger"></span>
+    </div>
+
+    <!-- Tedarikçi Seçimi (Sadece Stok Girişinde görünür) -->
+    <div class="mb-3" id="supplier-group" style="display: none;">
+        <label asp-for="SupplierId" class="form-label fw-bold">Tedarikçi</label>
+        <select asp-for="SupplierId" class="form-select" asp-items="ViewBag.Suppliers">
+            <option value="">Seçiniz...</option>
+        </select>
+        <span asp-validation-for="SupplierId" class="text-danger"></span>
+    </div>
+
+    <!-- Müşteri Seçimi (Sadece Stok Çıkışında görünür) -->
+    <div class="mb-3" id="customer-group" style="display: none;">
+        <label asp-for="CustomerId" class="form-label fw-bold">Müşteri</label>
+        <select asp-for="CustomerId" class="form-select" asp-items="ViewBag.Customers">
+            <option value="">Seçiniz...</option>
+        </select>
+        <span asp-validation-for="CustomerId" class="text-danger"></span>
+    </div>
+
+    <!-- Notlar -->
+    <div class="mb-4">
+        <label asp-for="Notes" class="form-label fw-bold">Açıklama / Notlar</label>
+        <textarea asp-for="Notes" class="form-control" rows="3" placeholder="İşleme ait notları buraya girin..."></textarea>
+        <span asp-validation-for="Notes" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+    <a asp-action="Index" class="btn btn-secondary">İptal</a>
+</form>
+
+@section Scripts {
+    <script>
+        function onTypeChange() {
+            const typeSelect = document.getElementById('movement-type');
+            const supplierGroup = document.getElementById('supplier-group');
+            const customerGroup = document.getElementById('customer-group');
+            
+            const selectedValue = typeSelect.value;
+            
+            // StockMovementType Enum Değerleri: 
+            // 0 = StockIn (Giriş)
+            // 1 = StockOut (Çıkış)
+            // 2 = Adjustment (Düzeltme)
+            
+            if (selectedValue === '0') {
+                // Stok Girişi
+                supplierGroup.style.display = 'block';
+                customerGroup.style.display = 'none';
+                document.getElementById('SupplierId').setAttribute('required', 'required');
+                document.getElementById('CustomerId').removeAttribute('required');
+                document.getElementById('CustomerId').value = '';
+            } else if (selectedValue === '1') {
+                // Stok Çıkışı
+                supplierGroup.style.display = 'none';
+                customerGroup.style.display = 'block';
+                document.getElementById('CustomerId').setAttribute('required', 'required');
+                document.getElementById('SupplierId').removeAttribute('required');
+                document.getElementById('SupplierId').value = '';
+            } else {
+                // Düzeltme veya Seçilmedi
+                supplierGroup.style.display = 'none';
+                customerGroup.style.display = 'none';
+                document.getElementById('SupplierId').removeAttribute('required');
+                document.getElementById('CustomerId').removeAttribute('required');
+                document.getElementById('SupplierId').value = '';
+                document.getElementById('CustomerId').value = '';
+            }
+        }
+
+        // Sayfa hatalı postback olduğunda doğru alanları açık tutmak için tetikleme yap
+        document.addEventListener('DOMContentLoaded', function () {
+            onTypeChange();
+        });
+    </script>
+}

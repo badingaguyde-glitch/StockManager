@@ -1,0 +1,58 @@
+@model IEnumerable<StockManager.Server.Models.Sale>
+
+@{
+    ViewData["Title"] = "Satış Geçmişi";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Satış Geçmişi</h2>
+    <a asp-action="POS" class="btn btn-primary">Yeni Satış</a>
+</div>
+
+@if (!Model.Any()){
+    <div class="alert alert-info">Henüz satılan ürün yok.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thread>
+            <tr>
+                <th>Fatura No</th>
+                <th>Tarih</th>
+                <th>Ürün Sayısı</th>
+                <th>Toplam Tutar</th>
+                <th>Ödeme</th>
+                <th></th>
+            </tr>
+        </thread>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.InvoiceNumber</td>
+                    <td>@item.SaleDate.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                    <td>@item.Items.Count</td>
+                    <td>@item.TotalAmount.ToString("0.00")</td>
+                    <td>
+                        @switch (item.PaymentType)
+                        {
+                            case StockManager.Server.Models.PaymentType.Cash:
+                                <span class="badge bg-success">Nakit</span>
+                                break;
+                            case StockManager.Server.Models.PaymentType.Card:
+                                <span class="badge bg-primary">Kart</span>
+                                break;
+                            case StockManager.Server.Models.PaymentType.Debt:
+                                <span class="badge bg-warning text-dark">Veresiye</span>
+                                break;
+                        }
+                    </td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detay</a>
+                        <a asp-action="Invoice" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Fatura</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
