@@ -24,11 +24,11 @@
         @foreach (var item in Model)
         {
             <tr>
-                <td>@item.CompanyName</td>
+                <td><a asp-action="Details" asp-route-id="@item.Id">@item.CompanyName</a></td>
                 <td>@item.ContactName</td>
                 <td>@item.Phone</td>
                 <td>@item.Email</td>
-                <td>@item.Balance</td>
+                <td>@item.Balance.ToString("0.00")</td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a>
                     <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline">
