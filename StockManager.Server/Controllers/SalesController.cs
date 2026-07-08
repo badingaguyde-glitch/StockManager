@@ -1,17 +1,26 @@
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
+using StripeCheckout = Stripe.Checkout;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
+using StockManager.Server.Services;
 
 namespace StockManager.Server.Controllers
 {
     public class SalesController : Controller
     {
         private readonly MongoDBContext _context;
+        private readonly StripePaymentService _stripePaymentService;
+        private readonly ReceiptPdfService _receiptPdfService;
 
-        public SalesController(MongoDBContext context)
+        public SalesController(
+            MongoDBContext context,
+            StripePaymentService stripePaymentService,
+            ReceiptPdfService receiptPdfService)
         {
             _context = context;
+            _stripePaymentService = stripePaymentService;
+            _receiptPdfService = receiptPdfService;
         }
 
         public async Task<IActionResult> POS()
@@ -66,8 +75,21 @@ namespace StockManager.Server.Controllers
             sale.SaleDate = DateTime.UtcNow;
             var count = await _context.Sales.CountDocumentsAsync(FilterDefinition<Sale>.Empty);
             sale.InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{count + 1:D3}";
-
             sale.TotalAmount = sale.Items.Sum(i => i.Quantity * i.UnitPrice);
+            sale.Currency = sale.Currency ?? "TRY";
+
+            var paymentIntent = await _stripePaymentService.CreatePaymentIntentAsync(
+                sale.TotalAmount,
+                sale.Currency,
+                $"Fatura {sale.InvoiceNumber}",
+                new Dictionary<string, string>
+                {
+                    { "invoice_number", sale.InvoiceNumber },
+                    { "payment_type", sale.PaymentType.ToString() }
+                });
+
+            sale.StripePaymentIntentId = paymentIntent.Id;
+            sale.StripeStatus = paymentIntent.Status;
 
             await _context.Sales.InsertOneAsync(sale);
 
@@ -77,6 +99,7 @@ namespace StockManager.Server.Controllers
                 var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
             }
+
             if (sale.PaymentType == PaymentType.Debt && !string.IsNullOrEmpty(sale.CustomerId))
             {
                 var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);
@@ -85,6 +108,22 @@ namespace StockManager.Server.Controllers
             }
 
             return RedirectToAction(nameof(Invoice), new { id = sale.Id });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadReceipt(string id)
+        {
+            var sale = await _context.Sales.Find(s => s.Id == id).FirstOrDefaultAsync();
+            if (sale == null) return NotFound();
+
+            Customer? customer = null;
+            if (!string.IsNullOrEmpty(sale.CustomerId))
+            {
+                customer = await _context.Customers.Find(c => c.Id == sale.CustomerId).FirstOrDefaultAsync();
+            }
+
+            var pdf = _receiptPdfService.GenerateReceiptPdf(sale, customer);
+            return File(pdf, "application/pdf", $"fis_{sale.InvoiceNumber}.pdf");
         }
 
         public async Task<IActionResult> Invoice(string id)

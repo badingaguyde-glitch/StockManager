@@ -25,6 +25,15 @@ public class Sale
     [BsonElement("paymentType")]
     public PaymentType PaymentType { get; set; }
 
+    [BsonElement("currency")]
+    public string Currency { get; set; } = "TRY";
+
+    [BsonElement("stripePaymentIntentId")]
+    public string? StripePaymentIntentId { get; set; }
+
+    [BsonElement("stripeStatus")]
+    public string? StripeStatus { get; set; }
+
     [BsonElement("items")]
     public List<SaleItem> Items { get; set; } = new();
 }
