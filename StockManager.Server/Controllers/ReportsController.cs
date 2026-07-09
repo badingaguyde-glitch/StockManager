@@ -66,6 +66,48 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> SalesTrend(int days = 30)
+    {
+        var to = DateTime.Today;
+        var from = to.AddDays(-days + 1);
+
+        var sales = await _context.Sales
+            .Find(s => s.SaleDate >= from.Date && s.SaleDate <= to.Date.AddDays(1).AddTicks(-1))
+            .ToListAsync();
+
+        var trend = Enumerable.Range(0, days)
+            .Select(i =>
+            {
+                var day = from.Date.AddDays(i);
+                var total = sales.Where(s => s.SaleDate.Date == day).Sum(s => s.TotalAmount);
+                return new { date = day.ToString("yyyy-MM-dd"), total };
+            })
+            .ToList();
+
+        return Json(trend);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CategoryDistribution()
+    {
+        var products = await _context.Products.Find(FilterDefinition<Product>.Empty).ToListAsync();
+        var categories = await _context.Categories.Find(FilterDefinition<Category>.Empty).ToListAsync();
+
+        var distribution = products
+            .GroupBy(p => p.CategoryId)
+            .Select(g => new
+            {
+                CategoryId = g.Key,
+                CategoryName = categories.FirstOrDefault(c => c.Id == g.Key)?.Name ?? "(Belirtilmemiş)",
+                StockValue = g.Sum(p => p.Quantity * p.PurchasePrice)
+            })
+            .OrderByDescending(x => x.StockValue)
+            .ToList();
+
+        return Json(distribution);
+    }
+
+    [HttpGet]
     public async Task<IActionResult> ProfitLoss(DateTime? startDate, DateTime? endDate)
     {
         var fromDate = startDate ?? DateTime.Today.AddDays(-30);
