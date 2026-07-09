@@ -74,15 +74,13 @@ public class CloudinaryImageService : IImageUploadService
             using var stream = file.OpenReadStream();
 
             // Cloudinary'ye yükle
-            var uploadParams = new RawUploadParams
+            var uploadParams = new ImageUploadParams
             {
                 File = new FileDescription(file.FileName, stream),
                 Folder = folder,
-                PublicId = $"{Guid.NewGuid()}",
+                PublicId = Guid.NewGuid().ToString(),
                 Overwrite = false,
-                Transformation = new Transformation()
-                    .Quality(auto: "good")
-                    .Fetch()
+                Quality = "auto"
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
@@ -154,17 +152,16 @@ public class CloudinaryImageService : IImageUploadService
 
         try
         {
-            var transformation = new Transformation()
-                .Width(width)
-                .Height(height)
-                .Crop("fill")
-                .Gravity("auto")
-                .Quality(quality)
-                .Format("auto");
+            // Cloudinary URL'sini transform et
+            var uri = new Uri(imageUrl);
+            var pathParts = uri.PathAndQuery.Split(new[] { "/upload/" }, StringSplitOptions.None);
 
-            var optimizedUrl = CloudinaryExtensions.CloudinaryUrl(imageUrl)
-                .Transform(transformation)
-                .ToString();
+            if (pathParts.Length < 2)
+                return imageUrl;
+
+            // Transformation parametreleri ekle
+            var transformation = $"w_{width},h_{height},c_fill,g_auto,q_{quality}";
+            var optimizedUrl = $"{pathParts[0]}/upload/{transformation}/{pathParts[1]}";
 
             return optimizedUrl;
         }
