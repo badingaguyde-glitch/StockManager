@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="tr">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,6 +11,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
+
 <body>
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3">
@@ -17,130 +19,247 @@
                 <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-box-seam-fill"></i> StockManager
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
-                            <li class="nav-item">
-                                <a class="nav-link text-white-50" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
-                            </li>
-
                             @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
                             {
                                 <li class="nav-item">
                                     <a class="nav-link text-white-50" asp-controller="Products" asp-action="Index">Ürünler</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="Categories" asp-action="Index">Kategoriler</a>
+                                    <a class="nav-link text-white-50" asp-controller="Categories"
+                                       asp-action="Index">Kategoriler</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="Customers" asp-action="Index">Müşteriler</a>
+                                    <a class="nav-link text-white-50" asp-controller="Customers"
+                                       asp-action="Index">Müşteriler</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="Suppliers" asp-action="Index">Tedarikçiler</a>
+                                    <a class="nav-link text-white-50" asp-controller="Suppliers"
+                                       asp-action="Index">Tedarikçiler</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="StockMovements" asp-action="Index">Stok Hareketleri</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="Sales" asp-action="History">Satış Geçmişi</a>
-                                </li>
-                            }
+                                    <a class="nav-link text-white-50" asp-controller="StockMovements" asp-action="Index">Stok
+                                        Hareketleri</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link text-white-50" asp-controller="Sales" asp-action="History">Satış
+                                            Geçmişi</a>
+                                        </li>
+                                    }
 
-                            @if (User.IsInRole("Admin") || User.IsInRole("Muhasebeci"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link text-white-50" asp-controller="Reports" asp-action="Index">Raporlar</a>
-                                </li>
-                            }
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Muhasebeci"))
+                                    {
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white-50" asp-controller="Reports" asp-action="Index">Raporlar</a>
+                                        </li>
+                                    }
 
-                            @if (User.IsInRole("Admin"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link text-warning fw-bold" asp-controller="Account" asp-action="Users">Personel Yönetimi</a>
-                                </li>
-                            }
-                        }
-                    </ul>
-                    
-                    <div class="d-flex align-items-center gap-3">
-                        @if (User.Identity != null && User.Identity.IsAuthenticated)
-                        {
-                            @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
-                            {
-                                <a asp-controller="Sales" asp-action="POS" class="btn btn-primary btn-sm fw-bold me-2">
-                                    <i class="bi bi-cart3"></i> Hızlı Satış (POS)
-                                </a>
-                            }
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <li class="nav-item">
+                                            <a class="nav-link text-warning fw-bold" asp-controller="Account"
+                                               asp-action="Users">Personel Yönetimi</a>
+                                        </li>
+                                    }
+                                }
+                            </ul>
 
-                            <div class="dropdown">
-                                <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="userMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuButton">
-                                    <li>
-                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
-                                            <i class="bi bi-gear"></i> Profil Ayarlarım
+                            <div class="d-flex align-items-center gap-3">
+                                @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                {
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
+                                    {
+                                        <a asp-controller="Sales" asp-action="POS" class="btn btn-primary btn-sm fw-bold me-2">
+                                            <i class="bi bi-cart3"></i> Hızlı Satış (POS)
                                         </a>
-                                    </li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                                            @Html.AntiForgeryToken()
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="bi bi-box-arrow-right"></i> Güvenli Çıkış
+                                    }
+
+                                    <!-- Bildirim Zili -->
+                                    <div class="dropdown me-2" id="notification-area">
+                                        <button class="btn btn-outline-light btn-sm position-relative" type="button"
+                                                id="notificationMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                                                onclick="loadNotifications()">
+                                            <i class="bi bi-bell"></i>
+                                            <span id="notification-badge"
+                                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                                  style="display:none;">
+                                                0
+                                            </span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationMenuButton"
+                                            id="notification-list" style="width: 320px; max-height: 400px; overflow-y: auto;">
+                                            <li>
+                                                <h6 class="dropdown-header">Bildirimler</h6>
+                                            </li>
+                                            <li>
+                                                <hr class="dropdown-divider">
+                                            </li>
+                                            <div id="notification-items">
+                                                <li><span class="dropdown-item text-muted text-center py-3">Bildirim
+                                                    bulunmuyor.</span></li>
+                                                </div>
+                                            </ul>
+                                        </div>
+
+                                        <!-- Kullanıcı Menüsü -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button"
+                                                    id="userMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="bi bi-person-circle"></i> @User.Identity.Name
                                             </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        }
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuButton">
+                                                <li>
+                                                    <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                                        <i class="bi bi-gear"></i> Profil Ayarlarım
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li>
+                                                    <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <button type="submit" class="dropdown-item text-danger">
+                                                            <i class="bi bi-box-arrow-right"></i> Güvenli Çıkış
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    }
                         else
-                        {
-                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-sm">Giriş Yap</a>
-                        }
+                                    {
+                                        <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-sm">Giriş
+                                            Yap</a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </nav>
+                    </header>
+                    <div class="container">
+                        <main role="main" class="pb-5">
+                            <!-- 🆕 Success/Error Messages -->
+                            @if (TempData["success"] != null)
+                            {
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle"></i> @TempData["success"]
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+                            @if (TempData["error"] != null)
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle"></i> @TempData["error"]
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+
+                            @RenderBody()
+                        </main>
                     </div>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-5">
-            <!-- 🆕 Success/Error Messages -->
-            @if (TempData["success"] != null)
-            {
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="bi bi-check-circle"></i> @TempData["success"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
-            @if (TempData["error"] != null)
-            {
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="bi bi-exclamation-circle"></i> @TempData["error"]
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            }
 
-            @RenderBody()
-        </main>
-    </div>
+                    <footer class="border-top footer text-muted position-absolute bottom-0 start-0 end-0 py-3 bg-light no-print">
+                        <div class="container text-center">
+                            &copy; 2026 - StockManager - <a asp-area="" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
+                        </div>
+                    </footer>
 
-    <footer class="border-top footer text-muted position-absolute bottom-0 start-0 end-0 py-3 bg-light no-print">
-        <div class="container text-center">
-            &copy; 2026 - StockManager - <a asp-area="" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
-        </div>
-    </footer>
+                    <!-- Bootstrap JS CDN -->
+                    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+                    <!-- Chart.js CDN -->
+                    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+                    <script src="~/js/site.js" asp-append-version="true"></script>
 
-    <!-- Bootstrap JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
-    @await RenderSectionAsync("Scripts", required: false)
-</body>
-</html>
+                    <!-- AJAX Bildirim Yönetimi Betikleri -->
+                    <script>
+                        async function checkUnreadNotifications() {
+                        try {
+                        const response = await fetch('/Notifications/GetUnread');
+                        const data = await response.json();
+                        const badge = document.getElementById('notification-badge');
+
+                        if (data.length > 0) {
+                        badge.textContent = data.length;
+                        badge.style.display = 'inline-block';
+                        } else {
+                        badge.style.display = 'none';
+                        }
+                        } catch (error) {
+                        console.error("Bildirimler kontrol edilemedi.", error);
+                        }
+                        }
+
+                        async function loadNotifications() {
+                        try {
+                        const response = await fetch('/Notifications/GetUnread');
+                        const data = await response.json();
+                        const container = document.getElementById('notification-items');
+                        container.innerHTML = '';
+
+                        if (data.length === 0) {
+                        container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-3">Yeni bildirim bulunmuyor.</span></li>';
+                        return;
+                        }
+
+                        data.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'px-3 py-2 border-bottom';
+                        li.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div style="font-size: 0.85rem;">${item.message}</div>
+                        <button class="btn btn-xs btn-outline-secondary py-0 px-1" onclick="markAsRead('${item.id}', this)" title="Okundu işaretle">
+                        <i class="bi bi-check"></i>
+                        </button>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size: 0.75rem;">
+                        ${new Date(item.createdAt).toLocaleString('tr-TR')}
+                        </div>
+                        `;
+                        container.appendChild(li);
+                        });
+                        } catch (error) {
+                        console.error("Bildirim listesi yüklenemedi.", error);
+                        }
+                        }
+
+                        async function markAsRead(id, buttonEl) {
+                        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                        const formData = new FormData();
+                        formData.append('id', id);
+                        formData.append('__RequestVerificationToken', token);
+
+                        try {
+                        const response = await fetch('/Notifications/MarkAsRead', {
+                        method: 'POST',
+                        body: formData
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                        buttonEl.closest('li').remove();
+                        checkUnreadNotifications();
+                        }
+                        } catch (error) {
+                        console.error("Bildirim okundu olarak işaretlenemedi.", error);
+                        }
+                        }
+
+                        document.addEventListener('DOMContentLoaded', function () {
+                        if (document.getElementById('notification-area')) {
+                        checkUnreadNotifications();
+                        setInterval(checkUnreadNotifications, 60000); // 60 saniyede bir kontrol et
+                        }
+                        });
+                    </script>
+
+                    @await RenderSectionAsync("Scripts", required: false)
+                </body>
+
+            </html>

@@ -27,6 +27,7 @@ builder.Services.Configure<StripeSettings>(options =>
 builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
 
 builder.Services.AddSingleton<MongoDBContext>();
+builder.Services.AddSingleton<StockManager.Server.Services.IEmailService, StockManager.Server.Services.SmtpEmailService>();
 builder.Services.AddSingleton<StripePaymentService>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<StripeSettings>>().Value;
