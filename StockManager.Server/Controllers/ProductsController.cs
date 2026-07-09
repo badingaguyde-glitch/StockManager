@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
 using MongoDB.Driver;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
@@ -7,6 +8,7 @@ using StockManager.Server.Services;
 
 namespace StockManager.Server.Controllers;
 
+[Authorize(Roles = "Admin,Personel")]
 public class ProductsController : Controller
 {
     private readonly MongoDBContext _context;

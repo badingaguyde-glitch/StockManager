@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MongoDB.Driver;
 using StripeCheckout = Stripe.Checkout;
 using StockManager.Server.Data;
@@ -7,6 +8,7 @@ using StockManager.Server.Services;
 
 namespace StockManager.Server.Controllers
 {
+    [Authorize(Roles = "Admin,Personel")]
     public class SalesController : Controller
     {
         private readonly MongoDBContext _context;

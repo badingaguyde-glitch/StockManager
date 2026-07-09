@@ -21,38 +21,88 @@
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Products" asp-action="Index">Ürünler</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Categories" asp-action="Index">Kategoriler</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Customers" asp-action="Index">Müşteriler</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Suppliers" asp-action="Index">Tedarikçiler</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="StockMovements" asp-action="Index">Stok Hareketleri</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Sales" asp-action="History">Satış Geçmişi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-white-50" asp-area="" asp-controller="Reports" asp-action="Index">Raporlar</a>
-                        </li>
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-white-50" asp-controller="Home" asp-action="Index">Ana Sayfa</a>
+                            </li>
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Products" asp-action="Index">Ürünler</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Categories" asp-action="Index">Kategoriler</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Customers" asp-action="Index">Müşteriler</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Suppliers" asp-action="Index">Tedarikçiler</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="StockMovements" asp-action="Index">Stok Hareketleri</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Sales" asp-action="History">Satış Geçmişi</a>
+                                </li>
+                            }
+
+                            @if (User.IsInRole("Admin") || User.IsInRole("Muhasebeci"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-white-50" asp-controller="Reports" asp-action="Index">Raporlar</a>
+                                </li>
+                            }
+
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-warning fw-bold" asp-controller="Account" asp-action="Users">Personel Yönetimi</a>
+                                </li>
+                            }
+                        }
                     </ul>
-                    <!-- Hızlı Satış POS Ekranı Butonu -->
-                    <div class="d-flex">
-                        <a asp-controller="Sales" asp-action="POS" class="btn btn-primary fw-bold">
-                            <i class="bi bi-cart3"></i> Hızlı Satış (POS)
-                        </a>
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
+                            {
+                                <a asp-controller="Sales" asp-action="POS" class="btn btn-primary btn-sm fw-bold me-2">
+                                    <i class="bi bi-cart3"></i> Hızlı Satış (POS)
+                                </a>
+                            }
+
+                            <div class="dropdown">
+                                <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="userMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle"></i> @User.Identity.Name
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuButton">
+                                    <li>
+                                        <a class="dropdown-item" asp-controller="Account" asp-action="Profile">
+                                            <i class="bi bi-gear"></i> Profil Ayarlarım
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="dropdown-item text-danger">
+                                                <i class="bi bi-box-arrow-right"></i> Güvenli Çıkış
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-sm">Giriş Yap</a>
+                        }
                     </div>
                 </div>
             </div>
