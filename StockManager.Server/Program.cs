@@ -23,6 +23,9 @@ builder.Services.Configure<StripeSettings>(options =>
     options.Currency = Environment.GetEnvironmentVariable("STRIPE_CURRENCY") ?? "try";
 });
 
+// 🆕 Load Cloudinary settings from configuration
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+
 builder.Services.AddSingleton<MongoDBContext>();
 builder.Services.AddSingleton<StripePaymentService>(sp =>
 {
@@ -30,6 +33,9 @@ builder.Services.AddSingleton<StripePaymentService>(sp =>
     return new StripePaymentService(settings);
 });
 builder.Services.AddSingleton<ReceiptPdfService>();
+
+// 🆕 Add Cloudinary Image Upload Service
+builder.Services.AddScoped<IImageUploadService, CloudinaryImageService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
