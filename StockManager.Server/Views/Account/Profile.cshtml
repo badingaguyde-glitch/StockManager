@@ -1,0 +1,48 @@
+@model StockManager.Server.Models.User
+
+@{
+    ViewData["Title"] = "Profil Bilgilerim";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-dark text-white">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-person-gear"></i> Profil Bilgilerimi Güncelle</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted small">Bilgilerinizi veya şifrenizi güncelledikten sonra oturumunuz sonlandırılacak ve yeni bilgilerle tekrar giriş yapmanız gerekecektir.</p>
+
+                <form asp-action="Profile" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- Kullanıcı Adı -->
+                    <div class="mb-3">
+                        <label asp-for="Username" class="form-label fw-bold">Kullanıcı Adı</label>
+                        <input asp-for="Username" class="form-control" required />
+                        <span asp-validation-for="Username" class="text-danger"></span>
+                    </div>
+
+                    <!-- E-posta -->
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-bold">E-posta</label>
+                        <input asp-for="Email" class="form-control" type="email" required />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <!-- Şifre Değiştirme -->
+                    <div class="mb-4">
+                        <label for="newPassword" class="form-label fw-bold">Yeni Şifre (İsteğe Bağlı)</label>
+                        <input type="password" name="newPassword" id="newPassword" class="form-control" placeholder="Değiştirmek istemiyorsanız boş bırakın" />
+                        <div class="form-text">Mevcut şifrenizi korumak için bu alanı boş bırakabilirsiniz.</div>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark fw-bold">Profilimi Güncelle</button>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">Vazgeç</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

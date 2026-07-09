@@ -2,9 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StockManager.Server.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly MongoDBContext _context;
