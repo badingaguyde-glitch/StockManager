@@ -7,6 +7,14 @@ using dotenv.net;
 var builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
 
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
+
 // Load Stripe settings from environment variables.
 builder.Services.Configure<StripeSettings>(options =>
 {
@@ -43,6 +51,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
