@@ -22,13 +22,17 @@
 </div>
 
 <form method="get" class="row g-2 mb-3">
+    @{
+        var categories = ViewBag.Categories as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+        var suppliers = ViewBag.Suppliers as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>();
+    }
     <div class="col-auto">
         <input type="text" name="search" value="@(ViewBag.Search ?? "")" class="form-control" placeholder="Ara: isim, açıklama, barkod" />
     </div>
     <div class="col-auto">
         <select name="categoryId" class="form-select">
             <option value="">Tüm Kategoriler</option>
-            @foreach (var c in (List<SelectListItem>)ViewBag.Categories)
+            @foreach (var c in categories)
             {
                 if (c.Value == (ViewBag.CategoryId ?? ""))
                 {
@@ -44,7 +48,7 @@
     <div class="col-auto">
         <select name="supplierId" class="form-select">
             <option value="">Tüm Tedarikçiler</option>
-            @foreach (var s in (List<SelectListItem>)ViewBag.Suppliers)
+            @foreach (var s in suppliers)
             {
                 if (s.Value == (ViewBag.SupplierId ?? ""))
                 {

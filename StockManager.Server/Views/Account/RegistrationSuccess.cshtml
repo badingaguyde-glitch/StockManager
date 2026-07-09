@@ -1,0 +1,44 @@
+@{
+    ViewData["Title"] = "Personel Hesabı Oluşturuldu";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-success shadow-sm mt-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-check-circle"></i> Hesap Başarıyla Oluşturuldu</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning">
+                    <strong>Önemli:</strong> Güvenlik nedeniyle bu şifre veritabanında şifrelenmiştir ve **sadece bir kez** gösterilecektir. Lütfen bilgileri kopyalayıp ilgili personele iletiniz.
+                </div>
+
+                <table class="table table-bordered bg-light">
+                    <tbody>
+                        <tr>
+                            <th style="width: 40%">E-posta:</th>
+                            <td>@ViewBag.Email</td>
+                        </tr>
+                        <tr>
+                            <th>Kullanıcı Adı:</th>
+                            <td class="font-monospace fw-bold text-primary">@ViewBag.GeneratedUsername</td>
+                        </tr>
+                        <tr>
+                            <th>Geçici Şifre:</th>
+                            <td class="font-monospace fw-bold text-danger">@ViewBag.GeneratedPassword</td>
+                        </tr>
+                        <tr>
+                            <th>Sistem Rolü:</th>
+                            <td>@ViewBag.Role</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="d-flex gap-2 mt-4">
+                    <a asp-action="Register" class="btn btn-outline-success">Başka Hesap Ekle</a>
+                    <a asp-action="Users" class="btn btn-success">Personel Listesine Dön</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
