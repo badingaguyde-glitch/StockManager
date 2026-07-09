@@ -6,8 +6,18 @@
 
 <h2>Yeni Ürün</h2>
 
-<form asp-action="Create" method="post">
+<form asp-action="Create" method="post" enctype="multipart/form-data">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <!-- 🆕 Görsel Yükleme -->
+    <div class="mb-3">
+        <label for="imageFile" class="form-label"><i class="bi bi-image"></i> Ürün Görseli</label>
+        <input type="file" class="form-control" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" onchange="previewImage(event)">
+        <small class="form-text text-muted">JPG, PNG, GIF, WebP (Max: 5MB)</small>
+        <div id="imagePreview" class="mt-3"></div>
+    </div>
+
+    <hr class="my-4" />
 
     <div class="mb-3">
         <label asp-for="Barcode" class="form-label"></label>
@@ -69,3 +79,30 @@
     <button type="submit" class="btn btn-primary">Kaydet</button>
     <a asp-action="Index" class="btn btn-secondary">İptal</a>
 </form>
+
+<style>
+    #imagePreview {
+        max-width: 300px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    #imagePreview img {
+        width: 100%;
+        height: auto;
+    }
+</style>
+
+<script>
+    function previewImage(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('imagePreview');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Önizleme" class="img-fluid rounded">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
