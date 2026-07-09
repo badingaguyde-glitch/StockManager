@@ -107,3 +107,85 @@
                 </div>
             </div>
         </div>
+        </div>
+
+        <div class="row g-3 mt-4">
+            <div class="col-12 col-lg-8">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Son 30 Gün Satış Trendleri</h5>
+                        <canvas id="salesTrendChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-4">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Kategori Bazlı Stok Değeri</h5>
+                        <canvas id="categoryDistChart" height="120"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    @section Scripts {
+        <script>
+            (function(){
+                async function fetchJson(url){
+                    const resp = await fetch(url);
+                    if(!resp.ok) throw new Error('Network error');
+                    return resp.json();
+                }
+
+                // Sales trend
+                fetchJson('@Url.Action("SalesTrend","Reports", new { days = 30 })')
+                    .then(data => {
+                        const labels = data.map(d => d.date);
+                        const totals = data.map(d => d.total);
+                        const ctx = document.getElementById('salesTrendChart');
+                        if(ctx){
+                            new Chart(ctx, {
+                                type: 'line',
+                                data: {
+                                    labels,
+                                    datasets: [{
+                                        label: 'Günlük Ciro (TRY)',
+                                        data: totals,
+                                        borderColor: 'rgba(54,162,235,1)',
+                                        backgroundColor: 'rgba(54,162,235,0.2)',
+                                        tension: 0.25,
+                                        fill: true
+                                    }]
+                                },
+                                options: { responsive: true }
+                            });
+                        }
+                    })
+                    .catch(e => console.error(e));
+
+                // Category distribution
+                fetchJson('@Url.Action("CategoryDistribution","Reports")')
+                    .then(data => {
+                        const labels = data.map(d => d.CategoryName);
+                        const values = data.map(d => d.StockValue);
+                        const ctx = document.getElementById('categoryDistChart');
+                        if(ctx){
+                            new Chart(ctx, {
+                                type: 'doughnut',
+                                data: {
+                                    labels,
+                                    datasets: [{
+                                        data: values,
+                                        backgroundColor: [
+                                            '#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796'
+                                        ]
+                                    }]
+                                },
+                                options: { responsive: true }
+                            });
+                        }
+                    })
+                    .catch(e => console.error(e));
+            })();
+        </script>
+    }

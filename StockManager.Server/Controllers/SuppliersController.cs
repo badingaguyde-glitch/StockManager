@@ -32,6 +32,27 @@ public class SuppliersController : Controller
             return NotFound();
         }
 
+        // Related products
+        var products = await _context.Products.Find(p => p.SupplierId == id).ToListAsync();
+
+        // Stock movements related to supplier
+        var stockMovements = await _context.StockMovements.Find(sm => sm.SupplierId == id).SortByDescending(sm => sm.Date).ToListAsync();
+
+        // Sales that include products from this supplier
+        var productIds = products.Select(p => p.Id).Where(x => x != null).ToList();
+        var supplierSales = new List<Sale>();
+        if (productIds.Count > 0)
+        {
+            supplierSales = await _context.Sales
+                .Find(s => s.Items.Any(i => productIds.Contains(i.ProductId)))
+                .SortByDescending(s => s.SaleDate)
+                .ToListAsync();
+        }
+
+        ViewBag.Products = products;
+        ViewBag.StockMovements = stockMovements;
+        ViewBag.SupplierSales = supplierSales;
+
         return View(supplier);
     }
 

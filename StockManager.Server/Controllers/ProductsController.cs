@@ -15,15 +15,59 @@ public class ProductsController : Controller
         _context = context;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? search, string? categoryId, string? supplierId, decimal? minPrice, decimal? maxPrice)
     {
+        var filterBuilder = Builders<Product>.Filter;
+        var filters = new List<FilterDefinition<Product>>();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            filters.Add(filterBuilder.Or(
+                filterBuilder.Regex(p => p.Name, new MongoDB.Bson.BsonRegularExpression(s, "i")),
+                filterBuilder.Regex(p => p.Description, new MongoDB.Bson.BsonRegularExpression(s, "i")),
+                filterBuilder.Eq(p => p.Barcode, s)
+            ));
+        }
+
+        if (!string.IsNullOrWhiteSpace(categoryId))
+        {
+            filters.Add(filterBuilder.Eq(p => p.CategoryId, categoryId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(supplierId))
+        {
+            filters.Add(filterBuilder.Eq(p => p.SupplierId, supplierId));
+        }
+
+        if (minPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Gte(p => p.SalePrice, minPrice.Value));
+        }
+
+        if (maxPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Lte(p => p.SalePrice, maxPrice.Value));
+        }
+
+        var finalFilter = filters.Count == 0 ? FilterDefinition<Product>.Empty : filterBuilder.And(filters);
+
         var products = await _context.Products
-            .Find(FilterDefinition<Product>.Empty)
+            .Find(finalFilter)
             .SortBy(p => p.Name)
             .ToListAsync();
 
         ViewBag.ShowLowStockAlert = products.Any(p => p.Quantity <= p.LowStockThreshold);
         ViewBag.LowStockCount = products.Count(p => p.Quantity <= p.LowStockThreshold);
+
+        // Preserve filter values for the view
+        ViewBag.Search = search;
+        ViewBag.CategoryId = categoryId;
+        ViewBag.SupplierId = supplierId;
+        ViewBag.MinPrice = minPrice;
+        ViewBag.MaxPrice = maxPrice;
+
+        await PopulateDropdowns();
 
         return View(products);
     }
