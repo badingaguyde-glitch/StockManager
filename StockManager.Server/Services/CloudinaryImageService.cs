@@ -79,8 +79,7 @@ public class CloudinaryImageService : IImageUploadService
                 File = new FileDescription(file.FileName, stream),
                 Folder = folder,
                 PublicId = Guid.NewGuid().ToString(),
-                Overwrite = false,
-                Quality = "auto"
+                Overwrite = false
             };
 
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
