@@ -13,4 +13,24 @@ public class ProductInputModel
     public string? CategoryId { get; set; }
     public string? SupplierId { get; set; }
     public string? SupplierName { get; set; }
+
+    // 🆕 Görsel yükleme alanları
+    public IFormFile? ImageFile { get; set; }
+    public string? ExistingImageUrl { get; set; }
+
+    // Görsel validation
+    public bool ValidateImage()
+    {
+        if (ImageFile == null)
+            return true;
+
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(ImageFile.FileName).ToLower();
+
+        if (!allowedExtensions.Contains(fileExtension))
+            return false;
+
+        const long maxFileSize = 5 * 1024 * 1024; // 5MB
+        return ImageFile.Length <= maxFileSize;
+    }
 }

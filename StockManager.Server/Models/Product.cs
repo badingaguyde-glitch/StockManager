@@ -37,4 +37,16 @@ public class Product
     [BsonElement("supplierId")]
     [BsonRepresentation(BsonType.ObjectId)]
     public string? SupplierId { get; set; }
+
+    // 🆕 Yeni alan - Buluttaki görsel URL'i
+    [BsonElement("imageUrl")]
+    public string? ImageUrl { get; set; }
+
+    // 🆕 Görsel yükleme tarihi
+    [BsonElement("imageUploadedAt")]
+    public DateTime? ImageUploadedAt { get; set; }
+
+    // 🆕 Cloudinary Image ID (silme işlemleri için)
+    [BsonElement("cloudinaryPublicId")]
+    public string? CloudinaryPublicId { get; set; }
 }
