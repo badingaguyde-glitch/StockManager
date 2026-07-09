@@ -12,17 +12,19 @@ namespace StockManager.Server.Controllers
     public class SalesController : Controller
     {
         private readonly MongoDBContext _context;
+        private readonly StockManager.Server.Services.IEmailService _emailService;
         private readonly StripePaymentService _stripePaymentService;
         private readonly ReceiptPdfService _receiptPdfService;
 
         public SalesController(
             MongoDBContext context,
             StripePaymentService stripePaymentService,
-            ReceiptPdfService receiptPdfService)
+            ReceiptPdfService receiptPdfService, StockManager.Server.Services.IEmailService emailService)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
             _receiptPdfService = receiptPdfService;
+            _emailService = emailService;
         }
 
         public async Task<IActionResult> POS()
@@ -100,6 +102,38 @@ namespace StockManager.Server.Controllers
                 var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
                 var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
+
+                var product = await _context.Products.Find(productFilter).FirstOrDefaultAsync();
+                if (product != null && product.Quantity <= product.LowStockThreshold)
+                {
+                    var notification = new Notification
+                    {
+                        Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow,
+                        ProductId = product.Id
+                    };
+                    await _context.Notifications.InsertOneAsync(notification);
+                    var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+                    var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
+                    if (adminEmails.Count == 0)
+                    {
+                        adminEmails.Add("admin@stockmanager.com");
+                    }
+
+                    string? customerName = null;
+                    if (!string.IsNullOrEmpty(sale.CustomerId))
+                    {
+                        var customer = await _context.Customers.Find(c => c.Id == sale.CustomerId).FirstOrDefaultAsync();
+                        customerName = customer?.FullName;
+                    }
+                    var customerDetails = string.IsNullOrEmpty(customerName) ? "Müşteri Belirtilmedi" : $"Müşteri: {customerName}";
+
+                    foreach (var email in adminEmails)
+                    {
+                        await _emailService.SendLowStockAlertAsync(email, product, DateTime.UtcNow, customerDetails);
+                    }
+                }
             }
 
             if (sale.PaymentType == PaymentType.Debt && !string.IsNullOrEmpty(sale.CustomerId))
