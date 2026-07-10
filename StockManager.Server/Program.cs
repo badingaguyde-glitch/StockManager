@@ -28,11 +28,13 @@ builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection(
 
 builder.Services.AddSingleton<MongoDBContext>();
 builder.Services.AddSingleton<StockManager.Server.Services.IEmailService, StockManager.Server.Services.SmtpEmailService>();
+builder.Services.AddSingleton<StockManager.Server.Services.IAuditLogService, StockManager.Server.Services.AuditLogService>();
 builder.Services.AddSingleton<StripePaymentService>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<StripeSettings>>().Value;
     return new StripePaymentService(settings);
 });
+
 builder.Services.AddSingleton<ReceiptPdfService>();
 
 // 🆕 Add Cloudinary Image Upload Service
