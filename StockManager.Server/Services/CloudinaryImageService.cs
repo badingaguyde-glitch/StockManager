@@ -159,8 +159,8 @@ public class CloudinaryImageService : IImageUploadService
                 return imageUrl;
 
             // Transformation parametreleri ekle
-            var transformation = $"w_{width},h_{height},c_fill,g_auto,q_{quality}";
-            var optimizedUrl = $"{pathParts[0]}/upload/{transformation}/{pathParts[1]}";
+            var transformation = $"w_{width},h_{height},c_fit,q_{quality}";
+            var optimizedUrl = $"{uri.Scheme}://{uri.Host}{pathParts[0]}/upload/{transformation}/{pathParts[1]}";
 
             return optimizedUrl;
         }
