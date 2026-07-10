@@ -84,6 +84,40 @@ namespace StockManager.Server.Controllers
                 return RedirectToAction(nameof(POS));
             }
 
+            // 1. Stok yetersizliği kontrolü yap (eksiye düşmemesi için)
+            foreach (var item in sale.Items)
+            {
+                var product = await _context.Products.Find(p => p.Id == item.ProductId).FirstOrDefaultAsync();
+                if (product == null)
+                {
+                    TempData["error"] = "Seçilen bazı ürünler veritabanında bulunamadı.";
+                    return RedirectToAction(nameof(POS));
+                }
+
+                if (product.Quantity < item.Quantity)
+                {
+                    // Stok yetersizliği bildirimi oluştur (zile uyarı gitmesi için)
+                    var hasUnreadNotification = await _context.Notifications
+                        .Find(n => n.ProductId == product.Id && n.Message.Contains("yetersiz") && !n.IsRead)
+                        .AnyAsync();
+
+                    if (!hasUnreadNotification)
+                    {
+                        var notification = new Notification
+                        {
+                            Message = $"{product.Name} stoğunda yeterli ürün bulunmamaktadır! Satılmak İstenen: {item.Quantity}, Mevcut Stok: {product.Quantity}",
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow,
+                            ProductId = product.Id
+                        };
+                        await _context.Notifications.InsertOneAsync(notification);
+                    }
+
+                    TempData["error"] = $"{product.Name} ürününün stoğunda yeterli ürün bulunmamaktadır. (Mevcut Stok: {product.Quantity})";
+                    return RedirectToAction(nameof(POS));
+                }
+            }
+
             sale.SaleDate = DateTime.UtcNow;
             var count = await _context.Sales.CountDocumentsAsync(FilterDefinition<Sale>.Empty);
             sale.InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{count + 1:D3}";
@@ -144,11 +178,11 @@ namespace StockManager.Server.Controllers
                 }
             }
 
-            if (sale.PaymentType == PaymentType.Debt && !string.IsNullOrEmpty(sale.CustomerId))
+            if (!string.IsNullOrEmpty(sale.CustomerId))
             {
                 var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);
-                var increaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, sale.TotalAmount);
-                await _context.Customers.UpdateOneAsync(customerFilter, increaseBalance);
+                var decreaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, -sale.TotalAmount);
+                await _context.Customers.UpdateOneAsync(customerFilter, decreaseBalance);
             }
 
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
@@ -201,6 +235,14 @@ namespace StockManager.Server.Controllers
                 .SortByDescending(s => s.SaleDate)
                 .ToListAsync();
 
+            var customerIds = sales.Select(s => s.CustomerId).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+            var customers = await _context.Customers
+                .Find(Builders<Customer>.Filter.In(c => c.Id, customerIds))
+                .ToListAsync();
+
+            var customerDict = customers.ToDictionary(c => c.Id!, c => c.FullName);
+            ViewBag.CustomerNames = customerDict;
+
             return View(sales);
         }
 
@@ -221,6 +263,14 @@ namespace StockManager.Server.Controllers
                     .Find(c => c.Id == sale.CustomerId)
                     .FirstOrDefaultAsync();
             }
+
+            var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
+            var products = await _context.Products
+                .Find(Builders<Product>.Filter.In(p => p.Id, productIds))
+                .ToListAsync();
+
+            var productDict = products.ToDictionary(p => p.Id!, p => p);
+            ViewBag.Products = productDict;
 
             return View(sale);
         }

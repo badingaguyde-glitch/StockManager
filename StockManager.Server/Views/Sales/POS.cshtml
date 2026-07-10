@@ -99,11 +99,11 @@
                         </select>
                     </div>
 
-                    <!-- Müşteri Seçimi (Sadece veresiye durumunda aktifleşir) -->
-                    <div class="mb-4" id="customer-select-group" style="display: none;">
-                        <label class="form-label fw-bold">Müşteri Seçin <span class="text-danger">*</span></label>
+                    <!-- Müşteri Seçimi -->
+                    <div class="mb-4" id="customer-select-group">
+                        <label class="form-label fw-bold">Müşteri Seçin <span class="text-danger" id="customer-required-star" style="display: none;">*</span></label>
                         <select name="CustomerId" id="customer-select" class="form-select">
-                            <option value="">Seçiniz...</option>
+                            <option value="">Müşteri Belirtilmedi (Anonim Satış)...</option>
                             @if (ViewBag.Customers != null)
                             {
                                 @foreach (var c in (IEnumerable<StockManager.Server.Models.Customer>)ViewBag.Customers)
@@ -297,17 +297,20 @@
             renderCart();
         }
 
-        // Veresiye seçildiğinde müşteri listesini göster
+        // Veresiye seçildiğinde müşteri listesini zorunlu kıl
         function toggleCustomerSelect() {
+            const star = document.getElementById('customer-required-star');
             if (paymentTypeSelect.value === 'Debt') {
-                customerSelectGroup.style.display = 'block';
+                star.style.display = 'inline';
                 customerSelect.setAttribute('required', 'required');
             } else {
-                customerSelectGroup.style.display = 'none';
+                star.style.display = 'none';
                 customerSelect.removeAttribute('required');
-                customerSelect.value = '';
             }
         }
+
+        // Sayfa yüklendiğinde durumu ilklendir
+        toggleCustomerSelect();
 
         // Formu doğrulayıp C# model yapısına göre serileştirerek gönderir
         function submitCheckout() {

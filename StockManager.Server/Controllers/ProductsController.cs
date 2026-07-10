@@ -177,6 +177,17 @@ public class ProductsController : Controller
 
         await _context.Products.InsertOneAsync(product);
         
+        if (product.Quantity <= product.LowStockThreshold)
+        {
+            var notification = new Notification
+            {
+                Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow,
+                ProductId = product.Id
+            };
+            await _context.Notifications.InsertOneAsync(notification);
+        }
         
         TempData["success"] = "Ürün başarıyla eklendi.";
         var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
@@ -272,6 +283,25 @@ public class ProductsController : Controller
         var updateResult = await _context.Products.ReplaceOneAsync(
             p => p.Id == id,
             product);
+
+        if (updateResult.ModifiedCount > 0 && product.Quantity <= product.LowStockThreshold)
+        {
+            var hasUnreadNotification = await _context.Notifications
+                .Find(n => n.ProductId == product.Id && !n.IsRead)
+                .AnyAsync();
+
+            if (!hasUnreadNotification)
+            {
+                var notification = new Notification
+                {
+                    Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    ProductId = product.Id
+                };
+                await _context.Notifications.InsertOneAsync(notification);
+            }
+        }
 
         if (updateResult.ModifiedCount == 0)
         {
