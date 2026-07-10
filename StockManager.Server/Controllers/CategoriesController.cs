@@ -23,6 +23,18 @@ public class CategoriesController : Controller
             .SortBy(c => c.Name)
             .ToListAsync();
 
+        // Kategorilere göre ürün sayılarını hesapla
+        var allProducts = await _context.Products
+            .Find(FilterDefinition<Product>.Empty)
+            .ToListAsync();
+
+        var productCounts = allProducts
+            .Where(p => p.CategoryId != null)
+            .GroupBy(p => p.CategoryId!)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        ViewBag.ProductCounts = productCounts;
+
         return View(categories);
     }
 
@@ -67,7 +79,9 @@ public class CategoriesController : Controller
         var filter = Builders<Category>.Filter.Eq(c => c.Id, category.Id);
         var update = Builders<Category>.Update
             .Set(c => c.Name, category.Name)
-            .Set(c => c.Description, category.Description);
+            .Set(c => c.Description, category.Description)
+            .Set(c => c.Color, category.Color)
+            .Set(c => c.Icon, category.Icon);
 
         await _context.Categories.UpdateOneAsync(filter, update);
         return RedirectToAction(nameof(Index));
