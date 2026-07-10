@@ -2,7 +2,84 @@
 
 @{
     ViewData["Title"] = "Kategori Ekle";
+
+    var colorOptions = new[]
+    {
+        new { Value = "#4361ee", Label = "İndigo"     },
+        new { Value = "#7209b7", Label = "Mor"        },
+        new { Value = "#e63946", Label = "Kırmızı"    },
+        new { Value = "#f4a261", Label = "Turuncu"    },
+        new { Value = "#2a9d8f", Label = "Teal"       },
+        new { Value = "#52b788", Label = "Yeşil"      },
+        new { Value = "#e9c46a", Label = "Sarı"       },
+        new { Value = "#457b9d", Label = "Çelik Mavi" },
+        new { Value = "#6c757d", Label = "Gri"        },
+        new { Value = "#e91e8c", Label = "Pembe"      },
+    };
+
+    var iconOptions = new[]
+    {
+        new { Value = "bi-tag-fill",       Label = "Genel"      },
+        new { Value = "bi-phone-fill",     Label = "Elektronik" },
+        new { Value = "bi-bag-fill",       Label = "Giyim"      },
+        new { Value = "bi-house-fill",     Label = "Ev"         },
+        new { Value = "bi-gear-fill",      Label = "Parça"      },
+        new { Value = "bi-cup-hot-fill",   Label = "Yiyecek"    },
+        new { Value = "bi-tools",          Label = "Alet"       },
+        new { Value = "bi-book-fill",      Label = "Kitap"      },
+        new { Value = "bi-bicycle",        Label = "Spor"       },
+        new { Value = "bi-palette-fill",   Label = "Sanat"      },
+        new { Value = "bi-box-fill",       Label = "Depo"       },
+        new { Value = "bi-star-fill",      Label = "Premium"    },
+    };
 }
+
+<style>
+    .picker-section label { cursor: pointer; }
+    /* Renk halkaları */
+    .color-swatch {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        display: inline-block;
+        transition: transform .15s, border-color .15s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    input[name="Color"]:checked + .color-swatch {
+        border-color: #212529;
+        transform: scale(1.2);
+        box-shadow: 0 0 0 2px #fff, 0 0 0 4px #212529;
+    }
+    /* İkon butonları */
+    .icon-btn {
+        width: 52px; height: 52px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        transition: border-color .15s, background .15s;
+        cursor: pointer;
+        background: #fff;
+    }
+    .icon-btn:hover { border-color: #4361ee; background: #f0f3ff; }
+    input[name="Icon"]:checked + .icon-btn {
+        border-color: #4361ee;
+        background: #e8ecff;
+        color: #4361ee;
+    }
+    /* Önizleme */
+    #preview-circle {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+        color: #fff;
+        transition: background-color .2s;
+    }
+</style>
 
 <div class="mb-3">
     <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
@@ -10,19 +87,137 @@
     </a>
 </div>
 
-<h2>Kategori Ekle</h2>
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm" style="border-radius:14px; overflow:hidden;">
+            <div id="form-accent" style="height:5px; background:#4361ee;"></div>
+            <div class="card-body p-4">
 
-<form asp-action="Create" method="post">
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div id="preview-circle" style="background:#4361ee;">
+                        <i class="bi bi-tag-fill" id="preview-icon"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold">Yeni Kategori Ekle</h4>
+                        <p class="text-muted small mb-0">Renk ve ikon seçerek kategorinizi özelleştirin.</p>
+                    </div>
+                </div>
+
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+
+                    <!-- Kategori Adı -->
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-semibold">Kategori Adı</label>
+                        <input asp-for="Name" class="form-control" placeholder="Örn: Elektronik" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Açıklama -->
+                    <div class="mb-4">
+                        <label asp-for="Description" class="form-label fw-semibold">Açıklama <span class="text-muted fw-normal">(isteğe bağlı)</span></label>
+                        <textarea asp-for="Description" class="form-control" rows="2"
+                                  placeholder="Bu kategori hakkında kısa bir açıklama..."></textarea>
+                    </div>
+
+                    <!-- Renk Seçici -->
+                    <div class="mb-4 picker-section">
+                        <label class="form-label fw-semibold d-block mb-2">Renk</label>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            @foreach (var c in colorOptions)
+                            {
+                                <div>
+                                    <input type="radio" name="Color" id="col_@c.Value.Replace("#","")"
+                                           value="@c.Value" class="d-none"
+                                           title="@c.Label"
+                                           onchange="updatePreviewColor(this.value)">
+                                    <label for="col_@c.Value.Replace("#","")" title="@c.Label">
+                                        <span class="color-swatch d-block"
+                                              style="background-color: @c.Value;"></span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" name="Color" id="hiddenColor" value="#4361ee" />
+                    </div>
+
+                    <!-- İkon Seçici -->
+                    <div class="mb-4 picker-section">
+                        <label class="form-label fw-semibold d-block mb-2">İkon</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var ic in iconOptions)
+                            {
+                                <div>
+                                    <input type="radio" name="Icon" id="ico_@ic.Value.Replace("-","_")"
+                                           value="@ic.Value" class="d-none"
+                                           title="@ic.Label"
+                                           onchange="updatePreviewIcon(this.value)">
+                                    <label for="ico_@ic.Value.Replace("-","_")" title="@ic.Label">
+                                        <div class="icon-btn">
+                                            <i class="bi @ic.Value"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" name="Icon" id="hiddenIcon" value="bi-tag-fill" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-check-lg me-1"></i>Kaydet
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
-    <div class="mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">Kaydet</button>
-    <a asp-action="Index" class="btn btn-secondary">İptal</a>
-</form>
+</div>
+
+@section Scripts {
+<script>
+    var currentColor = '#4361ee';
+    var currentIcon  = 'bi-tag-fill';
+
+    // Renk radio değiştiğinde: gizli inputu güncelle + önizleme
+    document.querySelectorAll('input[name="Color"]').forEach(function(r) {
+        r.addEventListener('change', function() {
+            currentColor = this.value;
+            document.getElementById('hiddenColor').value = currentColor;
+            updatePreview();
+        });
+    });
+
+    // İkon radio değiştiğinde: gizli inputu güncelle + önizleme
+    document.querySelectorAll('input[name="Icon"]').forEach(function(r) {
+        r.addEventListener('change', function() {
+            currentIcon = this.value;
+            document.getElementById('hiddenIcon').value = currentIcon;
+            updatePreview();
+        });
+    });
+
+    function updatePreview() {
+        var circle = document.getElementById('preview-circle');
+        var iconEl = document.getElementById('preview-icon');
+        circle.style.backgroundColor = currentColor;
+        iconEl.className = 'bi ' + currentIcon;
+        document.getElementById('form-accent').style.background = currentColor;
+    }
+
+    // Form submit öncesi gizli alanları güncelle (radio üzerinden de gelebilir)
+    document.querySelector('form').addEventListener('submit', function() {
+        // Seçili radio varsa onların değerini kullan
+        var colorRadio = document.querySelector('input[name="Color"]:checked');
+        var iconRadio  = document.querySelector('input[name="Icon"]:checked');
+        if (colorRadio) document.getElementById('hiddenColor').value = colorRadio.value;
+        if (iconRadio)  document.getElementById('hiddenIcon').value  = iconRadio.value;
+
+        // Radio input'ları devre dışı bırak ki hidden değerleri öncelikli olsun
+        document.querySelectorAll('input[name="Color"]:not([id="hiddenColor"])').forEach(function(r){ r.disabled = true; });
+        document.querySelectorAll('input[name="Icon"]:not([id="hiddenIcon"])').forEach(function(r){ r.disabled = true; });
+    });
+</script>
+}
