@@ -27,6 +27,18 @@ namespace StockManager.Server.Controllers
                 .Find(FilterDefinition<StockMovement>.Empty)
                 .SortByDescending(m => m.Date)
                 .ToListAsync();
+
+            var productIds = movements.Where(m=> !string.IsNullOrEmpty(m.ProductId)).Select(m => m.ProductId).Distinct().ToList();
+            var supplierIds = movements.Where(m => !string.IsNullOrEmpty(m.SupplierId)).Select(m => m.SupplierId).Distinct().ToList();
+            var customerIds = movements.Where(m => !string.IsNullOrEmpty(m.CustomerId)).Select(m => m.CustomerId).Distinct().ToList();
+            var products = await _context.Products.Find(p => productIds.Contains(p.Id)).ToListAsync();
+            var suppliers = await _context.Suppliers.Find(s => supplierIds.Contains(s.Id)).ToListAsync();
+            var customers = await _context.Customers.Find(c => customerIds.Contains(c.Id)).ToListAsync();
+
+            // Sözlükleri oluşturup ViewBag'e aktar (Null filtrelemeli ve uyarısız)
+            ViewBag.ProductNames = products.Where(p => p.Id != null).ToDictionary(p => p.Id!, p => p.Name);
+            ViewBag.SupplierNames = suppliers.Where(s => s.Id != null).ToDictionary(s => s.Id!, s => s.CompanyName);
+            ViewBag.CustomerNames = customers.Where(c => c.Id != null).ToDictionary(c => c.Id!, c => c.FullName);
             return View(movements);
         }
 
