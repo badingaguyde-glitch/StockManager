@@ -1,0 +1,119 @@
+@model StockManager.Server.Models.Supplier
+
+@{
+    ViewData["Title"] = "Tedarikçi Detayı";
+}
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+<h2>Tedarikçi Detayı</h2>
+
+<dl class="row">
+    <dt class="col-sm-3">Firma Adı</dt>
+    <dd class="col-sm-9">@Model.CompanyName</dd>
+    <dt class="col-sm-3">Yetkili Kişi</dt>
+    <dd class="col-sm-9">@Model.ContactName</dd>
+    <dt class="col-sm-3">Telefon</dt>
+    <dd class="col-sm-9">@Model.Phone</dd>
+    <dt class="col-sm-3">E-posta</dt>
+    <dd class="col-sm-9">@Model.Email</dd>
+    <dt class="col-sm-3">Bakiye</dt>
+    <dd class="col-sm-9">@Model.Balance.ToString("0.00")</dd>
+</dl>
+
+<a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Düzenle</a>
+<a asp-action="Index" class="btn btn-outline-secondary">Listeye Dön</a>
+
+<hr />
+<h4>Ürünler</h4>
+@{
+    var products = ViewBag.Products as List<StockManager.Server.Models.Product> ?? new List<StockManager.Server.Models.Product>();
+}
+@if (products.Any())
+{
+    <table class="table table-sm">
+        <thead>
+            <tr><th>Ad</th><th>Stok</th><th>Alış</th><th>Satış</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach(var p in products)
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>@p.Quantity</td>
+                    <td>@p.PurchasePrice.ToString("0.00")</td>
+                    <td>@p.SalePrice.ToString("0.00")</td>
+                    <td><a asp-controller="Products" asp-action="Edit" asp-route-id="@p.Id" class="btn btn-sm btn-outline-secondary">Düzenle</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted">Bu tedarikçiye ait ürün bulunamadı.</p>
+}
+
+<h4 class="mt-4">Stok Hareketleri</h4>
+@{
+    var moves = ViewBag.StockMovements as List<StockManager.Server.Models.StockMovement> ?? new List<StockManager.Server.Models.StockMovement>();
+}
+@if (moves.Any())
+{
+    <table class="table table-sm">
+        <thead><tr><th>Tarih</th><th>Ürün</th><th>Miktar</th><th>Tip</th><th>Not</th></tr></thead>
+        <tbody>
+        @foreach(var m in moves)
+        {
+            var prod = (ViewBag.Products as List<StockManager.Server.Models.Product>)?.FirstOrDefault(x => x.Id == m.ProductId);
+            <tr>
+                <td>@m.Date.ToLocalTime().ToString("g")</td>
+                <td>@(prod?.Name ?? "-")</td>
+                <td>@m.Quantity</td>
+                <td>@m.Type</td>
+                <td>@m.Notes</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted">Stok hareketi bulunamadı.</p>
+}
+
+<h4 class="mt-4">Tedarikçi ile İlgili Satışlarda Kullanılan Ürünler</h4>
+@{
+    var supplierSales = ViewBag.SupplierSales as List<StockManager.Server.Models.Sale> ?? new List<StockManager.Server.Models.Sale>();
+}
+@if (supplierSales.Any())
+{
+    <table class="table table-sm">
+        <thead><tr><th>Tarih</th><th>Fatura</th><th>Tutar</th><th>Ürünler</th></tr></thead>
+        <tbody>
+        @foreach(var s in supplierSales)
+        {
+            <tr>
+                <td>@s.SaleDate.ToLocalTime().ToString("g")</td>
+                <td>@s.InvoiceNumber</td>
+                <td>@s.TotalAmount.ToString("0.00")</td>
+                <td>
+                    <ul class="mb-0">
+                        @foreach(var it in s.Items)
+                        {
+                            var prod = (ViewBag.Products as List<StockManager.Server.Models.Product>)?.FirstOrDefault(x => x.Id == it.ProductId);
+                            <li>@(prod?.Name ?? it.ProductName) x @it.Quantity</li>
+                        }
+                    </ul>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+else
+{
+    <p class="text-muted">İlgili satış kaydı bulunamadı.</p>
+}

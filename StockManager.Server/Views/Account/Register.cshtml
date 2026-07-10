@@ -1,0 +1,49 @@
+@using StockManager.Server.Models
+@{
+    ViewData["Title"] = "Yeni Personel Ekle";
+}
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-person-plus"></i> Yeni Personel Ekle</h4>
+            </div>
+            <div class="card-body p-4">
+                <p class="text-muted small">Personel için kullanıcı adı ve geçici giriş şifresi sistem tarafından otomatik olarak üretilecek ve bir sonraki ekranda gösterilecektir.</p>
+                
+                <form asp-action="Register" method="post">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- E-posta -->
+                    <div class="mb-3">
+                        <label for="email" class="form-label fw-bold">E-posta Adresi</label>
+                        <input type="email" name="email" id="email" class="form-control" placeholder="personel@sirket.com" required />
+                    </div>
+
+                    <!-- Rol Seçimi -->
+                    <div class="mb-4">
+                        <label for="role" class="form-label fw-bold">Sistem Rolü / Yetkisi</label>
+                        <select name="role" id="role" class="form-select" asp-items="Html.GetEnumSelectList<UserRole>()" required>
+                            <option value="">Seçiniz...</option>
+                        </select>
+                    </div>
+
+                    <!-- Kaydet ve İptal Butonları -->
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary fw-bold">Hesap Oluştur</button>
+                        <a asp-action="Users" class="btn btn-secondary">Personel Listesi</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,89 @@
+@model IEnumerable<StockManager.Server.Models.StockMovement>
+
+@{
+    ViewData["Title"] = "Stok Hareketleri";
+    var productNames = ViewBag.ProductNames as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var supplierNames = ViewBag.SupplierNames as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var customerNames = ViewBag.CustomerNames as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Stok Hareketleri</h2>
+    <a asp-action="Create" class="btn btn-primary">Yeni Stok Hareketi Ekle</a>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info">Henüz stok hareketi eklenmemiş.</div>
+}
+else
+{
+    <table class="table table-striped">
+        <thread>
+            <tr>
+                <th>Tarihi</th>
+                <th>Ürün</th>
+                <th>Tür</th>
+                <th class="text-center">Miktar</th>
+                <th>İlişkili Cari</th>
+                <th>Notlar</th>
+                <th></th>
+            </tr>
+        </thread>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                    <td>
+                        @(productNames.ContainsKey(item.ProductId) ? productNames[item.ProductId] : "Bilinmeyen Ürün")
+                    </td>
+                    <td>
+                        @switch (item.Type)
+                        {
+                            case StockManager.Server.Models.StockMovementType.StockIn:
+                                <span class="badge bg-success">Stok Girişi</span>
+                                break;
+                            case StockManager.Server.Models.StockMovementType.StockOut:
+                                <span class="badge bg-danger">Stok Çıkışı</span>
+                                break;
+                            case StockManager.Server.Models.StockMovementType.Adjustment:
+                                <span class="badge bg-info text-dark">Düzeltme</span>
+                                break;
+                        }
+                    </td>
+                    <td class="text-center fw-bold">@item.Quantity</td>
+                    <td>
+                        @if (item.Type == StockManager.Server.Models.StockMovementType.StockIn &&
+            !string.IsNullOrEmpty(item.SupplierId))
+                        {
+                            <span class="text-muted">Tedarikçi: </span>
+                            @(supplierNames.ContainsKey(item.SupplierId) ? supplierNames[item.SupplierId] : "Bilinmeyen Tedarikçi")
+
+                        }
+                        else if (item.Type == StockManager.Server.Models.StockMovementType.StockOut &&
+                !string.IsNullOrEmpty(item.CustomerId))
+                        {
+                            <span class="text-muted">Müşteri: </span>
+                            @(customerNames.ContainsKey(item.CustomerId) ? customerNames[item.CustomerId] : "Bilinmeyen Müşteri")
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </td>
+                    <td class="text-truncate" style="max-width: 150px;" title="@item.Notes">@item.Notes</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detay</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

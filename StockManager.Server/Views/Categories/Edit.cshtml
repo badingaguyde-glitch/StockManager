@@ -1,0 +1,224 @@
+@model StockManager.Server.Models.Category
+
+@{
+    ViewData["Title"] = "Kategori Düzenle";
+
+    var colorOptions = new[]
+    {
+        new { Value = "#4361ee", Label = "İndigo"     },
+        new { Value = "#7209b7", Label = "Mor"        },
+        new { Value = "#e63946", Label = "Kırmızı"    },
+        new { Value = "#f4a261", Label = "Turuncu"    },
+        new { Value = "#2a9d8f", Label = "Teal"       },
+        new { Value = "#52b788", Label = "Yeşil"      },
+        new { Value = "#e9c46a", Label = "Sarı"       },
+        new { Value = "#457b9d", Label = "Çelik Mavi" },
+        new { Value = "#6c757d", Label = "Gri"        },
+        new { Value = "#e91e8c", Label = "Pembe"      },
+    };
+
+    var iconOptions = new[]
+    {
+        new { Value = "bi-tag-fill",       Label = "Genel"      },
+        new { Value = "bi-phone-fill",     Label = "Elektronik" },
+        new { Value = "bi-bag-fill",       Label = "Giyim"      },
+        new { Value = "bi-house-fill",     Label = "Ev"         },
+        new { Value = "bi-gear-fill",      Label = "Parça"      },
+        new { Value = "bi-cup-hot-fill",   Label = "Yiyecek"    },
+        new { Value = "bi-tools",          Label = "Alet"       },
+        new { Value = "bi-book-fill",      Label = "Kitap"      },
+        new { Value = "bi-bicycle",        Label = "Spor"       },
+        new { Value = "bi-palette-fill",   Label = "Sanat"      },
+        new { Value = "bi-box-fill",       Label = "Depo"       },
+        new { Value = "bi-star-fill",      Label = "Premium"    },
+    };
+
+    var currentColor = string.IsNullOrEmpty(Model.Color) ? "#4361ee" : Model.Color;
+    var currentIcon  = string.IsNullOrEmpty(Model.Icon)  ? "bi-tag-fill" : Model.Icon;
+}
+
+<style>
+    .picker-section label { cursor: pointer; }
+    .color-swatch {
+        width: 36px; height: 36px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        display: inline-block;
+        transition: transform .15s, border-color .15s;
+    }
+    .color-swatch:hover { transform: scale(1.15); }
+    input[name="Color"]:checked + .color-swatch {
+        border-color: #212529;
+        transform: scale(1.2);
+        box-shadow: 0 0 0 2px #fff, 0 0 0 4px #212529;
+    }
+    .icon-btn {
+        width: 52px; height: 52px;
+        border: 2px solid #dee2e6;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        transition: border-color .15s, background .15s;
+        cursor: pointer;
+        background: #fff;
+    }
+    .icon-btn:hover { border-color: #4361ee; background: #f0f3ff; }
+    input[name="Icon"]:checked + .icon-btn {
+        border-color: #4361ee;
+        background: #e8ecff;
+        color: #4361ee;
+    }
+    #preview-circle {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+        color: #fff;
+        transition: background-color .2s;
+    }
+</style>
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm" style="border-radius:14px; overflow:hidden;">
+            <div id="form-accent" style="height:5px; background:@currentColor;"></div>
+            <div class="card-body p-4">
+
+                <div class="d-flex align-items-center gap-3 mb-4">
+                    <div id="preview-circle" style="background:@currentColor;">
+                        <i class="bi @currentIcon" id="preview-icon"></i>
+                    </div>
+                    <div>
+                        <h4 class="mb-0 fw-bold">@Model.Name</h4>
+                        <p class="text-muted small mb-0">Kategoriyi düzenleyin.</p>
+                    </div>
+                </div>
+
+                <form asp-action="Edit" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Id" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small"></div>
+
+                    <!-- Kategori Adı -->
+                    <div class="mb-3">
+                        <label asp-for="Name" class="form-label fw-semibold">Kategori Adı</label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Açıklama -->
+                    <div class="mb-4">
+                        <label asp-for="Description" class="form-label fw-semibold">
+                            Açıklama <span class="text-muted fw-normal">(isteğe bağlı)</span>
+                        </label>
+                        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                    </div>
+
+                    <!-- Renk Seçici -->
+                    <div class="mb-4 picker-section">
+                        <label class="form-label fw-semibold d-block mb-2">Renk</label>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            @foreach (var c in colorOptions)
+                            {
+                                <div>
+                                    <input type="radio" name="ColorRadio"
+                                           id="col_@c.Value.Replace("#","")"
+                                           value="@c.Value"
+                                           class="d-none"
+                                           title="@c.Label">
+                                    <label for="col_@c.Value.Replace("#","")" title="@c.Label">
+                                        <span class="color-swatch d-block"
+                                              style="background-color: @c.Value;"></span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" name="Color" id="hiddenColor" value="@currentColor" />
+                    </div>
+
+                    <!-- İkon Seçici -->
+                    <div class="mb-4 picker-section">
+                        <label class="form-label fw-semibold d-block mb-2">İkon</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach (var ic in iconOptions)
+                            {
+                                <div>
+                                    <input type="radio" name="IconRadio"
+                                           id="ico_@ic.Value.Replace("-","_")"
+                                           value="@ic.Value"
+                                           class="d-none"
+                                           title="@ic.Label">
+                                    <label for="ico_@ic.Value.Replace("-","_")" title="@ic.Label">
+                                        <div class="icon-btn">
+                                            <i class="bi @ic.Value"></i>
+                                        </div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                        <input type="hidden" name="Icon" id="hiddenIcon" value="@currentIcon" />
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-check-lg me-1"></i>Güncelle
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">İptal</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    var currentColor = '@currentColor';
+    var currentIcon  = '@currentIcon';
+
+    // Mevcut seçimleri işaretle
+    function initPickers() {
+        document.querySelectorAll('input[name="ColorRadio"]').forEach(function(r) {
+            if (r.value === currentColor) r.checked = true;
+        });
+        document.querySelectorAll('input[name="IconRadio"]').forEach(function(r) {
+            if (r.value === currentIcon) r.checked = true;
+        });
+    }
+
+    // Renk değişince önizleme güncelle
+    document.querySelectorAll('input[name="ColorRadio"]').forEach(function(r) {
+        r.addEventListener('change', function() {
+            currentColor = this.value;
+            document.getElementById('hiddenColor').value = currentColor;
+            updatePreview();
+        });
+    });
+
+    // İkon değişince önizleme güncelle
+    document.querySelectorAll('input[name="IconRadio"]').forEach(function(r) {
+        r.addEventListener('change', function() {
+            currentIcon = this.value;
+            document.getElementById('hiddenIcon').value = currentIcon;
+            updatePreview();
+        });
+    });
+
+    function updatePreview() {
+        document.getElementById('preview-circle').style.backgroundColor = currentColor;
+        document.getElementById('preview-icon').className = 'bi ' + currentIcon;
+        document.getElementById('form-accent').style.background = currentColor;
+    }
+
+    initPickers();
+</script>
+}

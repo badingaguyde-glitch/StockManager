@@ -1,0 +1,197 @@
+@model IEnumerable<StockManager.Server.Models.Category>
+
+@{
+    ViewData["Title"] = "Kategoriler";
+    var productCounts = ViewBag.ProductCounts as Dictionary<string, int> ?? new Dictionary<string, int>();
+    var totalProducts  = productCounts.Values.Sum();
+    var categoryList   = Model.ToList();
+    var avgPerCategory = categoryList.Any() ? (totalProducts / categoryList.Count) : 0;
+}
+
+<style>
+    .cat-card {
+        border: none;
+        border-radius: 14px;
+        transition: transform .2s ease, box-shadow .2s ease;
+        overflow: hidden;
+    }
+    .cat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 32px rgba(0,0,0,.13) !important;
+    }
+    .cat-accent {
+        height: 5px;
+        width: 100%;
+    }
+    .cat-icon-circle {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        color: #fff;
+        flex-shrink: 0;
+    }
+    .stat-card {
+        border-radius: 12px;
+        border: none;
+    }
+    .search-wrap {
+        max-width: 300px;
+    }
+    .empty-state {
+        padding: 60px 20px;
+        text-align: center;
+        color: #adb5bd;
+    }
+    .empty-state i { font-size: 4rem; }
+</style>
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<!-- Başlık + Arama + Ekle -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="mb-0 fw-bold">
+            <i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>Kategoriler
+        </h2>
+        <p class="text-muted small mb-0">@categoryList.Count kategori &middot; @totalProducts ürün</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="search-wrap">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white border-end-0">
+                    <i class="bi bi-search text-muted"></i>
+                </span>
+                <input type="text" id="catSearch" class="form-control border-start-0 ps-0"
+                       placeholder="Kategori ara..." oninput="filterCats()">
+            </div>
+        </div>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Yeni Kategori
+        </a>
+    </div>
+</div>
+
+<!-- İstatistik Kartları -->
+<div class="row g-3 mb-4">
+    <div class="col-4">
+        <div class="card stat-card bg-primary bg-opacity-10 text-center py-3 px-2">
+            <div class="fs-2 fw-bold text-primary">@categoryList.Count</div>
+            <div class="text-muted small">Kategori</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="card stat-card bg-success bg-opacity-10 text-center py-3 px-2">
+            <div class="fs-2 fw-bold text-success">@totalProducts</div>
+            <div class="text-muted small">Toplam Ürün</div>
+        </div>
+    </div>
+    <div class="col-4">
+        <div class="card stat-card bg-warning bg-opacity-10 text-center py-3 px-2">
+            <div class="fs-2 fw-bold text-warning">@avgPerCategory</div>
+            <div class="text-muted small">Ort. Ürün</div>
+        </div>
+    </div>
+</div>
+
+<!-- Kategori Kartları -->
+@if (!categoryList.Any())
+{
+    <div class="empty-state">
+        <i class="bi bi-folder-x d-block mb-3"></i>
+        <p class="mb-3">Henüz kategori eklenmemiş.</p>
+        <a asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>İlk Kategoriyi Ekle
+        </a>
+    </div>
+}
+else
+{
+    <div class="row g-3" id="catGrid">
+        @foreach (var item in categoryList)
+        {
+            var color = string.IsNullOrEmpty(item.Color) ? "#4361ee" : item.Color;
+            var icon  = string.IsNullOrEmpty(item.Icon)  ? "bi-tag-fill" : item.Icon;
+            var count = (item.Id != null && productCounts.ContainsKey(item.Id))
+                        ? productCounts[item.Id] : 0;
+
+            <div class="col-md-6 col-lg-4 cat-item">
+                <div class="card cat-card shadow-sm h-100">
+                    <div class="cat-accent" style="background-color: @color;"></div>
+                    <div class="card-body d-flex flex-column gap-2 p-3">
+
+                        <!-- İkon + İsim + Rozet -->
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="cat-icon-circle" style="background-color: @color;">
+                                <i class="bi @icon"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-1 fw-bold cat-name">@item.Name</h5>
+                                <span class="badge rounded-pill"
+                                      style="background-color: @color; font-size:.72rem;">
+                                    <i class="bi bi-box-seam me-1"></i>@count ürün
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Açıklama -->
+                        <p class="card-text text-muted small flex-grow-1 mb-0">
+                            @(string.IsNullOrWhiteSpace(item.Description)
+                                ? "Açıklama girilmemiş."
+                                : item.Description)
+                        </p>
+
+                        <!-- Butonlar -->
+                        <div class="d-flex gap-2 pt-2 border-top mt-auto">
+                            <a asp-action="Edit" asp-route-id="@item.Id"
+                               class="btn btn-sm btn-outline-secondary flex-grow-1">
+                                <i class="bi bi-pencil-square"></i> Düzenle
+                            </a>
+                            <form asp-action="Delete" asp-route-id="@item.Id"
+                                  method="post" class="flex-grow-1">
+                                @Html.AntiForgeryToken()
+                                <button type="submit"
+                                        class="btn btn-sm btn-outline-danger w-100"
+                                        onclick="return confirm('@item.Name kategorisini silmek istediğinize emin misiniz?');">
+                                    <i class="bi bi-trash3"></i> Sil
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Arama boş sonuç -->
+    <div id="noResult" class="empty-state d-none">
+        <i class="bi bi-search d-block mb-3"></i>
+        <p>Aramanızla eşleşen kategori bulunamadı.</p>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function filterCats() {
+            var q = document.getElementById('catSearch').value.trim().toLowerCase();
+            var items = document.querySelectorAll('.cat-item');
+            var visible = 0;
+            items.forEach(function (el) {
+                var name = el.querySelector('.cat-name').textContent.toLowerCase();
+                var show = name.includes(q);
+                el.style.display = show ? '' : 'none';
+                if (show) visible++;
+            });
+            var noRes = document.getElementById('noResult');
+            if (noRes) noRes.classList.toggle('d-none', visible > 0);
+        }
+    </script>
+}

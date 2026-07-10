@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace StockManager.Server.Models;
 
+[BsonIgnoreExtraElements]
 public class Category
 {
     [BsonId]
@@ -14,4 +15,11 @@ public class Category
 
     [BsonElement("description")]
     public string? Description { get; set; }
+
+    [BsonElement("color")]
+    public string Color { get; set; } = "#4361ee";
+
+    [BsonElement("icon")]
+    public string Icon { get; set; } = "bi-tag-fill";
 }
+

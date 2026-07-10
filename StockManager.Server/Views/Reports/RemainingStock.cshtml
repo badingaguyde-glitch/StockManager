@@ -1,0 +1,38 @@
+@model IEnumerable<StockManager.Server.Models.Product>
+
+@{
+    ViewData["Title"] = "Kalan Stok";
+}
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<h2>Kalan Stok</h2>
+<p>Toplam stok değeri: @ViewBag.TotalValue.ToString("0.00")</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Ürün</th>
+            <th>Stok</th>
+            <th>Alış Fiyatı</th>
+            <th>Toplam Değer</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Quantity</td>
+                <td>@item.PurchasePrice.ToString("0.00")</td>
+                <td>@((item.Quantity * item.PurchasePrice).ToString("0.00"))</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Index" class="btn btn-outline-secondary mt-3">Raporlara Dön</a>

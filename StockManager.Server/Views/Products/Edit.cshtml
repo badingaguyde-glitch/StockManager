@@ -1,0 +1,128 @@
+@model StockManager.Server.Models.ProductInputModel
+
+@{
+    ViewData["Title"] = "Ürünü Düzenle";
+}
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<h2>Ürünü Düzenle</h2>
+
+<form asp-action="Edit" method="post" enctype="multipart/form-data">
+    <input asp-for="Id" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <!-- 🆕 Mevcut Görsel -->
+    @if (!string.IsNullOrWhiteSpace(Model.ExistingImageUrl))
+    {
+        <div class="mb-3">
+            <label class="form-label"><i class="bi bi-image"></i> Mevcut Görsel</label>
+            <div class="card">
+                <div class="card-body">
+                    <img src="@Model.ExistingImageUrl" alt="@Model.Name" class="img-fluid rounded" style="max-width: 300px;">
+                    <p class="mt-2 text-muted small">Yeni bir görsel seçerseniz bu yerini alacaktır</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- 🆕 Yeni Görsel Yükleme -->
+    <div class="mb-3">
+        <label for="imageFile" class="form-label"><i class="bi bi-image"></i> Yeni Görsel Yükle</label>
+        <input type="file" class="form-control" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" onchange="previewImage(event)">
+        <small class="form-text text-muted">JPG, PNG, GIF, WebP (Max: 5MB)</small>
+        <div id="imagePreview" class="mt-3"></div>
+    </div>
+
+    <hr class="my-4" />
+
+    <div class="mb-3">
+        <label asp-for="Barcode" class="form-label"></label>
+        <input asp-for="Barcode" class="form-control" />
+        <span asp-validation-for="Barcode" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="PurchasePrice" class="form-label"></label>
+        <input asp-for="PurchasePrice" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SalePrice" class="form-label"></label>
+        <input asp-for="SalePrice" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Quantity" class="form-label"></label>
+        <input asp-for="Quantity" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="LowStockThreshold" class="form-label"></label>
+        <input asp-for="LowStockThreshold" class="form-control" />
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CategoryId" class="form-label">Kategori</label>
+        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
+            <option value="">Seçiniz</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SupplierId" class="form-label">Tedarikçi</label>
+        <select asp-for="SupplierId" class="form-select" asp-items="ViewBag.Suppliers">
+            <option value="">Seçiniz</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="SupplierName" class="form-label">Yeni Tedarikçi Adı</label>
+        <input asp-for="SupplierName" class="form-control" placeholder="Tedarikçi adı girin" />
+        <span asp-validation-for="SupplierName" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Kaydet</button>
+    <a asp-action="Index" class="btn btn-secondary">İptal</a>
+</form>
+
+<style>
+    #imagePreview {
+        max-width: 300px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    #imagePreview img {
+        width: 100%;
+        height: auto;
+    }
+</style>
+
+<script>
+    function previewImage(event) {
+        const file = event.target.files[0];
+        const preview = document.getElementById('imagePreview');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                preview.innerHTML = `<img src="${e.target.result}" alt="Önizleme" class="img-fluid rounded">`;
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
