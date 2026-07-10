@@ -1,91 +1,274 @@
 @model StockManager.Server.Models.Sale
 
 @{
-    ViewData["Title"] = "Satış Detayi";
+    ViewData["Title"] = "Satış Detayı";
+    var products = ViewBag.Products as Dictionary<string, StockManager.Server.Models.Product> ?? new Dictionary<string, StockManager.Server.Models.Product>();
+
+    decimal totalCost = 0;
+    decimal totalProfit = 0;
+    decimal totalVat = 0;
+    decimal totalMatrah = 0;
+
+    foreach (var item in Model.Items)
+    {
+        var product = products.ContainsKey(item.ProductId) ? products[item.ProductId] : null;
+        var unitCost = product != null ? product.PurchasePrice : 0m;
+        var lineCost = unitCost * item.Quantity;
+        var lineSale = item.TotalLinePrice;
+        var unitProfit = item.UnitPrice - unitCost;
+        var lineProfit = unitProfit * item.Quantity;
+        var lineVat = lineSale - (lineSale / 1.20m);
+        var lineMatrah = lineSale / 1.20m;
+
+        totalCost += lineCost;
+        totalProfit += lineProfit;
+        totalVat += lineVat;
+        totalMatrah += lineMatrah;
+    }
 }
 
 <div class="mb-3">
-    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+    <a asp-action="History" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left"></i> Geri
     </a>
 </div>
 
-<h2>Satış Detayi</h2>
-
-<div class="card mb-4">
-    <div class="card-body">
-        <dl class="row mb-0">
-            <dt class="col-sm-3">Fatura No:</dt>
-            <dd class="col-sm-9">@Model.InvoiceNumber</dd>
-
-            <dt class="col-sm-3">Tarih:</dt>
-            <dd class="col-sm-9">@Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy")</dd>
-
-            <dt class="col-sm-3">Ürün Sayısı:</dt>
-            <dd class="col-sm-9">@Model.Items.Count</dd>
-
-            <dt class="col-sm-3">Ödeme Tipi:</dt>
-            <dd class="col-sm-9">
-                @switch (Model.PaymentType)
-                {
-                    case StockManager.Server.Models.PaymentType.Cash:
-                        <span class="badge bg-success">Nakit</span>
-                        break;
-                    case StockManager.Server.Models.PaymentType.Card:
-                        <span class="badge bg-primary">Kart</span>
-                        break;
-                    case StockManager.Server.Models.PaymentType.Debt:
-                        <span class="badge bg-warning text-dark">Veresiye</span>
-                        break;
-                }
-            </dd>
-            @if (ViewBag.Customer != null)
-            {
-                <dt class="col-sm-3">Müşteri:</dt>
-                <dd class="col-sm-9">
-                    <a asp-controller="Customers" asp-action="Details" asp-route-id="@ViewBag.Customer.Id">
-                        @ViewBag.Customer.FullName
-                    </a>
-                </dd>
-            }
-
-            <dt class="col-sm-3">Toplam Tutar:</dt>
-            <dd class="col-sm-9">@Model.TotalAmount.ToString("0.00")</dd>
-        </dl>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Satış Finansal Analizi & Detayı</h2>
+    <div>
+        <a asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-primary"><i class="bi bi-file-earmark-text"></i> Fatura Görüntüle</a>
+        <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-outline-success"><i class="bi bi-download"></i> Fiş İndir (PDF)</a>
     </div>
 </div>
 
-<h4>Satılan Ürünler</h4>
+<!-- Finansal Özet Kartları -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 text-white" style="background: linear-gradient(135deg, #1e3c72, #2a5298);">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Toplam Satış Tutarı</span>
+                        <h3 class="fw-bold mb-0">@Model.TotalAmount.ToString("0.00") ₺</h3>
+                    </div>
+                    <div class="fs-1 text-white-50">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 text-white" style="background: linear-gradient(135deg, #3a6073, #3a7bd5);">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Toplam Ürün Maliyeti</span>
+                        <h3 class="fw-bold mb-0">@totalCost.ToString("0.00") ₺</h3>
+                    </div>
+                    <div class="fs-1 text-white-50">
+                        <i class="bi bi-tag"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 text-white" style="background: @(totalProfit >= 0 ? "linear-gradient(135deg, #11998e, #38ef7d)" : "linear-gradient(135deg, #cb2d3e, #ef473a)");">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">Toplam Net Kâr</span>
+                        <h3 class="fw-bold mb-0">@totalProfit.ToString("0.00") ₺</h3>
+                    </div>
+                    <div class="fs-1 text-white-50">
+                        <i class="bi @(totalProfit >= 0 ? "bi-graph-up-arrow" : "bi-graph-down-arrow")"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-3 h-100 text-white" style="background: linear-gradient(135deg, #4b6cb7, #182848);">
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-white-50 small d-block mb-1">KDV (%20 Dahil)</span>
+                        <h3 class="fw-bold mb-0">@totalVat.ToString("0.00") ₺</h3>
+                    </div>
+                    <div class="fs-1 text-white-50">
+                        <i class="bi bi-receipt-cutoff"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<table class="table table-striped">
-    <thread>
-        <tr>
-            <th>Ürün</th>
-            <th>Miktar</th>
-            <th>Birim Fiyat</th>
-            <th>Satır Toplamı</th>
-        </tr>
-    </thread>
-    <tbody>
-        @foreach (var item in Model.Items)
-        {
-            <tr>
-                <td>@item.ProductName</td>
-                <td>@item.Quantity</td>
-                <td>@item.UnitPrice.ToString("0.00")</td>
-                <td>@item.TotalLinePrice.ToString("0.00")</td>
-            </tr>
-        }
-    </tbody>
-    <tfoot>
-        <tr>
-            <td colspan="3" class="text-end"><strong>Genel Toplam</strong></td>
-            <td><strong>@Model.TotalAmount.ToString("0.00")</strong></td>
-        </tr>
-    </tfoot>
-</table>
+<div class="row g-4 mb-4">
+    <!-- Genel Satış Bilgileri -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-info-circle text-primary me-2"></i>Genel Satış Bilgileri</h5>
+            </div>
+            <div class="card-body pt-0">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <td class="text-muted ps-0">Fatura No:</td>
+                            <td class="fw-semibold text-dark text-end">@Model.InvoiceNumber</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">İşlem Tarihi:</td>
+                            <td class="text-dark text-end">@Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted ps-0">Ödeme Tipi:</td>
+                            <td class="text-end">
+                                @switch (Model.PaymentType)
+                                {
+                                    case StockManager.Server.Models.PaymentType.Cash:
+                                        <span class="badge bg-success px-2 py-1.5"><i class="bi bi-cash me-1"></i>Nakit</span>
+                                        break;
+                                    case StockManager.Server.Models.PaymentType.Card:
+                                        <span class="badge bg-primary px-2 py-1.5"><i class="bi bi-credit-card me-1"></i>Kart</span>
+                                        break;
+                                    case StockManager.Server.Models.PaymentType.Debt:
+                                        <span class="badge bg-warning text-dark px-2 py-1.5"><i class="bi bi-book-half me-1"></i>Veresiye</span>
+                                        break;
+                                }
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Müşteri Bilgileri -->
+    <div class="col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 py-3">
+                <h5 class="fw-bold text-dark mb-0"><i class="bi bi-person text-success me-2"></i>Müşteri Bilgileri</h5>
+            </div>
+            <div class="card-body pt-0">
+                @if (ViewBag.Customer != null)
+                {
+                    <table class="table table-borderless mb-0">
+                        <tbody>
+                            <tr>
+                                <td class="text-muted ps-0">Adı Soyadı:</td>
+                                <td class="fw-semibold text-dark text-end">
+                                    <a asp-controller="Customers" asp-action="Details" asp-route-id="@ViewBag.Customer.Id" class="text-decoration-none">
+                                        @ViewBag.Customer.FullName
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">Telefon:</td>
+                                <td class="text-dark text-end">@(ViewBag.Customer.Phone ?? "Belirtilmedi")</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted ps-0">E-Posta:</td>
+                                <td class="text-dark text-end">@(ViewBag.Customer.Email ?? "Belirtilmedi")</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-person-x text-muted fs-2"></i>
+                        <p class="text-muted mb-0 mt-2">Bu işlem için müşteri kaydı belirtilmemiştir.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Satılan Ürünlerin Detay Analizi Tablosu -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-0 py-3">
+        <h5 class="fw-bold text-dark mb-0"><i class="bi bi-spreadsheet text-info me-2"></i>Satılan Ürünler ve Finansal Analiz</h5>
+    </div>
+    <div class="card-body pt-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Ürün</th>
+                        <th class="text-center">Miktar</th>
+                        <th class="text-end">Birim Maliyet</th>
+                        <th class="text-end">Birim Satış</th>
+                        <th class="text-end">Birim Kâr</th>
+                        <th class="text-end">Toplam Maliyet</th>
+                        <th class="text-end">Toplam Satış</th>
+                        <th class="text-end">Toplam Kâr</th>
+                        <th class="text-end" style="width: 180px;">KDV (%20)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var product = products.ContainsKey(item.ProductId) ? products[item.ProductId] : null;
+                        var unitCost = product != null ? product.PurchasePrice : 0m;
+                        var unitSale = item.UnitPrice;
+                        var unitProfit = unitSale - unitCost;
+                        
+                        var lineCost = unitCost * item.Quantity;
+                        var lineSale = item.TotalLinePrice;
+                        var lineProfit = unitProfit * item.Quantity;
+                        
+                        var lineVat = lineSale - (lineSale / 1.20m);
+                        var lineMatrah = lineSale / 1.20m;
+
+                        <tr>
+                            <td>
+                                <span class="fw-semibold text-dark">@item.ProductName</span>
+                            </td>
+                            <td class="text-center">@item.Quantity Adet</td>
+                            <td class="text-end text-muted">@unitCost.ToString("0.00") ₺</td>
+                            <td class="text-end">@unitSale.ToString("0.00") ₺</td>
+                            <td class="text-end fw-semibold @(unitProfit >= 0 ? "text-success" : "text-danger")">
+                                @unitProfit.ToString("0.00") ₺
+                            </td>
+                            <td class="text-end text-muted">@lineCost.ToString("0.00") ₺</td>
+                            <td class="text-end fw-semibold">@lineSale.ToString("0.00") ₺</td>
+                            <td class="text-end fw-bold @(lineProfit >= 0 ? "text-success" : "text-danger")">
+                                @lineProfit.ToString("0.00") ₺
+                            </td>
+                            <td class="text-end small">
+                                <span class="text-dark">@lineVat.ToString("0.00") ₺</span> <br>
+                                <span class="text-muted" style="font-size: 0.75rem;">(Matrah: @lineMatrah.ToString("0.00") ₺)</span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-dark">
+                        <td class="fw-bold">Genel Toplam</td>
+                        <td class="text-center fw-bold">@Model.Items.Sum(i => i.Quantity) Adet</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end">-</td>
+                        <td class="text-end fw-bold">@totalCost.ToString("0.00") ₺</td>
+                        <td class="text-end fw-bold">@Model.TotalAmount.ToString("0.00") ₺</td>
+                        <td class="text-end fw-bold" style="color: @(totalProfit >= 0 ? "#2ecc71" : "#ff7675");">
+                            @totalProfit.ToString("0.00") ₺
+                        </td>
+                        <td class="text-end small fw-bold">
+                            <span>@totalVat.ToString("0.00") ₺</span> <br>
+                            <span style="font-size: 0.75rem; color: #b2bec3;">(Matrah: @totalMatrah.ToString("0.00") ₺)</span>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
 
 <div class="d-flex gap-2">
-    <a asp-action="Invoice" asp-route-id="@Model.Id" class="btn btn-outline-primary">Fatura Görüntüle</a>
-    <a asp-action="History" class="btn btn-outline-secondary">Satış Geçmişine Dön</a>
+    <a asp-action="History" class="btn btn-secondary"><i class="bi bi-clock-history"></i> Satış Geçmişine Dön</a>
 </div>

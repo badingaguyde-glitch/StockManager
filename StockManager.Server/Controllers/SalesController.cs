@@ -201,6 +201,14 @@ namespace StockManager.Server.Controllers
                 .SortByDescending(s => s.SaleDate)
                 .ToListAsync();
 
+            var customerIds = sales.Select(s => s.CustomerId).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+            var customers = await _context.Customers
+                .Find(Builders<Customer>.Filter.In(c => c.Id, customerIds))
+                .ToListAsync();
+
+            var customerDict = customers.ToDictionary(c => c.Id!, c => c.FullName);
+            ViewBag.CustomerNames = customerDict;
+
             return View(sales);
         }
 
@@ -221,6 +229,14 @@ namespace StockManager.Server.Controllers
                     .Find(c => c.Id == sale.CustomerId)
                     .FirstOrDefaultAsync();
             }
+
+            var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
+            var products = await _context.Products
+                .Find(Builders<Product>.Filter.In(p => p.Id, productIds))
+                .ToListAsync();
+
+            var productDict = products.ToDictionary(p => p.Id!, p => p);
+            ViewBag.Products = productDict;
 
             return View(sale);
         }
