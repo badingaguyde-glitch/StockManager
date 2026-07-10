@@ -23,12 +23,12 @@ builder.Services.Configure<StripeSettings>(options =>
     options.Currency = Environment.GetEnvironmentVariable("STRIPE_CURRENCY") ?? "try";
 });
 
-// 🆕 Load Cloudinary settings from environment variables or configuration fallback
+// 🆕 Load Cloudinary settings strictly from environment variables (.env)
 builder.Services.Configure<CloudinarySettings>(options =>
 {
-    options.CloudName = Environment.GetEnvironmentVariable("CLOUD_NAME") ?? builder.Configuration["CloudinarySettings:CloudName"] ?? string.Empty;
-    options.ApiKey = Environment.GetEnvironmentVariable("CLOUD_API_KEY") ?? builder.Configuration["CloudinarySettings:ApiKey"] ?? string.Empty;
-    options.ApiSecret = Environment.GetEnvironmentVariable("CLOUD_API_SECRET") ?? builder.Configuration["CloudinarySettings:ApiSecret"] ?? string.Empty;
+    options.CloudName = Environment.GetEnvironmentVariable("CLOUD_NAME") ?? string.Empty;
+    options.ApiKey = Environment.GetEnvironmentVariable("CLOUD_API_KEY") ?? string.Empty;
+    options.ApiSecret = Environment.GetEnvironmentVariable("CLOUD_API_SECRET") ?? string.Empty;
     options.MaxFileSize = int.TryParse(builder.Configuration["CloudinarySettings:MaxFileSize"], out var size) ? size : 5242880;
 });
 
