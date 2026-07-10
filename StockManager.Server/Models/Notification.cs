@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace StockManager.Server.Models;
 
+[BsonIgnoreExtraElements]
 public class Notification
 {
     [BsonId]
@@ -34,4 +35,21 @@ public class Notification
     [BsonElement("saleId")]
     [BsonRepresentation(BsonType.ObjectId)]
     public string? SaleId { get; set; }
+
+    // PascalCase fallback properties (for legacy or differently cased database fields)
+    [BsonElement("Message")]
+    [BsonIgnoreIfNull]
+    private string? MessageAlt { get => null; set => Message = value ?? string.Empty; }
+
+    [BsonElement("IsRead")]
+    [BsonIgnoreIfNull]
+    private bool? IsReadAlt { get => null; set { if (value.HasValue) IsRead = value.Value; } }
+
+    [BsonElement("CreatedAt")]
+    [BsonIgnoreIfNull]
+    private DateTime? CreatedAtAlt { get => null; set { if (value.HasValue) CreatedAt = value.Value; } }
+
+    [BsonElement("ProductId")]
+    [BsonIgnoreIfNull]
+    private string? ProductIdAlt { get => null; set => ProductId = value; }
 }
