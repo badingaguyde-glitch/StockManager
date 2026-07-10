@@ -13,10 +13,13 @@ namespace StockManager.Server.Controllers
         private readonly MongoDBContext _context;
         private readonly StockManager.Server.Services.IEmailService _emailService;
 
-        public StockMovementsController(MongoDBContext context, StockManager.Server.Services.IEmailService emailService)
+        private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
+
+        public StockMovementsController(MongoDBContext context, StockManager.Server.Services.IEmailService emailService, StockManager.Server.Services.IAuditLogService auditLogService)
         {
             _context = context;
             _emailService = emailService;
+            _auditLogService = auditLogService;
         }
         public async Task<IActionResult> Index()
         {
@@ -157,6 +160,9 @@ namespace StockManager.Server.Controllers
                     await _emailService.SendLowStockAlertAsync(email, checkProduct, DateTime.UtcNow, supplierOrCustomerName);
                 }
             }
+
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Stok Hareketi Oluşturma", $"Yeni stok hareketi oluşturuldu: {movement.Type}, Ürün: {checkProduct?.Name}");
 
             return RedirectToAction(nameof(Index));
         }

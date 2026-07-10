@@ -2,9 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using MongoDB.Driver;
 using StripeCheckout = Stripe.Checkout;
+using StockManager.Server.Services;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
-using StockManager.Server.Services;
+
 
 namespace StockManager.Server.Controllers
 {
@@ -16,13 +17,17 @@ namespace StockManager.Server.Controllers
         private readonly StripePaymentService _stripePaymentService;
         private readonly ReceiptPdfService _receiptPdfService;
 
+        private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
+
         public SalesController(
             MongoDBContext context,
             StripePaymentService stripePaymentService,
+            StockManager.Server.Services.IAuditLogService auditLogService,
             ReceiptPdfService receiptPdfService, StockManager.Server.Services.IEmailService emailService)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
+            _auditLogService = auditLogService;
             _receiptPdfService = receiptPdfService;
             _emailService = emailService;
         }
@@ -56,6 +61,9 @@ namespace StockManager.Server.Controllers
             {
                 return Json(new { success = false, message = "Ürün stokta yok." });
             }
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Sepete Ürün Ekleme", $"Ürün sepete eklendi: {product.Name} (ID: {product.Id})");
+
             return Json(new
             {
                 success = true,
@@ -142,6 +150,9 @@ namespace StockManager.Server.Controllers
                 var increaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, sale.TotalAmount);
                 await _context.Customers.UpdateOneAsync(customerFilter, increaseBalance);
             }
+
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Satış Yapma", $"Satış yapıldı: {sale.InvoiceNumber}, Tutar: {sale.TotalAmount} {sale.Currency}, Ödeme Tipi: {sale.PaymentType}");
 
             return RedirectToAction(nameof(Invoice), new { id = sale.Id });
         }

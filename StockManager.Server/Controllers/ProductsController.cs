@@ -14,14 +14,17 @@ public class ProductsController : Controller
     private readonly MongoDBContext _context;
     private readonly IImageUploadService _imageUploadService;
     private readonly ILogger<ProductsController> _logger;
+    private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
 
     public ProductsController(
         MongoDBContext context,
         IImageUploadService imageUploadService,
+        StockManager.Server.Services.IAuditLogService auditLogService,
         ILogger<ProductsController> logger)
     {
         _context = context;
         _imageUploadService = imageUploadService;
+        _auditLogService = auditLogService;
         _logger = logger;
     }
 
@@ -174,7 +177,10 @@ public class ProductsController : Controller
 
         await _context.Products.InsertOneAsync(product);
         
+        
         TempData["success"] = "Ürün başarıyla eklendi.";
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
         return RedirectToAction(nameof(Index));
     }
 
@@ -276,6 +282,9 @@ public class ProductsController : Controller
             TempData["success"] = "Ürün başarıyla güncellendi.";
         }
 
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Güncelleme", $"Ürün güncellendi: {product.Name} (ID: {product.Id})");
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -297,6 +306,9 @@ public class ProductsController : Controller
         }
 
         await _context.Products.DeleteOneAsync(p => p.Id == id);
+
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Silme", $"Ürün silindi: {product.Name} (ID: {product.Id})");
 
         TempData["success"] = "Ürün başarıyla silindi.";
         return RedirectToAction(nameof(Index));
