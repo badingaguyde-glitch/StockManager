@@ -14,18 +14,34 @@ public class CloudinaryImageService : IImageUploadService
     private readonly ILogger<CloudinaryImageService> _logger;
     private readonly CloudinarySettings _settings;
 
-    public CloudinaryImageService(
+        public CloudinaryImageService(
         IOptions<CloudinarySettings> options,
         ILogger<CloudinaryImageService> logger)
     {
         _settings = options.Value;
         _logger = logger;
 
-        var account = new Account(
-            _settings.CloudName,
-            _settings.ApiKey,
-            _settings.ApiSecret);
+        // 🆕 Hem .env çevre değişkenlerinden hem de appsettings.json'dan okumayı dener
+        var cloudName = Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME") 
+                        ?? Environment.GetEnvironmentVariable("CloudinarySettings:CloudName")
+                        ?? _settings.CloudName;
 
+        var apiKey = Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY") 
+                     ?? Environment.GetEnvironmentVariable("CloudinarySettings:ApiKey")
+                     ?? _settings.ApiKey;
+
+        var apiSecret = Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET") 
+                        ?? Environment.GetEnvironmentVariable("CloudinarySettings:ApiSecret")
+                        ?? _settings.ApiSecret;
+
+        // Bilgiler boşsa sistemi çökertmek yerine log atıp hata fırlatırız
+        if (string.IsNullOrEmpty(cloudName) || string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiSecret))
+        {
+            _logger.LogError("⚠️ Cloudinary ayarları yüklenemedi! Lütfen .env veya appsettings.json dosyasını kontrol edin.");
+            throw new ArgumentException("Cloudinary kimlik bilgileri boş veya geçersiz olamaz.");
+        }
+
+        var account = new Account(cloudName, apiKey, apiSecret);
         _cloudinary = new Cloudinary(account);
     }
 
