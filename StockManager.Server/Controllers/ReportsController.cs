@@ -6,7 +6,7 @@ using StockManager.Server.Models;
 
 namespace StockManager.Server.Controllers;
 
-[Authorize(Roles = "Admin,Muhasebesi")]
+[Authorize(Roles = "Admin,Muhasebeci")]
 public class ReportsController : Controller
 {
     private readonly MongoDBContext _context;
@@ -30,6 +30,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> DailyTurnover(DateTime? date)
     {
         var selectedDate = date ?? DateTime.Today;
@@ -46,6 +47,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> BestSellers()
     {
         var sales = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
@@ -68,6 +70,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> SalesTrend(int days = 30)
     {
         var to = DateTime.Today;
@@ -90,6 +93,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> CategoryDistribution()
     {
         var products = await _context.Products.Find(FilterDefinition<Product>.Empty).ToListAsync();
@@ -110,6 +114,7 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> ProfitLoss(DateTime? startDate, DateTime? endDate)
     {
         var fromDate = startDate ?? DateTime.Today.AddDays(-30);
