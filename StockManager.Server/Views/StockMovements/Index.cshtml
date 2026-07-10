@@ -7,6 +7,12 @@
     var customerNames = ViewBag.CustomerNames as Dictionary<string, string> ?? new Dictionary<string, string>();
 }
 
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Stok Hareketleri</h2>
     <a asp-action="Create" class="btn btn-primary">Yeni Stok Hareketi Ekle</a>

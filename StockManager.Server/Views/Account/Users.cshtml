@@ -5,6 +5,12 @@
     ViewData["Title"] = "Personel Yönetimi";
 }
 
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Personel Yönetimi</h2>
     <a asp-action="Register" class="btn btn-primary">Yeni Personel Ekle</a>
@@ -49,7 +55,15 @@
                         <form asp-action="ChangeRole" method="post" class="d-inline-flex gap-1">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@user.Id" />
-                            <select name="role" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<UserRole>()" onchange="this.form.submit()">
+                            @{
+                                string? selAdmin      = user.Role == UserRole.Admin      ? "selected" : null;
+                                string? selPersonel   = user.Role == UserRole.Personel   ? "selected" : null;
+                                string? selMuhasebeci = user.Role == UserRole.Muhasebeci ? "selected" : null;
+                            }
+                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="0" selected="@selAdmin">Yönetici (Admin)</option>
+                                <option value="1" selected="@selPersonel">Personel</option>
+                                <option value="2" selected="@selMuhasebeci">Muhasebeci</option>
                             </select>
                         </form>
                     }
