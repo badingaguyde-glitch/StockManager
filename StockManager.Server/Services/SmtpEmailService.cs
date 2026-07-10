@@ -108,4 +108,59 @@ public class SmtpEmailService : IEmailService
 
         await SendEmailAsync(to, subject, body);
     }
+
+        public async Task SendPasswordResetCodeAsync(string to, string code)
+    {
+        var subject = "🔐 Şifre Değiştirme Doğrulama Kodu";
+        var body = $@"
+<div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);"">
+    <div style=""background: linear-gradient(135deg, #1e3c72, #2a5298); color: #ffffff; padding: 20px; text-align: center;"">
+        <h2 style=""margin: 0; font-size: 22px; font-weight: 600;"">Şifre Değiştirme İsteği</h2>
+    </div>
+    <div style=""padding: 24px; background-color: #fafafa; color: #333333; line-height: 1.6; text-align: center;"">
+        <p style=""margin-top: 0; font-size: 16px; text-align: left;"">Sayın Kullanıcı,</p>
+        <p style=""font-size: 15px; text-align: left;"">Hesabınızın şifresini değiştirmek için bir istek aldık. Lütfen aşağıdaki 6 haneli doğrulama kodunu açılan sayfaya giriniz:</p>
+        
+        <div style=""background-color: #ffffff; border: 1px dashed #2a5298; border-radius: 6px; display: inline-block; padding: 15px 30px; margin: 20px 0; font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #1e3c72;"">
+            {code}
+        </div>
+        
+        <p style=""font-size: 13px; color: #888888; text-align: left;"">Bu kod 15 dakika boyunca geçerlidir. İstekte bulunan siz değilseniz bu e-postayı dikkate almayınız.</p>
+    </div>
+    <div style=""background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 11px; color: #888888; border-top: 1px solid #e0e0e0;"">
+        Bu e-posta <strong>StockManager</strong> sistemi tarafından otomatik olarak oluşturulmuştur.
+    </div>
+</div>";
+
+        await SendEmailAsync(to, subject, body);
+    }
+
+    public async Task SendNewTemporaryPasswordAsync(string to, string newPassword)
+    {
+        var subject = "🔑 Yeni Geçici Giriş Şifreniz";
+        var body = $@"
+<div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);"">
+    <div style=""background: linear-gradient(135deg, #2b5876, #4e4376); color: #ffffff; padding: 20px; text-align: center;"">
+        <h2 style=""margin: 0; font-size: 22px; font-weight: 600;"">Hesabınız Sıfırlandı</h2>
+    </div>
+    <div style=""padding: 24px; background-color: #fafafa; color: #333333; line-height: 1.6; text-align: center;"">
+        <p style=""margin-top: 0; font-size: 16px; text-align: left;"">Sayın Çalışanımız,</p>
+        <p style=""font-size: 15px; text-align: left;"">Giriş şifreniz sistem yöneticisi (Admin) tarafından sıfırlanmıştır. Yeni geçici şifreniz aşağıda yer almaktadır:</p>
+        
+        <div style=""background-color: #ffffff; border: 1px solid #4e4376; border-radius: 6px; display: inline-block; padding: 12px 25px; margin: 20px 0; font-size: 22px; font-weight: bold; color: #2b5876;"">
+            {newPassword}
+        </div>
+        
+        <p style=""font-size: 14px; text-align: left; font-weight: bold; color: #d32f2f;"">Önemli Güvenlik Uyarısı:</p>
+        <p style=""font-size: 13px; color: #555555; text-align: left; margin-top: 5px;"">
+            Güvenliğiniz için sisteme ilk girişinizden sonra sağ üstteki kullanıcı menüsünden <strong>'Profil Ayarlarım'</strong> sayfasına giderek şifrenizi güncellemeyi unutmayınız.
+        </p>
+    </div>
+    <div style=""background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 11px; color: #888888; border-top: 1px solid #e0e0e0;"">
+        Bu e-posta <strong>StockManager</strong> sistemi tarafından otomatik olarak oluşturulmuştur.
+    </div>
+</div>";
+
+        await SendEmailAsync(to, subject, body);
+    }
 }

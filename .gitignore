@@ -3,3 +3,5 @@ bin/
 obj/
 .env/
 StockManager.Server/.env
+/.env
+/.vscode/

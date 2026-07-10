@@ -27,4 +27,13 @@ public class User
 
     [BsonElement("role")]
     public UserRole Role {get;set;}=UserRole.Personel;
+
+    [BsonElement("passwordResetCode")]
+    public string? PasswordResetCode {get;set;}
+
+    [BsonElement("passwordResetCodeExpireAt")]
+    public DateTime? PasswordResetCodeExpireAt {get;set;}
+
+    [BsonElement("pendingPasswordHash")]
+    public string? PendingPasswordHash {get;set;}
 }
