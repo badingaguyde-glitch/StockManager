@@ -6,6 +6,8 @@
 
 Sistem, işinizin büyümesine uyum sağlayacak şekilde inşa edilmiştir ve gelecekteki genişletmeler için hazırdır.
 
+**Site Linki** [StockManager](https://stockmanager-jvrc.onrender.com/)
+
 ---
 
 ## ✨ Temel Özellikler
