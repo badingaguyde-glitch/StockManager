@@ -266,21 +266,30 @@
         }
 
         // ---------- GÜNLÜK CİRO ----------
-        var turnoverLoaded = false;
+        var lastTurnoverDate = null;
         async function loadDailyTurnover() {
             var panel = document.getElementById('turnoverResult');
-            if (turnoverLoaded && !panel.classList.contains('d-none')) {
+            var date = document.getElementById('turnoverDate').value;
+
+            // Açıksa direkt kapat
+            if (!panel.classList.contains('d-none')) {
                 togglePanel('turnoverResult', 'btnTurnover', 'primary');
                 return;
             }
-            var date = document.getElementById('turnoverDate').value;
+
+            // Kapalıysa ve tarih değişmediyse istek atmadan direkt aç
+            if (lastTurnoverDate === date) {
+                togglePanel('turnoverResult', 'btnTurnover', 'primary');
+                return;
+            }
+
             var url  = date ? `/Reports/DailyTurnover?date=${date}` : '/Reports/DailyTurnover';
             try {
                 var res  = await fetch(url);
                 var data = await res.json();
                 document.getElementById('turnoverDateResult').textContent = data.date;
                 document.getElementById('turnoverAmount').textContent = '₺' + parseFloat(data.totalTurnover).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                turnoverLoaded = true;
+                lastTurnoverDate = date;
                 panel.classList.remove('d-none');
                 var btn = document.getElementById('btnTurnover');
                 btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
@@ -295,6 +304,10 @@
         async function loadBestSellers() {
             var panel = document.getElementById('bestSellersResult');
             if (bestSellersLoaded && !panel.classList.contains('d-none')) {
+                togglePanel('bestSellersResult', 'btnBestSellers', 'success');
+                return;
+            }
+            if (bestSellersLoaded && panel.classList.contains('d-none')) {
                 togglePanel('bestSellersResult', 'btnBestSellers', 'success');
                 return;
             }
@@ -327,15 +340,25 @@
         }
 
         // ---------- KAR / ZARAR ----------
-        var profitLossLoaded = false;
+        var lastPLStartDate = null;
+        var lastPLEndDate = null;
         async function loadProfitLoss() {
             var panel = document.getElementById('profitLossResult');
-            if (profitLossLoaded && !panel.classList.contains('d-none')) {
+            var startDate = document.getElementById('plStartDate').value;
+            var endDate   = document.getElementById('plEndDate').value;
+
+            // Açıksa direkt kapat
+            if (!panel.classList.contains('d-none')) {
                 togglePanel('profitLossResult', 'btnProfitLoss', 'warning');
                 return;
             }
-            var startDate = document.getElementById('plStartDate').value;
-            var endDate   = document.getElementById('plEndDate').value;
+
+            // Kapalıysa ve tarihler değişmediyse istek atmadan direkt aç
+            if (lastPLStartDate === startDate && lastPLEndDate === endDate) {
+                togglePanel('profitLossResult', 'btnProfitLoss', 'warning');
+                return;
+            }
+
             var url = '/Reports/ProfitLoss';
             var params = [];
             if (startDate) params.push('startDate=' + startDate);
@@ -353,7 +376,8 @@
                 profitEl.textContent = '₺' + profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 });
                 profitEl.className   = profit >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
                 
-                profitLossLoaded = true;
+                lastPLStartDate = startDate;
+                lastPLEndDate = endDate;
                 panel.classList.remove('d-none');
                 var btn = document.getElementById('btnProfitLoss');
                 btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
