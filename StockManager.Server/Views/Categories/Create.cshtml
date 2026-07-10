@@ -128,10 +128,10 @@
                             @foreach (var c in colorOptions)
                             {
                                 <div>
-                                    <input type="radio" name="Color" id="col_@c.Value.Replace("#","")"
+                                    <input type="radio" name="ColorRadio" id="col_@c.Value.Replace("#","")"
                                            value="@c.Value" class="d-none"
                                            title="@c.Label"
-                                           onchange="updatePreviewColor(this.value)">
+                                           checked="@(c.Value == "#4361ee" ? "checked" : null)">
                                     <label for="col_@c.Value.Replace("#","")" title="@c.Label">
                                         <span class="color-swatch d-block"
                                               style="background-color: @c.Value;"></span>
@@ -149,10 +149,10 @@
                             @foreach (var ic in iconOptions)
                             {
                                 <div>
-                                    <input type="radio" name="Icon" id="ico_@ic.Value.Replace("-","_")"
+                                    <input type="radio" name="IconRadio" id="ico_@ic.Value.Replace("-","_")"
                                            value="@ic.Value" class="d-none"
                                            title="@ic.Label"
-                                           onchange="updatePreviewIcon(this.value)">
+                                           checked="@(ic.Value == "bi-tag-fill" ? "checked" : null)">
                                     <label for="ico_@ic.Value.Replace("-","_")" title="@ic.Label">
                                         <div class="icon-btn">
                                             <i class="bi @ic.Value"></i>
@@ -182,7 +182,7 @@
     var currentIcon  = 'bi-tag-fill';
 
     // Renk radio değiştiğinde: gizli inputu güncelle + önizleme
-    document.querySelectorAll('input[name="Color"]').forEach(function(r) {
+    document.querySelectorAll('input[name="ColorRadio"]').forEach(function(r) {
         r.addEventListener('change', function() {
             currentColor = this.value;
             document.getElementById('hiddenColor').value = currentColor;
@@ -191,7 +191,7 @@
     });
 
     // İkon radio değiştiğinde: gizli inputu güncelle + önizleme
-    document.querySelectorAll('input[name="Icon"]').forEach(function(r) {
+    document.querySelectorAll('input[name="IconRadio"]').forEach(function(r) {
         r.addEventListener('change', function() {
             currentIcon = this.value;
             document.getElementById('hiddenIcon').value = currentIcon;
@@ -206,18 +206,5 @@
         iconEl.className = 'bi ' + currentIcon;
         document.getElementById('form-accent').style.background = currentColor;
     }
-
-    // Form submit öncesi gizli alanları güncelle (radio üzerinden de gelebilir)
-    document.querySelector('form').addEventListener('submit', function() {
-        // Seçili radio varsa onların değerini kullan
-        var colorRadio = document.querySelector('input[name="Color"]:checked');
-        var iconRadio  = document.querySelector('input[name="Icon"]:checked');
-        if (colorRadio) document.getElementById('hiddenColor').value = colorRadio.value;
-        if (iconRadio)  document.getElementById('hiddenIcon').value  = iconRadio.value;
-
-        // Radio input'ları devre dışı bırak ki hidden değerleri öncelikli olsun
-        document.querySelectorAll('input[name="Color"]:not([id="hiddenColor"])').forEach(function(r){ r.disabled = true; });
-        document.querySelectorAll('input[name="Icon"]:not([id="hiddenIcon"])').forEach(function(r){ r.disabled = true; });
-    });
 </script>
 }

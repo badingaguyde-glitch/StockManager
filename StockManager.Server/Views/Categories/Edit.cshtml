@@ -129,9 +129,8 @@
                         <div class="d-flex flex-wrap gap-2 align-items-center">
                             @foreach (var c in colorOptions)
                             {
-                                var isColorChecked = (Model.Color == c.Value);
                                 <div>
-                                    <input type="radio" name="Color"
+                                    <input type="radio" name="ColorRadio"
                                            id="col_@c.Value.Replace("#","")"
                                            value="@c.Value"
                                            class="d-none"
@@ -152,9 +151,8 @@
                         <div class="d-flex flex-wrap gap-2">
                             @foreach (var ic in iconOptions)
                             {
-                                var isIconChecked = (Model.Icon == ic.Value);
                                 <div>
-                                    <input type="radio" name="Icon"
+                                    <input type="radio" name="IconRadio"
                                            id="ico_@ic.Value.Replace("-","_")"
                                            value="@ic.Value"
                                            class="d-none"
@@ -189,16 +187,16 @@
 
     // Mevcut seçimleri işaretle
     function initPickers() {
-        document.querySelectorAll('input[name="Color"]').forEach(function(r) {
+        document.querySelectorAll('input[name="ColorRadio"]').forEach(function(r) {
             if (r.value === currentColor) r.checked = true;
         });
-        document.querySelectorAll('input[name="Icon"]').forEach(function(r) {
+        document.querySelectorAll('input[name="IconRadio"]').forEach(function(r) {
             if (r.value === currentIcon) r.checked = true;
         });
     }
 
     // Renk değişince önizleme güncelle
-    document.querySelectorAll('input[name="Color"]').forEach(function(r) {
+    document.querySelectorAll('input[name="ColorRadio"]').forEach(function(r) {
         r.addEventListener('change', function() {
             currentColor = this.value;
             document.getElementById('hiddenColor').value = currentColor;
@@ -207,7 +205,7 @@
     });
 
     // İkon değişince önizleme güncelle
-    document.querySelectorAll('input[name="Icon"]').forEach(function(r) {
+    document.querySelectorAll('input[name="IconRadio"]').forEach(function(r) {
         r.addEventListener('change', function() {
             currentIcon = this.value;
             document.getElementById('hiddenIcon').value = currentIcon;
@@ -220,17 +218,6 @@
         document.getElementById('preview-icon').className = 'bi ' + currentIcon;
         document.getElementById('form-accent').style.background = currentColor;
     }
-
-    // Form submit: disabled radio'ları hariç tut, hidden inputlar gönderilsin
-    document.querySelector('form').addEventListener('submit', function() {
-        var colorRadio = document.querySelector('input[name="Color"]:checked');
-        var iconRadio  = document.querySelector('input[name="Icon"]:checked');
-        if (colorRadio) document.getElementById('hiddenColor').value = colorRadio.value;
-        if (iconRadio)  document.getElementById('hiddenIcon').value  = iconRadio.value;
-
-        document.querySelectorAll('input[name="Color"]:not(#hiddenColor)').forEach(function(r){ r.disabled = true; });
-        document.querySelectorAll('input[name="Icon"]:not(#hiddenIcon)').forEach(function(r){ r.disabled = true; });
-    });
 
     initPickers();
 </script>
