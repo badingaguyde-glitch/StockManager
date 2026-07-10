@@ -10,11 +10,50 @@
     <!-- Bootstrap Icons CDN (İkonlar için) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        /* Modernized notification styling */
+        .notification-item {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .notification-item:hover {
+            background-color: rgba(0, 0, 0, 0.02) !important;
+        }
+        .hover-success {
+            color: #6c757d !important;
+            transition: all 0.2s ease !important;
+        }
+        .hover-success:hover {
+            color: #198754 !important;
+            transform: scale(1.15);
+        }
+        .animate-pulse {
+            animation: pulse-animation 2s infinite;
+        }
+        @@keyframes pulse-animation {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.08); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+        /* Custom scrollbar for notifications */
+        #notification-list::-webkit-scrollbar {
+            width: 5px;
+        }
+        #notification-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #notification-list::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        #notification-list::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
 
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom box-shadow mb-3 position-relative" style="z-index: 1030;">
             <div class="container-fluid">
                 <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Home" asp-action="Index">
                     <i class="bi bi-box-seam-fill"></i> StockManager
@@ -79,34 +118,35 @@
                                         <a asp-controller="Sales" asp-action="POS" class="btn btn-primary btn-sm fw-bold me-2">
                                             <i class="bi bi-cart3"></i> Hızlı Satış (POS)
                                         </a>
-                                    }
-
-                                    <!-- Bildirim Zili -->
-                                    <div class="dropdown me-2" id="notification-area">
-                                        <button class="btn btn-outline-light btn-sm position-relative" type="button"
-                                                id="notificationMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
-                                                onclick="loadNotifications()">
-                                            <i class="bi bi-bell"></i>
-                                            <span id="notification-badge"
-                                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                                                  style="display:none;">
-                                                0
-                                            </span>
-                                        </button>
-                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationMenuButton"
-                                            id="notification-list" style="width: 320px; max-height: 400px; overflow-y: auto;">
-                                            <li>
-                                                <h6 class="dropdown-header">Bildirimler</h6>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <div id="notification-items">
-                                                <li><span class="dropdown-item text-muted text-center py-3">Bildirim
-                                                    bulunmuyor.</span></li>
+                                        <!-- Bildirim Zili -->
+                                        <div class="dropdown me-2" id="notification-area">
+                                            <button class="btn btn-outline-light btn-sm position-relative border-0 rounded-circle d-flex align-items-center justify-content-center" type="button"
+                                                    id="notificationMenuButton" data-bs-toggle="dropdown" aria-expanded="false"
+                                                    onclick="loadNotifications()" style="width: 34px; height: 34px; padding: 0;">
+                                                <i class="bi bi-bell fs-5"></i>
+                                                <span id="notification-badge"
+                                                      class="position-absolute badge rounded-pill bg-danger d-flex align-items-center justify-content-center"
+                                                      style="display:none; top: 1px; right: 1px; font-size: 0.62rem; padding: 0.22em 0.4em; min-width: 15px; min-height: 15px;">
+                                                    0
+                                                </span>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 py-2 mt-2" aria-labelledby="notificationMenuButton"
+                                                id="notification-list" style="width: 340px; max-height: 450px; overflow-y: auto; z-index: 1050;">
+                                                <li class="px-3 py-1.5 d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-0 fw-bold text-dark" style="font-size: 0.92rem;">Bildirimler</h6>
+                                                    <button class="btn btn-xs btn-link text-primary text-decoration-none p-0 fw-semibold" style="font-size: 0.76rem;" onclick="markAllAsRead(event)">
+                                                        Tümünü Oku
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider my-1">
+                                                </li>
+                                                <div id="notification-items">
+                                                    <li><span class="dropdown-item text-muted text-center py-3">Yeni bildirim bulunmuyor.</span></li>
                                                 </div>
                                             </ul>
                                         </div>
+                                    }
 
                                         <!-- Kullanıcı Menüsü -->
                                         <div class="dropdown">
@@ -181,81 +221,146 @@
                     <!-- AJAX Bildirim Yönetimi Betikleri -->
                     <script>
                         async function checkUnreadNotifications() {
-                        try {
-                        const response = await fetch('/Notifications/GetUnread');
-                        const data = await response.json();
-                        const badge = document.getElementById('notification-badge');
+                            try {
+                                const response = await fetch('/Notifications/GetUnread');
+                                const data = await response.json();
+                                const badge = document.getElementById('notification-badge');
 
-                        if (data.length > 0) {
-                        badge.textContent = data.length;
-                        badge.style.display = 'inline-block';
-                        } else {
-                        badge.style.display = 'none';
-                        }
-                        } catch (error) {
-                        console.error("Bildirimler kontrol edilemedi.", error);
-                        }
+                                if (data && data.count > 0) {
+                                    badge.textContent = data.count;
+                                    badge.style.display = 'flex';
+                                } else {
+                                    badge.style.display = 'none';
+                                }
+                            } catch (error) {
+                                console.error("Bildirimler kontrol edilemedi.", error);
+                            }
                         }
 
                         async function loadNotifications() {
-                        try {
-                        const response = await fetch('/Notifications/GetUnread');
-                        const data = await response.json();
-                        const container = document.getElementById('notification-items');
-                        container.innerHTML = '';
+                            try {
+                                const response = await fetch('/Notifications/GetUnread');
+                                const data = await response.json();
+                                const container = document.getElementById('notification-items');
+                                container.innerHTML = '';
 
-                        if (data.length === 0) {
-                        container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-3">Yeni bildirim bulunmuyor.</span></li>';
-                        return;
-                        }
+                                if (!data || !data.items || data.items.length === 0) {
+                                    container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-4 fs-7"><i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-50"></i>Yeni bildirim bulunmuyor.</span></li>';
+                                    return;
+                                }
 
-                        data.forEach(item => {
-                        const li = document.createElement('li');
-                        li.className = 'px-3 py-2 border-bottom';
-                        li.innerHTML = `
-                        <div class="d-flex justify-content-between align-items-start gap-2">
-                        <div style="font-size: 0.85rem;">${item.message}</div>
-                        <button class="btn btn-xs btn-outline-secondary py-0 px-1" onclick="markAsRead('${item.id}', this)" title="Okundu işaretle">
-                        <i class="bi bi-check"></i>
-                        </button>
-                        </div>
-                        <div class="text-muted mt-1" style="font-size: 0.75rem;">
-                        ${new Date(item.createdAt).toLocaleString('tr-TR')}
-                        </div>
-                        `;
-                        container.appendChild(li);
-                        });
-                        } catch (error) {
-                        console.error("Bildirim listesi yüklenemedi.", error);
-                        }
+                                data.items.forEach(item => {
+                                    const li = document.createElement('li');
+                                    li.className = 'notification-item px-3 py-2.5 border-bottom d-flex align-items-start gap-2';
+                                    li.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+                                    
+                                    // Decide icon based on content severity
+                                    let iconClass = 'bi-info-circle-fill text-info';
+                                    if (item.message.includes('yetersiz') || item.message.includes('bulunmamaktadır')) {
+                                        iconClass = 'bi-x-circle-fill text-danger animate-pulse';
+                                    } else if (item.message.includes('kritik') || item.message.includes('limit')) {
+                                        iconClass = 'bi-exclamation-triangle-fill text-warning';
+                                    }
+                                    
+                                    li.innerHTML = `
+                                        <div class="d-flex align-items-center justify-content-center rounded-circle bg-light" style="width: 32px; height: 32px; flex-shrink: 0; margin-top: 2px;">
+                                            <i class="bi ${iconClass}" style="font-size: 1rem;"></i>
+                                        </div>
+                                        <div class="flex-grow-1" style="min-width: 0;">
+                                            <div class="text-dark" style="font-size: 0.82rem; line-height: 1.35; word-break: break-word;">
+                                                ${item.message}
+                                            </div>
+                                            <div class="text-muted mt-1 d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                                <i class="bi bi-clock"></i> ${new Date(item.createdAt).toLocaleString('tr-TR')}
+                                            </div>
+                                        </div>
+                                        <button class="btn btn-sm btn-link text-muted p-1 hover-success align-self-center border-0 bg-transparent" onclick="markAsRead('${item.id}', this)" title="Okundu işaretle">
+                                            <i class="bi bi-check2-circle fs-5"></i>
+                                        </button>
+                                    `;
+                                    container.appendChild(li);
+                                });
+                            } catch (error) {
+                                console.error("Bildirim listesi yüklenemedi.", error);
+                            }
                         }
 
                         async function markAsRead(id, buttonEl) {
-                        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-                        const formData = new FormData();
-                        formData.append('id', id);
-                        formData.append('__RequestVerificationToken', token);
+                            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                            const formData = new FormData();
+                            formData.append('id', id);
+                            formData.append('__RequestVerificationToken', token);
 
-                        try {
-                        const response = await fetch('/Notifications/MarkAsRead', {
-                        method: 'POST',
-                        body: formData
-                        });
-                        const data = await response.json();
-                        if (data.success) {
-                        buttonEl.closest('li').remove();
-                        checkUnreadNotifications();
+                            try {
+                                const response = await fetch('/Notifications/MarkAsRead', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                    const li = buttonEl.closest('li');
+                                    li.style.opacity = '0';
+                                    li.style.transform = 'translateX(20px)';
+                                    setTimeout(() => {
+                                        li.remove();
+                                        const container = document.getElementById('notification-items');
+                                        if (container.children.length === 0) {
+                                            container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-4 fs-7"><i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-50"></i>Yeni bildirim bulunmuyor.</span></li>';
+                                        }
+                                        checkUnreadNotifications();
+                                    }, 250);
+                                }
+                            } catch (error) {
+                                console.error("Bildirim okundu olarak işaretlenemedi.", error);
+                            }
                         }
-                        } catch (error) {
-                        console.error("Bildirim okundu olarak işaretlenemedi.", error);
-                        }
+
+                        async function markAllAsRead(event) {
+                            if (event) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            
+                            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                            const formData = new FormData();
+                            formData.append('__RequestVerificationToken', token);
+
+                            try {
+                                const response = await fetch('/Notifications/MarkAllAsRead', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                                const data = await response.json();
+                                if (data.success) {
+                                    const container = document.getElementById('notification-items');
+                                    const listItems = Array.from(container.children);
+                                    
+                                    if (listItems.length === 1 && listItems[0].querySelector('.bi-bell-slash')) {
+                                        return; // Already empty
+                                    }
+
+                                    listItems.forEach((li, idx) => {
+                                        setTimeout(() => {
+                                            li.style.opacity = '0';
+                                            li.style.transform = 'translateX(20px)';
+                                        }, idx * 50);
+                                    });
+
+                                    setTimeout(() => {
+                                        container.innerHTML = '<li><span class="dropdown-item text-muted text-center py-4 fs-7"><i class="bi bi-bell-slash d-block fs-3 mb-2 opacity-50"></i>Yeni bildirim bulunmuyor.</span></li>';
+                                        checkUnreadNotifications();
+                                    }, (listItems.length * 50) + 250);
+                                }
+                            } catch (error) {
+                                console.error("Bildirimler okundu olarak işaretlenemedi.", error);
+                            }
                         }
 
                         document.addEventListener('DOMContentLoaded', function () {
-                        if (document.getElementById('notification-area')) {
-                        checkUnreadNotifications();
-                        setInterval(checkUnreadNotifications, 60000); // 60 saniyede bir kontrol et
-                        }
+                            if (document.getElementById('notification-area')) {
+                                checkUnreadNotifications();
+                                setInterval(checkUnreadNotifications, 60000); // 60 saniyede bir kontrol et
+                            }
                         });
                     </script>
 
