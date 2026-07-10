@@ -55,7 +55,10 @@
                         <form asp-action="ChangeRole" method="post" class="d-inline-flex gap-1">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@user.Id" />
-                            <select name="role" class="form-select form-select-sm" asp-items="Html.GetEnumSelectList<UserRole>()" onchange="this.form.submit()">
+                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="@((int)UserRole.Admin)" @(user.Role == UserRole.Admin ? "selected" : "")>Yönetici (Admin)</option>
+                                <option value="@((int)UserRole.Personel)" @(user.Role == UserRole.Personel ? "selected" : "")>Personel</option>
+                                <option value="@((int)UserRole.Muhasebeci)" @(user.Role == UserRole.Muhasebeci ? "selected" : "")>Muhasebeci</option>
                             </select>
                         </form>
                     }
