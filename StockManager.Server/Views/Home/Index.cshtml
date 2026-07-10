@@ -117,18 +117,36 @@
 
         <div class="row g-3 mt-4">
             <div class="col-12 col-lg-8">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Son 30 Gün Satış Trendleri</h5>
-                        <canvas id="salesTrendChart" height="120"></canvas>
+                <div class="card border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 14px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-graph-up text-primary me-2"></i>Son 30 Günlük Satış Trendi</h5>
+                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill small">Ciro Grafiği</span>
+                        </div>
+                        <div id="trendLoader" class="d-flex justify-content-center align-items-center" style="height: 250px;">
+                            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                            <span class="ms-2 small text-muted">Veriler yükleniyor...</span>
+                        </div>
+                        <div style="height: 250px;" class="d-none" id="trendChartContainer">
+                            <canvas id="salesTrendChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-lg-4">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Kategori Bazlı Stok Değeri</h5>
-                        <canvas id="categoryDistChart" height="120"></canvas>
+                <div class="card border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 14px;">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-pie-chart text-success me-2"></i>Kategori Dağılımı</h5>
+                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill small">Stok Değeri</span>
+                        </div>
+                        <div id="distLoader" class="d-flex justify-content-center align-items-center" style="height: 250px;">
+                            <div class="spinner-border text-success spinner-border-sm" role="status"></div>
+                            <span class="ms-2 small text-muted">Veriler yükleniyor...</span>
+                        </div>
+                        <div style="height: 250px;" class="d-none" id="distChartContainer">
+                            <canvas id="categoryDistChart"></canvas>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -143,38 +161,94 @@
                     return resp.json();
                 }
 
-                // Sales trend
+                // Ciro Trendi Grafiği
                 fetchJson('@Url.Action("SalesTrend","Reports", new { days = 30 })')
                     .then(data => {
                         const labels = data.map(d => d.date);
                         const totals = data.map(d => d.total);
-                        const ctx = document.getElementById('salesTrendChart');
+                        
+                        document.getElementById('trendLoader').classList.add('d-none');
+                        document.getElementById('trendChartContainer').classList.remove('d-none');
+                        
+                        const ctx = document.getElementById('salesTrendChart').getContext('2d');
                         if(ctx){
+                            // Degrade arka plan oluşturma
+                            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
+                            gradient.addColorStop(0, 'rgba(67, 97, 238, 0.4)');
+                            gradient.addColorStop(1, 'rgba(67, 97, 238, 0.0)');
+
                             new Chart(ctx, {
                                 type: 'line',
                                 data: {
                                     labels,
                                     datasets: [{
-                                        label: 'Günlük Ciro (TRY)',
+                                        label: 'Günlük Ciro',
                                         data: totals,
-                                        borderColor: 'rgba(54,162,235,1)',
-                                        backgroundColor: 'rgba(54,162,235,0.2)',
-                                        tension: 0.25,
-                                        fill: true
+                                        borderColor: '#4361ee',
+                                        borderWidth: 3,
+                                        backgroundColor: gradient,
+                                        tension: 0.35,
+                                        fill: true,
+                                        pointBackgroundColor: '#4361ee',
+                                        pointBorderColor: '#fff',
+                                        pointBorderWidth: 2,
+                                        pointRadius: 4,
+                                        pointHoverRadius: 6
                                     }]
                                 },
-                                options: { responsive: true }
+                                options: { 
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { display: false },
+                                        tooltip: {
+                                            backgroundColor: '#212529',
+                                            padding: 10,
+                                            cornerRadius: 8,
+                                            titleFont: { size: 12, weight: 'bold' },
+                                            bodyFont: { size: 12 },
+                                            callbacks: {
+                                                label: function(context) {
+                                                    return ' Ciro: ₺' + parseFloat(context.raw).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                                                }
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        y: {
+                                            grid: { color: '#f1f3f5' },
+                                            ticks: {
+                                                callback: function(value) {
+                                                    return '₺' + value.toLocaleString('tr-TR');
+                                                },
+                                                font: { size: 10 }
+                                            }
+                                        },
+                                        x: {
+                                            grid: { display: false },
+                                            ticks: { font: { size: 10 } }
+                                        }
+                                    }
+                                }
                             });
                         }
                     })
-                    .catch(e => console.error(e));
+                    .catch(e => {
+                        console.error(e);
+                        document.getElementById('trendLoader').innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Veriler yüklenemedi.</span>';
+                    });
 
-                // Category distribution
+                // Kategori Stok Dağılımı Grafiği (CamelCase/PascalCase uyumluluk düzeltmeli)
                 fetchJson('@Url.Action("CategoryDistribution","Reports")')
                     .then(data => {
-                        const labels = data.map(d => d.CategoryName);
-                        const values = data.map(d => d.StockValue);
-                        const ctx = document.getElementById('categoryDistChart');
+                        // ASP.NET Core varsayılan JSON yapılandırmasına göre camelCase veya PascalCase eşleştirmesi yapılıyor
+                        const labels = data.map(d => d.categoryName || d.CategoryName || '(Belirtilmemiş)');
+                        const values = data.map(d => d.stockValue || d.StockValue || 0);
+                        
+                        document.getElementById('distLoader').classList.add('d-none');
+                        document.getElementById('distChartContainer').classList.remove('d-none');
+
+                        const ctx = document.getElementById('categoryDistChart').getContext('2d');
                         if(ctx){
                             new Chart(ctx, {
                                 type: 'doughnut',
@@ -183,15 +257,51 @@
                                     datasets: [{
                                         data: values,
                                         backgroundColor: [
-                                            '#4e73df','#1cc88a','#36b9cc','#f6c23e','#e74a3b','#858796'
-                                        ]
+                                            '#4361ee', // Indigo
+                                            '#7209b7', // Purple
+                                            '#e63946', // Red
+                                            '#f4a261', // Orange
+                                            '#2a9d8f', // Teal
+                                            '#52b788', // Green
+                                            '#e9c46a', // Yellow
+                                            '#6c757d'  // Gray
+                                        ],
+                                        borderWidth: 2,
+                                        borderColor: '#fff'
                                     }]
                                 },
-                                options: { responsive: true }
+                                options: { 
+                                    responsive: true, 
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        legend: { 
+                                            position: 'right',
+                                            labels: {
+                                                boxWidth: 12,
+                                                font: { size: 10 }
+                                            }
+                                        },
+                                        tooltip: {
+                                            backgroundColor: '#212529',
+                                            padding: 10,
+                                            cornerRadius: 8,
+                                            callbacks: {
+                                                label: function(context) {
+                                                    const val = context.raw;
+                                                    return ' Stok Değeri: ₺' + parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                                                }
+                                            }
+                                        }
+                                    },
+                                    cutout: '70%'
+                                }
                             });
                         }
                     })
-                    .catch(e => console.error(e));
+                    .catch(e => {
+                        console.error(e);
+                        document.getElementById('distLoader').innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Veriler yüklenemedi.</span>';
+                    });
             })();
         </script>
     }
