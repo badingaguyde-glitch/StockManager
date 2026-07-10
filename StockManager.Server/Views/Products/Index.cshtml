@@ -91,17 +91,28 @@
             var isLowStock = item.Quantity <= item.LowStockThreshold;
             <tr class="@(isLowStock ? "table-warning" : "")">
                 <!-- 🆕 Görsel Sütunu -->
-                <td class="text-center">
-                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
-                    {
-                        <img src="@ImageService.GetThumbnailUrl(item.ImageUrl, 80)" alt="@item.Name" class="img-thumbnail rounded" style="width: 80px; height: 80px; object-fit: cover;">
-                    }
-                    else
-                    {
-                        <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
-                            <i class="bi bi-image text-muted"></i>
-                        </div>
-                    }
+                <td class="text-center align-middle">
+                    <div class="product-img-trigger d-inline-block" 
+                         style="cursor: pointer;"
+                         data-name="@item.Name"
+                         data-description="@(item.Description ?? "Açıklama belirtilmemiş")"
+                         data-quantity="@item.Quantity"
+                         data-price="@item.SalePrice.ToString("0.00") ₺"
+                         data-image="@(string.IsNullOrWhiteSpace(item.ImageUrl) ? "" : ImageService.GetOptimizedImageUrl(item.ImageUrl, 400, 400, 85))"
+                         data-bs-toggle="modal" 
+                         data-bs-target="#productDetailModal"
+                         title="Detayları görüntüle">
+                        @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                        {
+                            <img src="@ImageService.GetThumbnailUrl(item.ImageUrl, 80)" alt="@item.Name" class="img-thumbnail rounded bg-light" style="width: 80px; height: 80px; object-fit: contain; transition: transform 0.2s;">
+                        }
+                        else
+                        {
+                            <div class="bg-light border rounded d-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem; transition: transform 0.2s;">
+                                <i class="bi bi-image text-muted"></i>
+                            </div>
+                        }
+                    </div>
                 </td>
                 <td>@item.Barcode</td>
                 <td>@item.Name</td>
@@ -119,3 +130,99 @@
         }
     </tbody>
 </table>
+
+<!-- Modal & Styles -->
+<style>
+    .product-img-trigger:hover img, 
+    .product-img-trigger:hover div {
+        transform: scale(1.08);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+    }
+</style>
+
+<!-- Product Detail Modal -->
+<div class="modal fade" id="productDetailModal" tabindex="-1" aria-labelledby="productDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header border-0 pb-0 bg-dark text-white p-3">
+                <h5 class="modal-title fw-bold" id="productDetailModalLabel">
+                    <i class="bi bi-info-circle-fill me-2 text-primary"></i>Ürün Detayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div class="img-container bg-light rounded d-flex align-items-center justify-content-center p-3 border" style="height: 250px; overflow: hidden; position: relative;">
+                        <img id="modalProductImage" src="" alt="Ürün Görseli" class="img-fluid rounded" style="max-height: 100%; object-fit: contain; display: none;">
+                        <div id="modalProductPlaceholder" class="text-center" style="display: none;">
+                            <i class="bi bi-image text-muted" style="font-size: 5rem;"></i>
+                            <p class="text-muted mt-2 mb-0">Görsel Bulunmuyor</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3 id="modalProductName" class="fw-bold text-dark text-center mb-3"></h3>
+                <p id="modalProductDescription" class="text-muted text-center mb-4 px-2" style="font-size: 0.95rem; line-height: 1.5;"></p>
+                
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded text-center border-start border-primary border-4 shadow-sm">
+                            <span class="text-muted d-block small mb-1"><i class="bi bi-boxes"></i> Stok Durumu</span>
+                            <strong id="modalProductQuantity" class="fs-5 text-dark"></strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-3 bg-light rounded text-center border-start border-success border-4 shadow-sm">
+                            <span class="text-muted d-block small mb-1"><i class="bi bi-tag-fill"></i> Satış Fiyatı</span>
+                            <strong id="modalProductPrice" class="fs-5 text-success"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-secondary w-100 py-2 fw-semibold" data-bs-dismiss="modal" style="border-radius: 8px;">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = document.getElementById('productDetailModal');
+            if (modal) {
+                modal.addEventListener('show.bs.modal', function (event) {
+                    const button = event.relatedTarget;
+                    
+                    const name = button.getAttribute('data-name');
+                    const description = button.getAttribute('data-description');
+                    const quantity = button.getAttribute('data-quantity');
+                    const price = button.getAttribute('data-price');
+                    const imageSrc = button.getAttribute('data-image');
+                    
+                    const modalImage = document.getElementById('modalProductImage');
+                    const modalPlaceholder = document.getElementById('modalProductPlaceholder');
+                    const modalName = document.getElementById('modalProductName');
+                    const modalDescription = document.getElementById('modalProductDescription');
+                    const modalQuantity = document.getElementById('modalProductQuantity');
+                    const modalPrice = document.getElementById('modalProductPrice');
+                    
+                    if (imageSrc && imageSrc.trim() !== '') {
+                        modalImage.src = imageSrc;
+                        modalImage.style.display = 'block';
+                        modalPlaceholder.style.display = 'none';
+                    } else {
+                        modalImage.src = '';
+                        modalImage.style.display = 'none';
+                        modalPlaceholder.style.display = 'block';
+                    }
+                    
+                    modalName.textContent = name;
+                    modalDescription.textContent = description || 'Açıklama belirtilmemiş';
+                    modalQuantity.textContent = quantity + ' Adet';
+                    modalPrice.textContent = price;
+                });
+            }
+        });
+    </script>
+}
