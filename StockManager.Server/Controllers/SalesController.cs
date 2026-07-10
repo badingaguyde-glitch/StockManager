@@ -1,26 +1,35 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using MongoDB.Driver;
 using StripeCheckout = Stripe.Checkout;
+using StockManager.Server.Services;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
-using StockManager.Server.Services;
+
 
 namespace StockManager.Server.Controllers
 {
+    [Authorize(Roles = "Admin,Personel")]
     public class SalesController : Controller
     {
         private readonly MongoDBContext _context;
+        private readonly StockManager.Server.Services.IEmailService _emailService;
         private readonly StripePaymentService _stripePaymentService;
         private readonly ReceiptPdfService _receiptPdfService;
+
+        private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
 
         public SalesController(
             MongoDBContext context,
             StripePaymentService stripePaymentService,
-            ReceiptPdfService receiptPdfService)
+            StockManager.Server.Services.IAuditLogService auditLogService,
+            ReceiptPdfService receiptPdfService, StockManager.Server.Services.IEmailService emailService)
         {
             _context = context;
             _stripePaymentService = stripePaymentService;
+            _auditLogService = auditLogService;
             _receiptPdfService = receiptPdfService;
+            _emailService = emailService;
         }
 
         public async Task<IActionResult> POS()
@@ -52,6 +61,9 @@ namespace StockManager.Server.Controllers
             {
                 return Json(new { success = false, message = "Ürün stokta yok." });
             }
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Sepete Ürün Ekleme", $"Ürün sepete eklendi: {product.Name} (ID: {product.Id})");
+
             return Json(new
             {
                 success = true,
@@ -70,6 +82,40 @@ namespace StockManager.Server.Controllers
             {
                 ModelState.AddModelError("", "Sepet boş olamaz.");
                 return RedirectToAction(nameof(POS));
+            }
+
+            // 1. Stok yetersizliği kontrolü yap (eksiye düşmemesi için)
+            foreach (var item in sale.Items)
+            {
+                var product = await _context.Products.Find(p => p.Id == item.ProductId).FirstOrDefaultAsync();
+                if (product == null)
+                {
+                    TempData["error"] = "Seçilen bazı ürünler veritabanında bulunamadı.";
+                    return RedirectToAction(nameof(POS));
+                }
+
+                if (product.Quantity < item.Quantity)
+                {
+                    // Stok yetersizliği bildirimi oluştur (zile uyarı gitmesi için)
+                    var hasUnreadNotification = await _context.Notifications
+                        .Find(n => n.ProductId == product.Id && n.Message.Contains("yetersiz") && !n.IsRead)
+                        .AnyAsync();
+
+                    if (!hasUnreadNotification)
+                    {
+                        var notification = new Notification
+                        {
+                            Message = $"{product.Name} stoğunda yeterli ürün bulunmamaktadır! Satılmak İstenen: {item.Quantity}, Mevcut Stok: {product.Quantity}",
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow,
+                            ProductId = product.Id
+                        };
+                        await _context.Notifications.InsertOneAsync(notification);
+                    }
+
+                    TempData["error"] = $"{product.Name} ürününün stoğunda yeterli ürün bulunmamaktadır. (Mevcut Stok: {product.Quantity})";
+                    return RedirectToAction(nameof(POS));
+                }
             }
 
             sale.SaleDate = DateTime.UtcNow;
@@ -98,14 +144,49 @@ namespace StockManager.Server.Controllers
                 var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
                 var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
+
+                var product = await _context.Products.Find(productFilter).FirstOrDefaultAsync();
+                if (product != null && product.Quantity <= product.LowStockThreshold)
+                {
+                    var notification = new Notification
+                    {
+                        Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow,
+                        ProductId = product.Id
+                    };
+                    await _context.Notifications.InsertOneAsync(notification);
+                    var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+                    var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
+                    if (adminEmails.Count == 0)
+                    {
+                        adminEmails.Add("admin@stockmanager.com");
+                    }
+
+                    string? customerName = null;
+                    if (!string.IsNullOrEmpty(sale.CustomerId))
+                    {
+                        var customer = await _context.Customers.Find(c => c.Id == sale.CustomerId).FirstOrDefaultAsync();
+                        customerName = customer?.FullName;
+                    }
+                    var customerDetails = string.IsNullOrEmpty(customerName) ? "Müşteri Belirtilmedi" : $"Müşteri: {customerName}";
+
+                    foreach (var email in adminEmails)
+                    {
+                        await _emailService.SendLowStockAlertAsync(email, product, DateTime.UtcNow, customerDetails);
+                    }
+                }
             }
 
-            if (sale.PaymentType == PaymentType.Debt && !string.IsNullOrEmpty(sale.CustomerId))
+            if (!string.IsNullOrEmpty(sale.CustomerId))
             {
                 var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);
-                var increaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, sale.TotalAmount);
-                await _context.Customers.UpdateOneAsync(customerFilter, increaseBalance);
+                var decreaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, -sale.TotalAmount);
+                await _context.Customers.UpdateOneAsync(customerFilter, decreaseBalance);
             }
+
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Satış Yapma", $"Satış yapıldı: {sale.InvoiceNumber}, Tutar: {sale.TotalAmount} {sale.Currency}, Ödeme Tipi: {sale.PaymentType}");
 
             return RedirectToAction(nameof(Invoice), new { id = sale.Id });
         }
@@ -154,6 +235,14 @@ namespace StockManager.Server.Controllers
                 .SortByDescending(s => s.SaleDate)
                 .ToListAsync();
 
+            var customerIds = sales.Select(s => s.CustomerId).Where(id => !string.IsNullOrEmpty(id)).Distinct().ToList();
+            var customers = await _context.Customers
+                .Find(Builders<Customer>.Filter.In(c => c.Id, customerIds))
+                .ToListAsync();
+
+            var customerDict = customers.ToDictionary(c => c.Id!, c => c.FullName);
+            ViewBag.CustomerNames = customerDict;
+
             return View(sales);
         }
 
@@ -174,6 +263,14 @@ namespace StockManager.Server.Controllers
                     .Find(c => c.Id == sale.CustomerId)
                     .FirstOrDefaultAsync();
             }
+
+            var productIds = sale.Items.Select(i => i.ProductId).Distinct().ToList();
+            var products = await _context.Products
+                .Find(Builders<Product>.Filter.In(p => p.Id, productIds))
+                .ToListAsync();
+
+            var productDict = products.ToDictionary(p => p.Id!, p => p);
+            ViewBag.Products = productDict;
 
             return View(sale);
         }

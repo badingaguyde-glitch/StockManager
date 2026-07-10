@@ -25,7 +25,9 @@ namespace StockManager.Server.Data
         public IMongoCollection<Customer> Customers => _database.GetCollection<Customer>("Customers");
         public IMongoCollection<StockMovement> StockMovements => _database.GetCollection<StockMovement>("StockMovements");
         public IMongoCollection<Sale> Sales => _database.GetCollection<Sale>("Sales");
-        
+        public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
+        public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
+        public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
 
         private void SeedData()
         {
@@ -38,6 +40,18 @@ namespace StockManager.Server.Data
                     new Category { Name = "Books" }
                 };
                 Categories.InsertMany(defaultCategories);
+            }
+            if (Users.EstimatedDocumentCount() == 0)
+            {
+                var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+                var defaultAdmin = new User
+                {
+                    Username = "admin",
+                    Email = "admin@stockmanager.com",
+                    Role = UserRole.Admin
+                };
+                defaultAdmin.PasswordHash = hasher.HashPassword(defaultAdmin, "admin123");
+                Users.InsertOne(defaultAdmin);
             }
         }
     }

@@ -1,29 +1,86 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
 using MongoDB.Driver;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
+using StockManager.Server.Services;
 
 namespace StockManager.Server.Controllers;
 
+[Authorize(Roles = "Admin,Personel")]
 public class ProductsController : Controller
 {
     private readonly MongoDBContext _context;
+    private readonly IImageUploadService _imageUploadService;
+    private readonly ILogger<ProductsController> _logger;
+    private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
 
-    public ProductsController(MongoDBContext context)
+    public ProductsController(
+        MongoDBContext context,
+        IImageUploadService imageUploadService,
+        StockManager.Server.Services.IAuditLogService auditLogService,
+        ILogger<ProductsController> logger)
     {
         _context = context;
+        _imageUploadService = imageUploadService;
+        _auditLogService = auditLogService;
+        _logger = logger;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? search, string? categoryId, string? supplierId, decimal? minPrice, decimal? maxPrice)
     {
+        var filterBuilder = Builders<Product>.Filter;
+        var filters = new List<FilterDefinition<Product>>();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var s = search.Trim();
+            filters.Add(filterBuilder.Or(
+                filterBuilder.Regex(p => p.Name, new MongoDB.Bson.BsonRegularExpression(s, "i")),
+                filterBuilder.Regex(p => p.Description, new MongoDB.Bson.BsonRegularExpression(s, "i")),
+                filterBuilder.Eq(p => p.Barcode, s)
+            ));
+        }
+
+        if (!string.IsNullOrWhiteSpace(categoryId))
+        {
+            filters.Add(filterBuilder.Eq(p => p.CategoryId, categoryId));
+        }
+
+        if (!string.IsNullOrWhiteSpace(supplierId))
+        {
+            filters.Add(filterBuilder.Eq(p => p.SupplierId, supplierId));
+        }
+
+        if (minPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Gte(p => p.SalePrice, minPrice.Value));
+        }
+
+        if (maxPrice.HasValue)
+        {
+            filters.Add(filterBuilder.Lte(p => p.SalePrice, maxPrice.Value));
+        }
+
+        var finalFilter = filters.Count == 0 ? FilterDefinition<Product>.Empty : filterBuilder.And(filters);
+
         var products = await _context.Products
-            .Find(FilterDefinition<Product>.Empty)
+            .Find(finalFilter)
             .SortBy(p => p.Name)
             .ToListAsync();
 
         ViewBag.ShowLowStockAlert = products.Any(p => p.Quantity <= p.LowStockThreshold);
         ViewBag.LowStockCount = products.Count(p => p.Quantity <= p.LowStockThreshold);
+
+        // Preserve filter values for the view
+        ViewBag.Search = search;
+        ViewBag.CategoryId = categoryId;
+        ViewBag.SupplierId = supplierId;
+        ViewBag.MinPrice = minPrice;
+        ViewBag.MaxPrice = maxPrice;
+
+        await PopulateDropdowns();
 
         return View(products);
     }
@@ -49,7 +106,7 @@ public class ProductsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(ProductInputModel model)
+    public async Task<IActionResult> Create(ProductInputModel model, IFormFile? imageFile)
     {
         if (!ModelState.IsValid)
         {
@@ -69,6 +126,25 @@ public class ProductsController : Controller
                 await PopulateDropdowns();
                 return View(model);
             }
+        }
+
+        // 🆕 Görsel yükleme
+        string? imageUrl = null;
+        string? cloudinaryPublicId = null;
+
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            var uploadResult = await _imageUploadService.UploadImageAsync(imageFile, "stock-manager/products");
+
+            if (!uploadResult.Success)
+            {
+                ModelState.AddModelError("imageFile", uploadResult.ErrorMessage ?? "Görsel yükleme başarısız oldu");
+                await PopulateDropdowns();
+                return View(model);
+            }
+
+            imageUrl = uploadResult.ImageUrl;
+            cloudinaryPublicId = uploadResult.PublicId;
         }
 
         if (!string.IsNullOrWhiteSpace(model.SupplierName))
@@ -92,22 +168,45 @@ public class ProductsController : Controller
             Quantity = model.Quantity,
             LowStockThreshold = model.LowStockThreshold,
             CategoryId = model.CategoryId,
-            SupplierId = model.SupplierId
+            SupplierId = model.SupplierId,
+            // 🆕 Görsel alanları
+            ImageUrl = imageUrl,
+            CloudinaryPublicId = cloudinaryPublicId,
+            ImageUploadedAt = DateTime.UtcNow
         };
 
         await _context.Products.InsertOneAsync(product);
+        
+        if (product.Quantity <= product.LowStockThreshold)
+        {
+            var notification = new Notification
+            {
+                Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow,
+                ProductId = product.Id
+            };
+            await _context.Notifications.InsertOneAsync(notification);
+        }
+        
+        TempData["success"] = "Ürün başarıyla eklendi.";
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
         return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Edit(string id)
     {
-        var product = await _context.Products.Find(p => p.Id == id).FirstOrDefaultAsync();
-        if (product == null)
-        {
+        if (string.IsNullOrWhiteSpace(id))
             return NotFound();
-        }
 
-        await PopulateDropdowns();
+        var product = await _context.Products
+            .Find(p => p.Id == id)
+            .FirstOrDefaultAsync();
+
+        if (product == null)
+            return NotFound();
+
         var model = new ProductInputModel
         {
             Id = product.Id,
@@ -119,60 +218,103 @@ public class ProductsController : Controller
             Quantity = product.Quantity,
             LowStockThreshold = product.LowStockThreshold,
             CategoryId = product.CategoryId,
-            SupplierId = product.SupplierId
+            SupplierId = product.SupplierId,
+            // 🆕 Görsel bilgisi
+            ExistingImageUrl = product.ImageUrl
         };
 
+        await PopulateDropdowns();
         return View(model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(ProductInputModel model)
+    public async Task<IActionResult> Edit(string id, ProductInputModel model, IFormFile? imageFile)
     {
+        if (id != model.Id)
+            return NotFound();
+
         if (!ModelState.IsValid)
         {
             await PopulateDropdowns();
             return View(model);
         }
 
-        if (!string.IsNullOrWhiteSpace(model.Barcode))
-        {
-            var barcodeExists = await _context.Products
-                .Find(p => p.Barcode == model.Barcode && p.Id != model.Id)
-                .AnyAsync();
+        var product = await _context.Products
+            .Find(p => p.Id == id)
+            .FirstOrDefaultAsync();
 
-            if (barcodeExists)
+        if (product == null)
+            return NotFound();
+
+        // 🆕 Yeni görsel yükleme
+        if (imageFile != null && imageFile.Length > 0)
+        {
+            // Eski görseli sil
+            if (!string.IsNullOrWhiteSpace(product.CloudinaryPublicId))
             {
-                ModelState.AddModelError(nameof(model.Barcode), "Bu barkod başka bir ürün tarafından kullanılıyor.");
+                await _imageUploadService.DeleteImageAsync(product.CloudinaryPublicId);
+            }
+
+            // Yeni görseli yükle
+            var uploadResult = await _imageUploadService.UploadImageAsync(imageFile, "stock-manager/products");
+
+            if (!uploadResult.Success)
+            {
+                ModelState.AddModelError("imageFile", uploadResult.ErrorMessage ?? "Görsel yükleme başarısız oldu");
                 await PopulateDropdowns();
                 return View(model);
             }
+
+            product.ImageUrl = uploadResult.ImageUrl;
+            product.CloudinaryPublicId = uploadResult.PublicId;
+            product.ImageUploadedAt = DateTime.UtcNow;
         }
 
-        if (!string.IsNullOrWhiteSpace(model.SupplierName))
+        product.Name = model.Name;
+        product.Description = model.Description;
+        product.PurchasePrice = model.PurchasePrice;
+        product.SalePrice = model.SalePrice;
+        product.Quantity = model.Quantity;
+        product.LowStockThreshold = model.LowStockThreshold;
+        product.CategoryId = model.CategoryId;
+        product.SupplierId = model.SupplierId;
+
+        var updateResult = await _context.Products.ReplaceOneAsync(
+            p => p.Id == id,
+            product);
+
+        if (updateResult.ModifiedCount > 0 && product.Quantity <= product.LowStockThreshold)
         {
-            var supplier = new Supplier
-            {
-                CompanyName = model.SupplierName
-            };
+            var hasUnreadNotification = await _context.Notifications
+                .Find(n => n.ProductId == product.Id && !n.IsRead)
+                .AnyAsync();
 
-            await _context.Suppliers.InsertOneAsync(supplier);
-            model.SupplierId = supplier.Id;
+            if (!hasUnreadNotification)
+            {
+                var notification = new Notification
+                {
+                    Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    ProductId = product.Id
+                };
+                await _context.Notifications.InsertOneAsync(notification);
+            }
         }
 
-        var filter = Builders<Product>.Filter.Eq(p => p.Id, model.Id);
-        var update = Builders<Product>.Update
-            .Set(p => p.Barcode, model.Barcode)
-            .Set(p => p.Name, model.Name)
-            .Set(p => p.Description, model.Description)
-            .Set(p => p.PurchasePrice, model.PurchasePrice)
-            .Set(p => p.SalePrice, model.SalePrice)
-            .Set(p => p.Quantity, model.Quantity)
-            .Set(p => p.LowStockThreshold, model.LowStockThreshold)
-            .Set(p => p.CategoryId, model.CategoryId)
-            .Set(p => p.SupplierId, model.SupplierId);
+        if (updateResult.ModifiedCount == 0)
+        {
+            TempData["error"] = "Ürün güncellenemedi.";
+        }
+        else
+        {
+            TempData["success"] = "Ürün başarıyla güncellendi.";
+        }
 
-        await _context.Products.UpdateOneAsync(filter, update);
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Güncelleme", $"Ürün güncellendi: {product.Name} (ID: {product.Id})");
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -180,7 +322,25 @@ public class ProductsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(string id)
     {
+        var product = await _context.Products
+            .Find(p => p.Id == id)
+            .FirstOrDefaultAsync();
+
+        if (product == null)
+            return NotFound();
+
+        // 🆕 Cloudinary'den görseli sil
+        if (!string.IsNullOrWhiteSpace(product.CloudinaryPublicId))
+        {
+            await _imageUploadService.DeleteImageAsync(product.CloudinaryPublicId);
+        }
+
         await _context.Products.DeleteOneAsync(p => p.Id == id);
+
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Silme", $"Ürün silindi: {product.Name} (ID: {product.Id})");
+
+        TempData["success"] = "Ürün başarıyla silindi.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -196,7 +356,7 @@ public class ProductsController : Controller
             .SortBy(s => s.CompanyName)
             .ToListAsync();
 
-        ViewBag.Categories = categories.Select(c => new SelectListItem(c.Name, c.Id)).ToList();
-        ViewBag.Suppliers = suppliers.Select(s => new SelectListItem(s.CompanyName, s.Id)).ToList();
+        ViewBag.Categories = new SelectList(categories, "Id", "Name");
+        ViewBag.Suppliers = new SelectList(suppliers, "Id", "CompanyName");
     }
 }

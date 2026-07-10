@@ -7,6 +7,14 @@ using dotenv.net;
 var builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
 
+builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    });
+
 // Load Stripe settings from environment variables.
 builder.Services.Configure<StripeSettings>(options =>
 {
@@ -15,13 +23,28 @@ builder.Services.Configure<StripeSettings>(options =>
     options.Currency = Environment.GetEnvironmentVariable("STRIPE_CURRENCY") ?? "try";
 });
 
+// 🆕 Load Cloudinary settings strictly from environment variables (.env)
+builder.Services.Configure<CloudinarySettings>(options =>
+{
+    options.CloudName = Environment.GetEnvironmentVariable("CLOUD_NAME") ?? string.Empty;
+    options.ApiKey = Environment.GetEnvironmentVariable("CLOUD_API_KEY") ?? string.Empty;
+    options.ApiSecret = Environment.GetEnvironmentVariable("CLOUD_API_SECRET") ?? string.Empty;
+    options.MaxFileSize = int.TryParse(builder.Configuration["CloudinarySettings:MaxFileSize"], out var size) ? size : 5242880;
+});
+
 builder.Services.AddSingleton<MongoDBContext>();
+builder.Services.AddSingleton<StockManager.Server.Services.IEmailService, StockManager.Server.Services.SmtpEmailService>();
+builder.Services.AddSingleton<StockManager.Server.Services.IAuditLogService, StockManager.Server.Services.AuditLogService>();
 builder.Services.AddSingleton<StripePaymentService>(sp =>
 {
     var settings = sp.GetRequiredService<IOptions<StripeSettings>>().Value;
     return new StripePaymentService(settings);
 });
+
 builder.Services.AddSingleton<ReceiptPdfService>();
+
+// 🆕 Add Cloudinary Image Upload Service
+builder.Services.AddScoped<IImageUploadService, CloudinaryImageService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -43,6 +66,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 

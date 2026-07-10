@@ -2,76 +2,194 @@
     ViewData["Title"] = "Raporlar";
 }
 
-<h2>Raporlar</h2>
+<style>
+    .report-stat-card {
+        border: none;
+        border-radius: 14px;
+        transition: transform .2s ease, box-shadow .2s ease;
+        overflow: hidden;
+    }
+    .report-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0,0,0,.08) !important;
+    }
+    .report-accent {
+        height: 4px;
+        width: 100%;
+    }
+    .report-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+    .action-card {
+        border: none;
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(0,0,0,.04);
+        transition: box-shadow .2s ease;
+    }
+    .action-card:hover {
+        box-shadow: 0 8px 24px rgba(0,0,0,.08);
+    }
+    .result-box {
+        border-radius: 10px;
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-left: 4px solid #4361ee;
+    }
+</style>
 
+<div class="mb-3 no-print">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<!-- Başlık Bölümü -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-0 fw-bold">
+            <i class="bi bi-bar-chart-line-fill text-primary me-2"></i>Raporlar & Analizler
+        </h2>
+        <p class="text-muted small mb-0">İşletmenizin genel durumunu ve performans raporlarını buradan inceleyebilirsiniz.</p>
+    </div>
+    <a asp-action="RemainingStock" class="btn btn-primary btn-sm no-print">
+        <i class="bi bi-box-seam me-1"></i>Kalan Stok Listesi
+    </a>
+</div>
+
+<!-- İstatistik Kartları -->
 <div class="row g-3 mb-4">
-    <div class="col-md-3">
-        <div class="card border-primary">
-            <div class="card-body">
-                <h5 class="card-title">Toplam Ürün</h5>
-                <p class="card-text fs-4">@ViewBag.TotalProducts</p>
+    <!-- Toplam Ürün -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card report-stat-card shadow-sm h-100">
+            <div class="report-accent bg-primary"></div>
+            <div class="card-body d-flex align-items-center gap-3 p-3">
+                <div class="report-icon-circle bg-primary bg-opacity-10 text-primary">
+                    <i class="bi bi-box-seam-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1 fw-semibold">Toplam Ürün Çeşidi</h6>
+                    <h3 class="mb-0 fw-bold">@ViewBag.TotalProducts</h3>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-warning">
-            <div class="card-body">
-                <h5 class="card-title">Düşük Stok</h5>
-                <p class="card-text fs-4">@ViewBag.LowStockCount</p>
+
+    <!-- Düşük Stok -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card report-stat-card shadow-sm h-100">
+            <div class="report-accent bg-warning"></div>
+            <div class="card-body d-flex align-items-center gap-3 p-3">
+                <div class="report-icon-circle bg-warning bg-opacity-10 text-warning">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1 fw-semibold">Düşük Stok Uyarısı</h6>
+                    <h3 class="mb-0 fw-bold text-warning">@ViewBag.LowStockCount</h3>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-success">
-            <div class="card-body">
-                <h5 class="card-title">Toplam Satış</h5>
-                <p class="card-text fs-4">@ViewBag.TotalSales.ToString("0.00")</p>
+
+    <!-- Toplam Satış -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card report-stat-card shadow-sm h-100">
+            <div class="report-accent bg-success"></div>
+            <div class="card-body d-flex align-items-center gap-3 p-3">
+                <div class="report-icon-circle bg-success bg-opacity-10 text-success">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1 fw-semibold">Toplam Satış Hacmi</h6>
+                    <h3 class="mb-0 fw-bold text-success">₺@ViewBag.TotalSales.ToString("N2")</h3>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card border-info">
-            <div class="card-body">
-                <h5 class="card-title">Stok Değeri</h5>
-                <p class="card-text fs-4">@ViewBag.TotalStockValue.ToString("0.00")</p>
+
+    <!-- Stok Değeri -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card report-stat-card shadow-sm h-100">
+            <div class="report-accent bg-info"></div>
+            <div class="card-body d-flex align-items-center gap-3 p-3">
+                <div class="report-icon-circle bg-info bg-opacity-10 text-info">
+                    <i class="bi bi-currency-dollar"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1 fw-semibold">Toplam Stok Değeri</h6>
+                    <h3 class="mb-0 fw-bold text-info">₺@ViewBag.TotalStockValue.ToString("N2")</h3>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-3 mb-4">
+<!-- Analiz ve Sorgulama Kartları -->
+<div class="row g-4 mb-4">
+    <!-- Günlük Ciro Sorgulama -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Günlük Ciro</h5>
-                <div class="mb-2">
-                    <label for="turnoverDate" class="form-label">Tarih</label>
-                    <input type="date" id="turnoverDate" class="form-control" />
+        <div class="card action-card h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="report-icon-circle bg-primary bg-opacity-10 text-primary" style="width:36px; height:36px; font-size:1rem;">
+                        <i class="bi bi-calendar-check-fill"></i>
+                    </div>
+                    <h5 class="card-title mb-0 fw-bold">Günlük Ciro</h5>
                 </div>
-                <button class="btn btn-outline-primary w-100" onclick="loadDailyTurnover()">Göster</button>
-                <div id="turnoverResult" class="mt-3" style="display:none;">
-                    <hr />
-                    <p>Tarih: <strong id="turnoverDateResult"></strong></p>
-                    <p>Toplam Ciro: <strong id="turnoverAmount"></strong></p>
+                <p class="text-muted small">Belirli bir tarihteki toplam ciro tutarını sorgulayın.</p>
+                <div class="mb-3 mt-auto">
+                    <label for="turnoverDate" class="form-label small fw-semibold">Sorgulanacak Tarih</label>
+                    <input type="date" id="turnoverDate" class="form-control form-control-sm" />
+                </div>
+                <button id="btnTurnover" class="btn btn-outline-primary btn-sm w-100 fw-semibold" onclick="loadDailyTurnover()">
+                    <i class="bi bi-eye"></i> Göster
+                </button>
+                <div id="turnoverResult" class="result-box mt-3 d-none">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted small">Sorgulanan Tarih:</span>
+                        <span class="fw-bold small" id="turnoverDateResult">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">Toplam Ciro:</span>
+                        <span class="fw-bold text-primary" id="turnoverAmount">₺0.00</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- En Çok Satanlar -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">En Çok Satanlar</h5>
-                <p class="text-muted">İlk 10 ürün</p>
-                <button class="btn btn-outline-primary w-100" onclick="loadBestSellers()">Göster</button>
-                <div id="bestSellersResult" class="mt-3" style="display:none;">
-                    <hr />
-                    <table class="table table-sm table-striped">
+        <div class="card action-card h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="report-icon-circle bg-success bg-opacity-10 text-success" style="width:36px; height:36px; font-size:1rem;">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h5 class="card-title mb-0 fw-bold">En Çok Satanlar</h5>
+                </div>
+                <p class="text-muted small">En çok satan ilk 10 ürünün satış adetlerini ve gelirini listeleyin.</p>
+                
+                <div class="mt-auto mb-3 text-center py-2 bg-light rounded small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>En popüler ürünler listelenir.
+                </div>
+
+                <button id="btnBestSellers" class="btn btn-outline-success btn-sm w-100 fw-semibold" onclick="loadBestSellers()">
+                    <i class="bi bi-eye"></i> Göster
+                </button>
+                <div id="bestSellersResult" class="result-box mt-3 d-none border-success" style="max-height: 250px; overflow-y: auto;">
+                    <table class="table table-sm table-borderless mb-0 small">
                         <thead>
-                            <tr>
+                            <tr class="border-bottom text-muted">
                                 <th>Ürün</th>
-                                <th>Adet</th>
-                                <th>Gelir</th>
+                                <th class="text-center">Adet</th>
+                                <th class="text-end">Gelir</th>
                             </tr>
                         </thead>
                         <tbody id="bestSellersBody"></tbody>
@@ -81,117 +199,222 @@
         </div>
     </div>
 
+    <!-- Kar / Zarar -->
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Kar / Zarar</h5>
-                <div class="mb-2">
-                    <label for="plStartDate" class="form-label">Başlangıç</label>
-                    <input type="date" id="plStartDate" class="form-control" />
+        <div class="card action-card h-100">
+            <div class="card-body p-4 d-flex flex-column">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="report-icon-circle bg-warning bg-opacity-10 text-warning" style="width:36px; height:36px; font-size:1rem;">
+                        <i class="bi bi-calculator"></i>
+                    </div>
+                    <h5 class="card-title mb-0 fw-bold">Kar / Zarar</h5>
                 </div>
-                <div class="mb-2">
-                    <label for="plEndDate" class="form-label">Bitiş</label>
-                    <input type="date" id="plEndDate" class="form-control" />
+                <p class="text-muted small">İki tarih aralığındaki net gelir, maliyet ve kar/zarar durumunu hesaplayın.</p>
+                <div class="row g-2 mb-3 mt-auto">
+                    <div class="col-6">
+                        <label for="plStartDate" class="form-label small fw-semibold">Başlangıç</label>
+                        <input type="date" id="plStartDate" class="form-control form-control-sm" />
+                    </div>
+                    <div class="col-6">
+                        <label for="plEndDate" class="form-label small fw-semibold">Bitiş</label>
+                        <input type="date" id="plEndDate" class="form-control form-control-sm" />
+                    </div>
                 </div>
-                <button class="btn btn-outline-primary w-100" onclick="loadProfitLoss()">Göster</button>
-                <div id="profitLossResult" class="mt-3" style="display:none;">
-                    <hr />
-                    <p>Dönem: <strong id="plPeriod"></strong></p>
-                    <p>Gelir: <strong id="plRevenue"></strong></p>
-                    <p>Maliyet: <strong id="plCost"></strong></p>
-                    <p>Kar/Zarar: <strong id="plProfit"></strong></p>
+                <button id="btnProfitLoss" class="btn btn-outline-warning btn-sm w-100 fw-semibold" onclick="loadProfitLoss()">
+                    <i class="bi bi-eye"></i> Göster
+                </button>
+                <div id="profitLossResult" class="result-box mt-3 d-none border-warning">
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Dönem:</span>
+                        <span class="fw-semibold" id="plPeriod">-</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Gelir:</span>
+                        <span class="fw-semibold text-success" id="plRevenue">₺0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-muted">Maliyet:</span>
+                        <span class="fw-semibold text-secondary" id="plCost">₺0.00</span>
+                    </div>
+                    <hr class="my-1 text-muted" />
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-muted fw-bold">Net Durum:</span>
+                        <span id="plProfit" class="fw-bold">₺0.00</span>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<a asp-action="RemainingStock" class="btn btn-outline-primary">Kalan Stok</a>
-
 @section Scripts {
     <script>
+        // ---------- TOGGLE YARDIMCISI ----------
+        function togglePanel(panelId, btnId, activeColorClass) {
+            var panel = document.getElementById(panelId);
+            var btn   = document.getElementById(btnId);
+            var isHidden = panel.classList.contains('d-none');
+            panel.classList.toggle('d-none');
+            
+            if (isHidden) {
+                btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+                btn.className = `btn btn-${activeColorClass} btn-sm w-100 fw-semibold`;
+            } else {
+                btn.innerHTML = '<i class="bi bi-eye"></i> Göster';
+                btn.className = `btn btn-outline-${activeColorClass} btn-sm w-100 fw-semibold`;
+            }
+        }
+
+        // ---------- GÜNLÜK CİRO ----------
+        var lastTurnoverDate = null;
         async function loadDailyTurnover() {
-            const date = document.getElementById('turnoverDate').value;
-            const url = date
-                ? `/Reports/DailyTurnover?date=${date}`
-                : '/Reports/DailyTurnover';
+            var panel = document.getElementById('turnoverResult');
+            var date = document.getElementById('turnoverDate').value;
 
+            // Açıksa direkt kapat
+            if (!panel.classList.contains('d-none')) {
+                togglePanel('turnoverResult', 'btnTurnover', 'primary');
+                return;
+            }
+
+            // Kapalıysa ve tarih değişmediyse istek atmadan direkt aç
+            if (lastTurnoverDate === date) {
+                togglePanel('turnoverResult', 'btnTurnover', 'primary');
+                return;
+            }
+
+            var url  = date ? `/Reports/DailyTurnover?date=${date}` : '/Reports/DailyTurnover';
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-
+                var res  = await fetch(url);
+                var data = await res.json();
                 document.getElementById('turnoverDateResult').textContent = data.date;
-                document.getElementById('turnoverAmount').textContent = parseFloat(data.totalTurnover).toFixed(2);
-                document.getElementById('turnoverResult').style.display = 'block';
-            } catch (error) {
+                document.getElementById('turnoverAmount').textContent = '₺' + parseFloat(data.totalTurnover).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                lastTurnoverDate = date;
+                panel.classList.remove('d-none');
+                var btn = document.getElementById('btnTurnover');
+                btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+                btn.className = 'btn btn-primary btn-sm w-100 fw-semibold';
+            } catch (e) {
                 alert('Ciro verileri yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- EN ÇOK SATANLAR ----------
+        var bestSellersLoaded = false;
         async function loadBestSellers() {
+            var panel = document.getElementById('bestSellersResult');
+            if (bestSellersLoaded && !panel.classList.contains('d-none')) {
+                togglePanel('bestSellersResult', 'btnBestSellers', 'success');
+                return;
+            }
+            if (bestSellersLoaded && panel.classList.contains('d-none')) {
+                togglePanel('bestSellersResult', 'btnBestSellers', 'success');
+                return;
+            }
             try {
-                const response = await fetch('/Reports/BestSellers');
-                const data = await response.json();
-
-                const tbody = document.getElementById('bestSellersBody');
+                var res  = await fetch('/Reports/BestSellers');
+                var data = await res.json();
+                var tbody = document.getElementById('bestSellersBody');
                 tbody.innerHTML = '';
-
                 if (data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Henüz satış verisi yok.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-2">Henüz satış verisi yok.</td></tr>';
                 } else {
-                    data.forEach(item => {
-                        const row = document.createElement('tr');
+                    data.forEach(function(item) {
+                        var row = document.createElement('tr');
                         row.innerHTML = `
-                            <td>${item.productName}</td>
-                            <td>${item.unitsSold}</td>
-                            <td>${parseFloat(item.revenue).toFixed(2)}</td>
+                            <td class="fw-semibold text-dark">${item.productName}</td>
+                            <td class="text-center fw-bold text-secondary">${item.unitsSold}</td>
+                            <td class="text-end text-success">₺${parseFloat(item.revenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</td>
                         `;
                         tbody.appendChild(row);
                     });
                 }
-
-                document.getElementById('bestSellersResult').style.display = 'block';
-            } catch (error) {
+                bestSellersLoaded = true;
+                panel.classList.remove('d-none');
+                var btn = document.getElementById('btnBestSellers');
+                btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+                btn.className = 'btn btn-success btn-sm w-100 fw-semibold';
+            } catch (e) {
                 alert('En çok satanlar yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- KAR / ZARAR ----------
+        var lastPLStartDate = null;
+        var lastPLEndDate = null;
         async function loadProfitLoss() {
-            const startDate = document.getElementById('plStartDate').value;
-            const endDate = document.getElementById('plEndDate').value;
+            var panel = document.getElementById('profitLossResult');
+            var startDate = document.getElementById('plStartDate').value;
+            var endDate   = document.getElementById('plEndDate').value;
 
-            let url = '/Reports/ProfitLoss';
-            const params = [];
-            if (startDate) params.push(`startDate=${startDate}`);
-            if (endDate) params.push(`endDate=${endDate}`);
+            // Açıksa direkt kapat
+            if (!panel.classList.contains('d-none')) {
+                togglePanel('profitLossResult', 'btnProfitLoss', 'warning');
+                return;
+            }
+
+            // Kapalıysa ve tarihler değişmediyse istek atmadan direkt aç
+            if (lastPLStartDate === startDate && lastPLEndDate === endDate) {
+                togglePanel('profitLossResult', 'btnProfitLoss', 'warning');
+                return;
+            }
+
+            var url = '/Reports/ProfitLoss';
+            var params = [];
+            if (startDate) params.push('startDate=' + startDate);
+            if (endDate)   params.push('endDate='   + endDate);
             if (params.length > 0) url += '?' + params.join('&');
-
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-
-                document.getElementById('plPeriod').textContent = `${data.startDate} — ${data.endDate}`;
-                document.getElementById('plRevenue').textContent = parseFloat(data.revenue).toFixed(2);
-                document.getElementById('plCost').textContent = parseFloat(data.cost).toFixed(2);
-
-                const profitEl = document.getElementById('plProfit');
-                const profit = parseFloat(data.profitLoss);
-                profitEl.textContent = profit.toFixed(2);
-                profitEl.className = profit >= 0 ? 'text-success' : 'text-danger';
-                document.getElementById('profitLossResult').style.display = 'block';
-            } catch (error) {
+                var res  = await fetch(url);
+                var data = await res.json();
+                document.getElementById('plPeriod').textContent  = data.startDate + ' — ' + data.endDate;
+                document.getElementById('plRevenue').textContent = '₺' + parseFloat(data.revenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                document.getElementById('plCost').textContent    = '₺' + parseFloat(data.cost).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                
+                var profitEl = document.getElementById('plProfit');
+                var profit   = parseFloat(data.profitLoss);
+                profitEl.textContent = '₺' + profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                profitEl.className   = profit >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                
+                lastPLStartDate = startDate;
+                lastPLEndDate = endDate;
+                panel.classList.remove('d-none');
+                var btn = document.getElementById('btnProfitLoss');
+                btn.innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+                btn.className = 'btn btn-warning btn-sm w-100 fw-semibold';
+            } catch (e) {
                 alert('Kar/Zarar verileri yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- SAYFA YÜKLENME ----------
         document.addEventListener('DOMContentLoaded', function () {
-            const today = new Date().toISOString().split('T')[0];
+            var today = new Date().toISOString().split('T')[0];
             document.getElementById('turnoverDate').value = today;
+            var ago30 = new Date();
+            ago30.setDate(ago30.getDate() - 30);
+            document.getElementById('plStartDate').value = ago30.toISOString().split('T')[0];
+            document.getElementById('plEndDate').value   = today;
 
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            document.getElementById('plStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('plEndDate').value = today;
+            // En çok satanları sayfa açılınca arka planda önceden çek
+            fetch('/Reports/BestSellers').then(function(r){ return r.json(); }).then(function(data){
+                var tbody = document.getElementById('bestSellersBody');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted text-center py-2">Henüz satış verisi yok.</td></tr>';
+                } else {
+                    data.forEach(function(item){
+                        var row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="fw-semibold text-dark">${item.productName}</td>
+                            <td class="text-center fw-bold text-secondary">${item.unitsSold}</td>
+                            <td class="text-end text-success">₺${parseFloat(item.revenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+                bestSellersLoaded = true;
+            }).catch(function(){});
         });
     </script>
 }

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using StockManager.Server.Data;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using StockManager.Server.Models;
@@ -6,21 +7,38 @@ using MongoDB.Driver;
 
 namespace StockManager.Server.Controllers
 {
+    [Authorize(Roles = "Admin,Personel")]
     public class StockMovementsController : Controller
     {
         private readonly MongoDBContext _context;
+        private readonly StockManager.Server.Services.IEmailService _emailService;
 
-        public StockMovementsController(MongoDBContext context)
+        private readonly StockManager.Server.Services.IAuditLogService _auditLogService;
+
+        public StockMovementsController(MongoDBContext context, StockManager.Server.Services.IEmailService emailService, StockManager.Server.Services.IAuditLogService auditLogService)
         {
             _context = context;
+            _emailService = emailService;
+            _auditLogService = auditLogService;
         }
-
         public async Task<IActionResult> Index()
         {
             var movements = await _context.StockMovements
                 .Find(FilterDefinition<StockMovement>.Empty)
                 .SortByDescending(m => m.Date)
                 .ToListAsync();
+
+            var productIds = movements.Where(m=> !string.IsNullOrEmpty(m.ProductId)).Select(m => m.ProductId).Distinct().ToList();
+            var supplierIds = movements.Where(m => !string.IsNullOrEmpty(m.SupplierId)).Select(m => m.SupplierId).Distinct().ToList();
+            var customerIds = movements.Where(m => !string.IsNullOrEmpty(m.CustomerId)).Select(m => m.CustomerId).Distinct().ToList();
+            var products = await _context.Products.Find(p => productIds.Contains(p.Id)).ToListAsync();
+            var suppliers = await _context.Suppliers.Find(s => supplierIds.Contains(s.Id)).ToListAsync();
+            var customers = await _context.Customers.Find(c => customerIds.Contains(c.Id)).ToListAsync();
+
+            // Sözlükleri oluşturup ViewBag'e aktar (Null filtrelemeli ve uyarısız)
+            ViewBag.ProductNames = products.Where(p => p.Id != null).ToDictionary(p => p.Id!, p => p.Name);
+            ViewBag.SupplierNames = suppliers.Where(s => s.Id != null).ToDictionary(s => s.Id!, s => s.CompanyName);
+            ViewBag.CustomerNames = customers.Where(c => c.Id != null).ToDictionary(c => c.Id!, c => c.FullName);
             return View(movements);
         }
 
@@ -115,6 +133,49 @@ namespace StockManager.Server.Controllers
                     .Set(p => p.Quantity, movement.Quantity);
                 await _context.Products.UpdateOneAsync(productFilter, setQty);
             }
+            var checkProduct = await _context.Products.Find(p => p.Id == movement.ProductId).FirstOrDefaultAsync();
+            if (checkProduct != null && checkProduct.Quantity <= checkProduct.LowStockThreshold)
+            {
+                var notification = new Notification
+                {
+                    Message = $"{checkProduct.Name} (Barkod: {checkProduct.Barcode}) kritik stok limitinin altına düştü! Kalan: {checkProduct.Quantity}",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    ProductId = checkProduct.Id
+                };
+                await _context.Notifications.InsertOneAsync(notification);
+                var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+                var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
+                if (adminEmails.Count == 0)
+                {
+                    adminEmails.Add("admin@stockmanager.com");
+                }
+
+                string? supplierOrCustomerName = null;
+                if (!string.IsNullOrEmpty(movement.SupplierId))
+                {
+                    var supplier = await _context.Suppliers.Find(s => s.Id == movement.SupplierId).FirstOrDefaultAsync();
+                    supplierOrCustomerName = $"Tedarikçi: {supplier?.CompanyName}";
+                }
+                else if (!string.IsNullOrEmpty(movement.CustomerId))
+                {
+                    var customer = await _context.Customers.Find(c => c.Id == movement.CustomerId).FirstOrDefaultAsync();
+                    supplierOrCustomerName = $"Müşteri: {customer?.FullName}";
+                }
+                else
+                {
+                    supplierOrCustomerName = "Belirtilmedi";
+                }
+
+                foreach (var email in adminEmails)
+                {
+                    await _emailService.SendLowStockAlertAsync(email, checkProduct, DateTime.UtcNow, supplierOrCustomerName);
+                }
+            }
+
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Stok Hareketi Oluşturma", $"Yeni stok hareketi oluşturuldu: {movement.Type}, Ürün: {checkProduct?.Name}");
+
             return RedirectToAction(nameof(Index));
         }
     }
