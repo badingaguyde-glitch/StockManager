@@ -54,7 +54,7 @@
                     <label for="turnoverDate" class="form-label">Tarih</label>
                     <input type="date" id="turnoverDate" class="form-control" />
                 </div>
-                <button class="btn btn-outline-primary w-100" onclick="loadDailyTurnover()">Göster</button>
+                <button id="btnTurnover" class="btn btn-outline-primary w-100" onclick="loadDailyTurnover()">Göster</button>
                 <div id="turnoverResult" class="mt-3" style="display:none;">
                     <hr />
                     <p>Tarih: <strong id="turnoverDateResult"></strong></p>
@@ -69,7 +69,7 @@
             <div class="card-body">
                 <h5 class="card-title">En Çok Satanlar</h5>
                 <p class="text-muted">İlk 10 ürün</p>
-                <button class="btn btn-outline-primary w-100" onclick="loadBestSellers()">Göster</button>
+                <button id="btnBestSellers" class="btn btn-outline-primary w-100" onclick="loadBestSellers()">Göster</button>
                 <div id="bestSellersResult" class="mt-3" style="display:none;">
                     <hr />
                     <table class="table table-sm table-striped">
@@ -99,7 +99,7 @@
                     <label for="plEndDate" class="form-label">Bitiş</label>
                     <input type="date" id="plEndDate" class="form-control" />
                 </div>
-                <button class="btn btn-outline-primary w-100" onclick="loadProfitLoss()">Göster</button>
+                <button id="btnProfitLoss" class="btn btn-outline-primary w-100" onclick="loadProfitLoss()">Göster</button>
                 <div id="profitLossResult" class="mt-3" style="display:none;">
                     <hr />
                     <p>Dönem: <strong id="plPeriod"></strong></p>
@@ -117,6 +117,16 @@
 @section Scripts {
     <script>
         async function loadDailyTurnover() {
+            const resultDiv = document.getElementById('turnoverResult');
+            const btn = document.getElementById('btnTurnover');
+
+            // Toggle: açıksa kapat
+            if (resultDiv.style.display === 'block') {
+                resultDiv.style.display = 'none';
+                btn.textContent = 'Göster';
+                return;
+            }
+
             const date = document.getElementById('turnoverDate').value;
             const url = date
                 ? `/Reports/DailyTurnover?date=${date}`
@@ -128,13 +138,24 @@
 
                 document.getElementById('turnoverDateResult').textContent = data.date;
                 document.getElementById('turnoverAmount').textContent = parseFloat(data.totalTurnover).toFixed(2);
-                document.getElementById('turnoverResult').style.display = 'block';
+                resultDiv.style.display = 'block';
+                btn.textContent = 'Gizle';
             } catch (error) {
                 alert('Ciro verileri yüklenirken hata oluştu.');
             }
         }
 
         async function loadBestSellers() {
+            const resultDiv = document.getElementById('bestSellersResult');
+            const btn = document.getElementById('btnBestSellers');
+
+            // Toggle: açıksa kapat
+            if (resultDiv.style.display === 'block') {
+                resultDiv.style.display = 'none';
+                btn.textContent = 'Göster';
+                return;
+            }
+
             try {
                 const response = await fetch('/Reports/BestSellers');
                 const data = await response.json();
@@ -156,13 +177,24 @@
                     });
                 }
 
-                document.getElementById('bestSellersResult').style.display = 'block';
+                resultDiv.style.display = 'block';
+                btn.textContent = 'Gizle';
             } catch (error) {
                 alert('En çok satanlar yüklenirken hata oluştu.');
             }
         }
 
         async function loadProfitLoss() {
+            const resultDiv = document.getElementById('profitLossResult');
+            const btn = document.getElementById('btnProfitLoss');
+
+            // Toggle: açıksa kapat
+            if (resultDiv.style.display === 'block') {
+                resultDiv.style.display = 'none';
+                btn.textContent = 'Göster';
+                return;
+            }
+
             const startDate = document.getElementById('plStartDate').value;
             const endDate = document.getElementById('plEndDate').value;
 
@@ -184,7 +216,8 @@
                 const profit = parseFloat(data.profitLoss);
                 profitEl.textContent = profit.toFixed(2);
                 profitEl.className = profit >= 0 ? 'text-success' : 'text-danger';
-                document.getElementById('profitLossResult').style.display = 'block';
+                resultDiv.style.display = 'block';
+                btn.textContent = 'Gizle';
             } catch (error) {
                 alert('Kar/Zarar verileri yüklenirken hata oluştu.');
             }
