@@ -55,7 +55,7 @@
                     <input type="date" id="turnoverDate" class="form-control" />
                 </div>
                 <button id="btnTurnover" class="btn btn-outline-primary w-100" onclick="loadDailyTurnover()">Göster</button>
-                <div id="turnoverResult" class="mt-3" style="display:none;">
+                <div id="turnoverResult" class="mt-3 d-none">
                     <hr />
                     <p>Tarih: <strong id="turnoverDateResult"></strong></p>
                     <p>Toplam Ciro: <strong id="turnoverAmount"></strong></p>
@@ -70,7 +70,7 @@
                 <h5 class="card-title">En Çok Satanlar</h5>
                 <p class="text-muted">İlk 10 ürün</p>
                 <button id="btnBestSellers" class="btn btn-outline-primary w-100" onclick="loadBestSellers()">Göster</button>
-                <div id="bestSellersResult" class="mt-3" style="display:none;">
+                <div id="bestSellersResult" class="mt-3 d-none">
                     <hr />
                     <table class="table table-sm table-striped">
                         <thead>
@@ -100,7 +100,115 @@
                     <input type="date" id="plEndDate" class="form-control" />
                 </div>
                 <button id="btnProfitLoss" class="btn btn-outline-primary w-100" onclick="loadProfitLoss()">Göster</button>
-                <div id="profitLossResult" class="mt-3" style="display:none;">
+                <div id="profitLossResult" class="mt-3 d-none">
+                    <hr />
+                    <p>Dönem: <strong id="plPeriod"></strong></p>
+                    <p>Gelir: <strong id="plRevenue"></strong></p>
+                    <p>Maliyet: <strong id="plCost"></strong></p>
+                    <p>Kar/Zarar: <strong id="plProfit"></strong></p>
+@{
+    ViewData["Title"] = "Raporlar";
+}
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<h2>Raporlar</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-primary">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Ürün</h5>
+                <p class="card-text fs-4">@ViewBag.TotalProducts</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-warning">
+            <div class="card-body">
+                <h5 class="card-title">Düşük Stok</h5>
+                <p class="card-text fs-4">@ViewBag.LowStockCount</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-success">
+            <div class="card-body">
+                <h5 class="card-title">Toplam Satış</h5>
+                <p class="card-text fs-4">@ViewBag.TotalSales.ToString("0.00")</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-info">
+            <div class="card-body">
+                <h5 class="card-title">Stok Değeri</h5>
+                <p class="card-text fs-4">@ViewBag.TotalStockValue.ToString("0.00")</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Günlük Ciro</h5>
+                <div class="mb-2">
+                    <label for="turnoverDate" class="form-label">Tarih</label>
+                    <input type="date" id="turnoverDate" class="form-control" />
+                </div>
+                <button id="btnTurnover" class="btn btn-outline-primary w-100" onclick="loadDailyTurnover()"><i class="bi bi-eye"></i> Göster</button>
+                <div id="turnoverResult" class="mt-3 d-none">
+                    <hr />
+                    <p>Tarih: <strong id="turnoverDateResult"></strong></p>
+                    <p>Toplam Ciro: <strong id="turnoverAmount"></strong></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">En Çok Satanlar</h5>
+                <p class="text-muted">İlk 10 ürün</p>
+                <button id="btnBestSellers" class="btn btn-outline-primary w-100" onclick="loadBestSellers()"><i class="bi bi-eye"></i> Göster</button>
+                <div id="bestSellersResult" class="mt-3 d-none">
+                    <hr />
+                    <table class="table table-sm table-striped">
+                        <thead>
+                            <tr>
+                                <th>Ürün</th>
+                                <th>Adet</th>
+                                <th>Gelir</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bestSellersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Kar / Zarar</h5>
+                <div class="mb-2">
+                    <label for="plStartDate" class="form-label">Başlangıç</label>
+                    <input type="date" id="plStartDate" class="form-control" />
+                </div>
+                <div class="mb-2">
+                    <label for="plEndDate" class="form-label">Bitiş</label>
+                    <input type="date" id="plEndDate" class="form-control" />
+                </div>
+                <button id="btnProfitLoss" class="btn btn-outline-primary w-100" onclick="loadProfitLoss()"><i class="bi bi-eye"></i> Göster</button>
+                <div id="profitLossResult" class="mt-3 d-none">
                     <hr />
                     <p>Dönem: <strong id="plPeriod"></strong></p>
                     <p>Gelir: <strong id="plRevenue"></strong></p>
@@ -116,121 +224,128 @@
 
 @section Scripts {
     <script>
-        async function loadDailyTurnover() {
-            const resultDiv = document.getElementById('turnoverResult');
-            const btn = document.getElementById('btnTurnover');
+        // ---------- TOGGLE YARDIMCISI ----------
+        function togglePanel(panelId, btnId) {
+            var panel = document.getElementById(panelId);
+            var btn   = document.getElementById(btnId);
+            var isHidden = panel.classList.contains('d-none');
+            panel.classList.toggle('d-none');
+            btn.innerHTML = isHidden
+                ? '<i class="bi bi-eye-slash"></i> Gizle'
+                : '<i class="bi bi-eye"></i> Göster';
+        }
 
-            // Toggle: açıksa kapat
-            if (resultDiv.style.display === 'block') {
-                resultDiv.style.display = 'none';
-                btn.textContent = 'Göster';
+        // ---------- GÜNLÜK CİRO ----------
+        var turnoverLoaded = false;
+        async function loadDailyTurnover() {
+            // Zaten yüklendi ve panel açıksa → gizle
+            var panel = document.getElementById('turnoverResult');
+            if (turnoverLoaded && !panel.classList.contains('d-none')) {
+                togglePanel('turnoverResult', 'btnTurnover');
                 return;
             }
-
-            const date = document.getElementById('turnoverDate').value;
-            const url = date
-                ? `/Reports/DailyTurnover?date=${date}`
-                : '/Reports/DailyTurnover';
-
+            var date = document.getElementById('turnoverDate').value;
+            var url  = date ? `/Reports/DailyTurnover?date=${date}` : '/Reports/DailyTurnover';
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-
+                var res  = await fetch(url);
+                var data = await res.json();
                 document.getElementById('turnoverDateResult').textContent = data.date;
                 document.getElementById('turnoverAmount').textContent = parseFloat(data.totalTurnover).toFixed(2);
-                resultDiv.style.display = 'block';
-                btn.textContent = 'Gizle';
-            } catch (error) {
+                turnoverLoaded = true;
+                panel.classList.remove('d-none');
+                document.getElementById('btnTurnover').innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+            } catch (e) {
                 alert('Ciro verileri yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- EN ÇOK SATANLAR ----------
+        var bestSellersLoaded = false;
         async function loadBestSellers() {
-            const resultDiv = document.getElementById('bestSellersResult');
-            const btn = document.getElementById('btnBestSellers');
-
-            // Toggle: açıksa kapat
-            if (resultDiv.style.display === 'block') {
-                resultDiv.style.display = 'none';
-                btn.textContent = 'Göster';
+            var panel = document.getElementById('bestSellersResult');
+            if (bestSellersLoaded) {
+                togglePanel('bestSellersResult', 'btnBestSellers');
                 return;
             }
-
             try {
-                const response = await fetch('/Reports/BestSellers');
-                const data = await response.json();
-
-                const tbody = document.getElementById('bestSellersBody');
+                var res  = await fetch('/Reports/BestSellers');
+                var data = await res.json();
+                var tbody = document.getElementById('bestSellersBody');
                 tbody.innerHTML = '';
-
                 if (data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Henüz satış verisi yok.</td></tr>';
                 } else {
-                    data.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${item.productName}</td>
-                            <td>${item.unitsSold}</td>
-                            <td>${parseFloat(item.revenue).toFixed(2)}</td>
-                        `;
+                    data.forEach(function(item) {
+                        var row = document.createElement('tr');
+                        row.innerHTML = '<td>' + item.productName + '</td><td>' + item.unitsSold + '</td><td>' + parseFloat(item.revenue).toFixed(2) + '</td>';
                         tbody.appendChild(row);
                     });
                 }
-
-                resultDiv.style.display = 'block';
-                btn.textContent = 'Gizle';
-            } catch (error) {
+                bestSellersLoaded = true;
+                panel.classList.remove('d-none');
+                document.getElementById('btnBestSellers').innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+            } catch (e) {
                 alert('En çok satanlar yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- KAR / ZARAR ----------
+        var profitLossLoaded = false;
         async function loadProfitLoss() {
-            const resultDiv = document.getElementById('profitLossResult');
-            const btn = document.getElementById('btnProfitLoss');
-
-            // Toggle: açıksa kapat
-            if (resultDiv.style.display === 'block') {
-                resultDiv.style.display = 'none';
-                btn.textContent = 'Göster';
+            var panel = document.getElementById('profitLossResult');
+            if (profitLossLoaded && !panel.classList.contains('d-none')) {
+                togglePanel('profitLossResult', 'btnProfitLoss');
                 return;
             }
-
-            const startDate = document.getElementById('plStartDate').value;
-            const endDate = document.getElementById('plEndDate').value;
-
-            let url = '/Reports/ProfitLoss';
-            const params = [];
-            if (startDate) params.push(`startDate=${startDate}`);
-            if (endDate) params.push(`endDate=${endDate}`);
+            var startDate = document.getElementById('plStartDate').value;
+            var endDate   = document.getElementById('plEndDate').value;
+            var url = '/Reports/ProfitLoss';
+            var params = [];
+            if (startDate) params.push('startDate=' + startDate);
+            if (endDate)   params.push('endDate='   + endDate);
             if (params.length > 0) url += '?' + params.join('&');
-
             try {
-                const response = await fetch(url);
-                const data = await response.json();
-
-                document.getElementById('plPeriod').textContent = `${data.startDate} — ${data.endDate}`;
+                var res  = await fetch(url);
+                var data = await res.json();
+                document.getElementById('plPeriod').textContent  = data.startDate + ' — ' + data.endDate;
                 document.getElementById('plRevenue').textContent = parseFloat(data.revenue).toFixed(2);
-                document.getElementById('plCost').textContent = parseFloat(data.cost).toFixed(2);
-
-                const profitEl = document.getElementById('plProfit');
-                const profit = parseFloat(data.profitLoss);
+                document.getElementById('plCost').textContent    = parseFloat(data.cost).toFixed(2);
+                var profitEl = document.getElementById('plProfit');
+                var profit   = parseFloat(data.profitLoss);
                 profitEl.textContent = profit.toFixed(2);
-                profitEl.className = profit >= 0 ? 'text-success' : 'text-danger';
-                resultDiv.style.display = 'block';
-                btn.textContent = 'Gizle';
-            } catch (error) {
+                profitEl.className   = profit >= 0 ? 'text-success fw-bold' : 'text-danger fw-bold';
+                profitLossLoaded = true;
+                panel.classList.remove('d-none');
+                document.getElementById('btnProfitLoss').innerHTML = '<i class="bi bi-eye-slash"></i> Gizle';
+            } catch (e) {
                 alert('Kar/Zarar verileri yüklenirken hata oluştu.');
             }
         }
 
+        // ---------- SAYFA YÜKLENME ----------
         document.addEventListener('DOMContentLoaded', function () {
-            const today = new Date().toISOString().split('T')[0];
+            var today = new Date().toISOString().split('T')[0];
             document.getElementById('turnoverDate').value = today;
+            var ago30 = new Date();
+            ago30.setDate(ago30.getDate() - 30);
+            document.getElementById('plStartDate').value = ago30.toISOString().split('T')[0];
+            document.getElementById('plEndDate').value   = today;
 
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            document.getElementById('plStartDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('plEndDate').value = today;
+            // Ön yükleme: "En Çok Satanlar" parametresizdir, hemen çek
+            fetch('/Reports/BestSellers').then(function(r){ return r.json(); }).then(function(data){
+                var tbody = document.getElementById('bestSellersBody');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="text-muted">Henüz satış verisi yok.</td></tr>';
+                } else {
+                    data.forEach(function(item){
+                        var row = document.createElement('tr');
+                        row.innerHTML = '<td>' + item.productName + '</td><td>' + item.unitsSold + '</td><td>' + parseFloat(item.revenue).toFixed(2) + '</td>';
+                        tbody.appendChild(row);
+                    });
+                }
+                bestSellersLoaded = true;
+            }).catch(function(){});
         });
     </script>
 }
