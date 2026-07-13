@@ -1,0 +1,482 @@
+@model StockManager.Server.Models.AuditLogDashboardViewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Denetim Kayıtları & Sistem Güvenlik Paneli";
+}
+
+<style>
+    .audit-card-hover {
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .audit-card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.15) !important;
+    }
+    .kpi-icon-wrapper {
+        width: 54px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 14px;
+        font-size: 1.5rem;
+    }
+    .table-audit tbody tr {
+        transition: background-color 0.15s ease;
+    }
+    .table-audit tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.04) !important;
+    }
+    .badge-action {
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        padding: 0.4em 0.75em;
+        border-radius: 6px;
+    }
+    .avatar-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+</style>
+
+<!-- Üst Başlık ve Aksiyon Barı -->
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 pb-2 border-bottom">
+    <div>
+        <h3 class="fw-bold mb-1 d-flex align-items-center text-dark">
+            <i class="bi bi-shield-lock-fill text-primary me-2"></i> Denetim & Güvenlik Paneli
+        </h3>
+        <p class="text-muted mb-0 small">Sistem genelindeki tüm kullanıcı hareketleri, güvenlik logları ve işlem detayları</p>
+    </div>
+    <div class="mt-3 mt-md-0 d-flex gap-2">
+        <button type="button" class="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#clearLogsModal">
+            <i class="bi bi-trash3-fill me-1"></i> Eski Kayıtları Temizle
+        </button>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm fw-semibold d-flex align-items-center">
+            <i class="bi bi-arrow-clockwise me-1"></i> Yenile
+        </a>
+    </div>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Kapat"></button>
+    </div>
+}
+
+<!-- Özet İstatistik Kartları (KPIs) -->
+<div class="row g-3 mb-4">
+    <!-- Toplam Kayıt -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 audit-card-hover h-100">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted fw-semibold small d-block mb-1">TOPLAM KAYIT</span>
+                    <h3 class="fw-bold mb-0 text-dark">@Model.TotalLogsCount.ToString("N0")</h3>
+                    <small class="text-primary fw-semibold"><i class="bi bi-database me-1"></i>Tüm zamanlar</small>
+                </div>
+                <div class="kpi-icon-wrapper bg-primary-subtle text-primary">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bugünkü İşlemler -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 audit-card-hover h-100">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted fw-semibold small d-block mb-1">BUGÜNKÜ HAREKETLER</span>
+                    <h3 class="fw-bold mb-0 text-success">@Model.TodayLogsCount.ToString("N0")</h3>
+                    <small class="text-success fw-semibold"><i class="bi bi-clock-history me-1"></i>Bugün kaydedilen</small>
+                </div>
+                <div class="kpi-icon-wrapper bg-success-subtle text-success">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktif Kullanıcılar -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 audit-card-hover h-100">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted fw-semibold small d-block mb-1">AKTİF KULLANICILAR</span>
+                    <h3 class="fw-bold mb-0 text-info">@Model.ActiveUsersCount.ToString("N0")</h3>
+                    <small class="text-info fw-semibold"><i class="bi bi-people me-1"></i>İşlem yapan personel</small>
+                </div>
+                <div class="kpi-icon-wrapper bg-info-subtle text-info">
+                    <i class="bi bi-person-badge-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kritik / Silme İşlemleri -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card border-0 shadow-sm rounded-4 audit-card-hover h-100">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                <div>
+                    <span class="text-muted fw-semibold small d-block mb-1">KRİTİK / SİLME İŞLEMLERİ</span>
+                    <h3 class="fw-bold mb-0 text-danger">@Model.CriticalActionsCount.ToString("N0")</h3>
+                    <small class="text-danger fw-semibold"><i class="bi bi-exclamation-triangle me-1"></i>Silme & iptal logları</small>
+                </div>
+                <div class="kpi-icon-wrapper bg-danger-subtle text-danger">
+                    <i class="bi bi-shield-exclamation"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Grafik Alanı (Son 7 Gün & İşlem Dağılımı) -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-graph-up-arrow text-primary me-2"></i>Son 7 Günlük İşlem Hacmi</h6>
+                    <small class="text-muted">Günlük gerçekleşen denetim kaydı trafiği</small>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <canvas id="dailyActivityChart" style="max-height: 280px;"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-transparent border-0 pt-4 px-4 pb-0">
+                <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart-fill text-primary me-2"></i>İşlem Dağılımı</h6>
+                <small class="text-muted">En sık yapılan eylemler (Son 7 Gün)</small>
+            </div>
+            <div class="card-body p-4 d-flex align-items-center justify-content-center">
+                <canvas id="actionDistributionChart" style="max-height: 250px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Gelişmiş Filtre Paneli -->
+<div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-light border-0 py-3 px-4 rounded-top-4">
+        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-funnel-fill text-primary me-2"></i>Filtrele & Ara</h6>
+    </div>
+    <div class="card-body p-4">
+        <form asp-action="Index" method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">Arama (Detay, E-posta, Kullanıcı)</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" name="searchTerm" class="form-control" placeholder="Anahtar kelime ara..." value="@Model.SearchTerm" />
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-semibold text-muted">İşlem Tipi</label>
+                <select name="actionFilter" class="form-select form-select-sm">
+                    <option value="">Tüm İşlemler</option>
+                    @foreach (var act in Model.DistinctActions)
+                    {
+                        <option value="@act" selected="@(Model.ActionFilter == act ? "selected" : null)">@act</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Kullanıcı</label>
+                <select name="userFilter" class="form-select form-select-sm">
+                    <option value="">Tüm Kullanıcılar</option>
+                    @foreach (var user in Model.DistinctUsers)
+                    {
+                        <option value="@user" selected="@(Model.UserEmailFilter == user ? "selected" : null)">@user</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Başlangıç Tarihi</label>
+                <input type="date" name="startDate" class="form-control form-control-sm" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small fw-semibold text-muted">Bitiş Tarihi</label>
+                <input type="date" name="endDate" class="form-control form-control-sm" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2 pt-2">
+                <a asp-action="Index" class="btn btn-light btn-sm fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sıfırla
+                </a>
+                <button type="submit" class="btn btn-primary btn-sm fw-semibold px-4">
+                    <i class="bi bi-filter me-1"></i> Filtrele
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Log Listesi Tablosu -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+    <div class="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+        <span class="fw-bold text-dark">
+            Denetim Logları 
+            <span class="badge bg-primary-subtle text-primary ms-1">Toplam @Model.TotalFilteredCount.ToString("N0") Kayıt</span>
+        </span>
+        <small class="text-muted">Sayfa @Model.CurrentPage / @(Model.TotalPages == 0 ? 1 : Model.TotalPages)</small>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-audit align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th style="width: 180px;" class="ps-4">Tarih & Saat</th>
+                    <th style="width: 230px;">Kullanıcı</th>
+                    <th style="width: 200px;">İşlem Tipi</th>
+                    <th>İşlem Detayları</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Logs.Any())
+                {
+                    @foreach (var log in Model.Logs)
+                    {
+                        var actionLower = (log.Action ?? "").ToLowerInvariant();
+                        var badgeClass = "bg-secondary-subtle text-secondary";
+                        var iconClass = "bi-journal";
+
+                        if (actionLower.Contains("sil") || actionLower.Contains("iptal") || actionLower.Contains("hata"))
+                        {
+                            badgeClass = "bg-danger-subtle text-danger";
+                            iconClass = "bi-trash3-fill";
+                        }
+                        else if (actionLower.Contains("ekle") || actionLower.Contains("oluştur"))
+                        {
+                            badgeClass = "bg-success-subtle text-success";
+                            iconClass = "bi-plus-circle-fill";
+                        }
+                        else if (actionLower.Contains("güncel") || actionLower.Contains("düzenle"))
+                        {
+                            badgeClass = "bg-warning-subtle text-warning";
+                            iconClass = "bi-pencil-fill";
+                        }
+                        else if (actionLower.Contains("satış"))
+                        {
+                            badgeClass = "bg-primary-subtle text-primary";
+                            iconClass = "bi-cart-check-fill";
+                        }
+
+                        var avatarBg = "bg-primary-subtle text-primary";
+                        var firstLetter = !string.IsNullOrEmpty(log.Username) ? log.Username.Substring(0, 1).ToUpper() : "S";
+
+                        <tr>
+                            <td class="ps-4">
+                                <span class="fw-semibold text-dark d-block">@log.Timestamp.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                <small class="text-muted"><i class="bi bi-clock me-1"></i>@log.Timestamp.ToLocalTime().ToString("HH:mm:ss")</small>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-circle @avatarBg me-3 flex-shrink-0">
+                                        @firstLetter
+                                    </div>
+                                    <div>
+                                        <span class="fw-bold text-dark d-block">@(log.Username ?? "Sistem")</span>
+                                        <small class="text-muted">@log.UserEmail</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-action @badgeClass">
+                                    <i class="bi @iconClass me-1"></i> @log.Action
+                                </span>
+                            </td>
+                            <td class="text-dark">
+                                <span class="d-inline-block text-break" style="max-width: 600px;">
+                                    @log.Details
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+                            Kriterlere uygun denetim kaydı bulunamadı.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Sayfalama (Pagination) -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="card-footer bg-white border-top py-3 px-4 d-flex justify-content-between align-items-center">
+            <small class="text-muted">
+                Gösterilen: @(((Model.CurrentPage - 1) * Model.PageSize) + 1) - @(Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalFilteredCount)) / @Model.TotalFilteredCount
+            </small>
+            <nav aria-label="Sayfalama">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(Model.CurrentPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@(Model.CurrentPage - 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-actionFilter="@Model.ActionFilter"
+                           asp-route-userFilter="@Model.UserEmailFilter"
+                           asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                           asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">Önceki</a>
+                    </li>
+
+                    @{
+                        int startPage = Math.Max(1, Model.CurrentPage - 2);
+                        int endPage = Math.Min(Model.TotalPages, startPage + 4);
+                        if (endPage - startPage < 4 && startPage > 1)
+                        {
+                            startPage = Math.Max(1, endPage - 4);
+                        }
+                    }
+
+                    @for (int p = startPage; p <= endPage; p++)
+                    {
+                        <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                            <a class="page-link" asp-action="Index"
+                               asp-route-page="@p"
+                               asp-route-searchTerm="@Model.SearchTerm"
+                               asp-route-actionFilter="@Model.ActionFilter"
+                               asp-route-userFilter="@Model.UserEmailFilter"
+                               asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                               asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">@p</a>
+                        </li>
+                    }
+
+                    <li class="page-item @(Model.CurrentPage >= Model.TotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Index"
+                           asp-route-page="@(Model.CurrentPage + 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-actionFilter="@Model.ActionFilter"
+                           asp-route-userFilter="@Model.UserEmailFilter"
+                           asp-route-startDate="@Model.StartDate?.ToString("yyyy-MM-dd")"
+                           asp-route-endDate="@Model.EndDate?.ToString("yyyy-MM-dd")">Sonraki</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    }
+</div>
+
+<!-- Eski Kayıtları Temizleme Modalı -->
+<div class="modal fade" id="clearLogsModal" tabindex="-1" aria-labelledby="clearLogsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-danger text-white rounded-top-4">
+                <h5 class="modal-title fw-bold" id="clearLogsModalLabel"><i class="bi bi-exclamation-triangle-fill me-2"></i>Eski Denetim Kayıtlarını Temizle</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <form asp-action="ClearOldLogs" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-body p-4">
+                    <p class="text-muted">Veritabanı boyutunu optimize etmek için belirleyeceğiniz günden daha eski denetim loglarını kalıcı olarak silebilirsiniz.</p>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold text-dark">Eski Kayıt Saklama Süresi</label>
+                        <select name="daysToKeep" class="form-select">
+                            <option value="30">30 günden eski kayıtları sil</option>
+                            <option value="60">60 günden eski kayıtları sil</option>
+                            <option value="90" selected>90 günden eski kayıtları sil (Önerilen)</option>
+                            <option value="180">180 günden eski kayıtları sil</option>
+                            <option value="365">1 yıldan eski kayıtları sil</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Vazgeç</button>
+                    <button type="submit" class="btn btn-danger fw-semibold px-4"><i class="bi bi-trash3 me-1"></i>Temizle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            // Son 7 Günlük Aktivite Çizgi/Alan Grafiği
+            const dailyCtx = document.getElementById('dailyActivityChart');
+            if (dailyCtx) {
+                const dailyLabels = @Html.Raw(JsonSerializer.Serialize(Model.DailyActivityChart.Select(x => x.DateLabel)));
+                const dailyCounts = @Html.Raw(JsonSerializer.Serialize(Model.DailyActivityChart.Select(x => x.Count)));
+
+                new Chart(dailyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: dailyLabels,
+                        datasets: [{
+                            label: 'İşlem Sayısı',
+                            data: dailyCounts,
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#0d6efd'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { precision: 0 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // İşlem Dağılımı Pasta/Doughnut Grafiği
+            const distCtx = document.getElementById('actionDistributionChart');
+            if (distCtx) {
+                const distLabels = @Html.Raw(JsonSerializer.Serialize(Model.ActionTypeDistribution.Select(x => x.ActionName)));
+                const distCounts = @Html.Raw(JsonSerializer.Serialize(Model.ActionTypeDistribution.Select(x => x.Count)));
+
+                new Chart(distCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: distLabels,
+                        datasets: [{
+                            data: distCounts,
+                            backgroundColor: [
+                                '#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6610f2', '#6c757d'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 12,
+                                    font: { size: 11 }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+}
