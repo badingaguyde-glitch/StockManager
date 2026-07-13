@@ -390,8 +390,32 @@ public class AccountController : Controller
         // Yeni şifreyi e-posta ile gönder
         await _emailService.SendNewTemporaryPasswordAsync(user.Email, newTemporaryPassword);
 
-        TempData["success"] = $"{user.Username} adlı personelin şifresi başarıyla sıfırlandı. Yeni geçici şifre ({newTemporaryPassword}) e-posta adresine gönderildi.";
-        
-        return RedirectToAction(nameof(Users));
+        // Bilgileri TempData'ya alarak GET yönlendirmesi yapıyoruz (POST-Redirect-GET deseni)
+        TempData["ResetUsername"] = user.Username;
+        TempData["ResetEmail"] = user.Email;
+        TempData["ResetRole"] = user.Role.ToString();
+        TempData["ResetPassword"] = newTemporaryPassword;
+
+        return RedirectToAction(nameof(ResetSuccess));
+    }
+
+    // ══════════════════════════════════════════════
+    // SADECE ADMIN: ŞİFRE SIFIRLAMA BAŞARILI SAYFASI
+    // ══════════════════════════════════════════════
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public IActionResult ResetSuccess()
+    {
+        if (TempData["ResetUsername"] == null)
+        {
+            return RedirectToAction(nameof(Users));
+        }
+
+        ViewBag.Username = TempData["ResetUsername"];
+        ViewBag.Email = TempData["ResetEmail"];
+        ViewBag.Role = TempData["ResetRole"];
+        ViewBag.GeneratedPassword = TempData["ResetPassword"];
+
+        return View();
     }
 }

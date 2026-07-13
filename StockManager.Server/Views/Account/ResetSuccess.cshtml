@@ -1,0 +1,49 @@
+@{
+    ViewData["Title"] = "Personel Şifresi Sıfırlandı";
+}
+
+<div class="mb-3">
+    <a asp-action="Users" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Personel Listesine Dön
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-warning shadow-sm mt-4">
+            <div class="card-header bg-warning text-dark">
+                <h4 class="mb-0 fw-bold"><i class="bi bi-shield-slash-fill"></i> Şifre Başarıyla Sıfırlandı</h4>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert alert-warning text-dark small">
+                    <strong>Önemli:</strong> Güvenlik nedeniyle bu şifre veritabanında şifrelenmiştir ve **sadece bu ekranda bir kez** gösterilecektir. Ayrıca personelin e-posta adresine de gönderilmiştir. Lütfen bilgileri kopyalayıp ilgili personele iletiniz.
+                </div>
+
+                <table class="table table-bordered bg-light mt-3">
+                    <tbody>
+                        <tr>
+                            <th style="width: 40%">Kullanıcı Adı:</th>
+                            <td class="font-monospace fw-bold text-primary">@ViewBag.Username</td>
+                        </tr>
+                        <tr>
+                            <th>E-posta:</th>
+                            <td>@ViewBag.Email</td>
+                        </tr>
+                        <tr>
+                            <th>Yeni Geçici Şifre:</th>
+                            <td class="font-monospace fw-bold text-danger fs-5">@ViewBag.GeneratedPassword</td>
+                        </tr>
+                        <tr>
+                            <th>Sistem Rolü:</th>
+                            <td>@ViewBag.Role</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="d-grid mt-4">
+                    <a asp-action="Users" class="btn btn-warning text-dark fw-bold">Personel Listesine Dön</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
