@@ -154,31 +154,6 @@ public class ReportsController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> PaymentTypeDistribution()
-    {
-        var sales = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
-
-        var distribution = sales
-            .GroupBy(s => s.PaymentType)
-            .Select(g => new
-            {
-                PaymentType = g.Key switch
-                {
-                    PaymentType.Cash => "Nakit",
-                    PaymentType.Card => "Kredi / Banka Kartı",
-                    PaymentType.Debt => "Veresiye (Cari)",
-                    _ => "Diğer"
-                },
-                TotalAmount = g.Sum(s => s.TotalAmount),
-                Count = g.Count()
-            })
-            .OrderByDescending(x => x.TotalAmount)
-            .ToList();
-
-        return Json(distribution);
-    }
-
-    [HttpGet]
     [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> ProfitLoss(DateTime? startDate, DateTime? endDate)
     {
