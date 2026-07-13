@@ -29,6 +29,7 @@ public class User
     [BsonElement("role")]
     public UserRole Role {get;set;}=UserRole.Personel;
 
+<<<<<<< HEAD
     [BsonElement("passwordResetCodeHash")]
     [BsonIgnoreIfNull]
     public string? PasswordResetCodeHash { get; set; }
@@ -41,6 +42,19 @@ public class User
     public int PasswordResetCodeAttempts { get; set; }
 
     // PascalCase fallback properties (for deserialization of existing DB records with uppercase keys) (for deserialization of existing DB records with uppercase keys)
+=======
+
+    [BsonElement("passwordResetCode")]
+    public string? PasswordResetCode {get;set;}
+
+    [BsonElement("passwordResetCodeExpireAt")]
+    public DateTime? PasswordResetCodeExpireAt {get;set;}
+
+    [BsonElement("pendingPasswordHash")]
+    public string? PendingPasswordHash {get;set;}
+
+    // PascalCase fallback properties (for deserialization of existing DB records with uppercase keys)
+>>>>>>> origin/EmreControllers
     [BsonElement("Email")]
     [BsonIgnoreIfNull]
     private string? EmailAlt { get => null; set => Email = value ?? string.Empty; }
@@ -56,4 +70,5 @@ public class User
     [BsonElement("Role")]
     [BsonIgnoreIfNull]
     private UserRole? RoleAlt { get => null; set { if (value.HasValue) Role = value.Value; } }
+
 }

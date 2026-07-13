@@ -19,6 +19,7 @@ public class AccountController : Controller
 
     private readonly MongoDBContext _context;
     private readonly PasswordHasher<User> _passwordHasher;
+<<<<<<< HEAD
     private readonly IPasswordValidator _passwordValidator;
     private readonly IPasswordResetService _passwordResetService;
     private readonly IEmailService _emailService;
@@ -30,8 +31,14 @@ public class AccountController : Controller
         IPasswordResetService passwordResetService,
         IEmailService emailService,
         IOptions<PasswordSecuritySettings> securitySettings)
+=======
+    private readonly StockManager.Server.Services.IEmailService _emailService;
+
+    public AccountController(MongoDBContext context, StockManager.Server.Services.IEmailService emailService)
+>>>>>>> origin/EmreControllers
     {
         _context = context;
+        _emailService = emailService;
         _passwordHasher = new PasswordHasher<User>();
         _passwordValidator = passwordValidator;
         _passwordResetService = passwordResetService;
@@ -360,18 +367,57 @@ public class AccountController : Controller
 
         user.Email = email;
 
+<<<<<<< HEAD
+=======
+        bool isPasswordChangeRequested = !string.IsNullOrEmpty(newPassword);
+        string? pendingHash = null;
+        string? resetCode = null;
+        DateTime? resetCodeExpired = null;
+
+        if (isPasswordChangeRequested)
+        {
+            // Yeni şifre girildiyse, hemen aktif etmiyoruz. Doğrulama kodu üretiyoruz.
+            pendingHash = _passwordHasher.HashPassword(user, newPassword!);
+
+            // 6 haneli rastgele kod üretimi
+            var random = new Random();
+            resetCode = random.Next(100000, 999999).ToString();
+            resetCodeExpired = DateTime.UtcNow.AddMinutes(15); // 15 dk geçerlilik
+
+            // E-posta gönderimi
+            await _emailService.SendPasswordResetCodeAsync(user.Email, resetCode);
+        }
+
+>>>>>>> origin/EmreControllers
         var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
-        var update = Builders<User>.Update
+
+        var updateBuilder = Builders<User>.Update
             .Set(u => u.Username, user.Username)
-            .Set(u => u.Email, user.Email)
-            .Set(u => u.PasswordHash, user.PasswordHash);
+            .Set(u => u.Email, user.Email);
 
-        await _context.Users.UpdateOneAsync(filter, update);
+        if (isPasswordChangeRequested)
+        {
+            updateBuilder = updateBuilder
+                .Set(u => u.PasswordResetCode, resetCode)
+                .Set(u => u.PasswordResetCodeExpireAt, resetCodeExpired)
+                .Set(u => u.PendingPasswordHash, pendingHash);
+        }
 
+<<<<<<< HEAD
+=======
+        await _context.Users.UpdateOneAsync(filter, updateBuilder);
+
+        if (isPasswordChangeRequested)
+        {
+            TempData["success"] = "Şifre güncelleme doğrulama kodu e-posta adresinize gönderildi.";
+            return RedirectToAction(nameof(VerifyPasswordChange));
+        }
+
+        // Eğer şifre değişmediyse sadece oturumu yeniliyoruz (kullanıcı adı değişmiş olabilir)
+>>>>>>> origin/EmreControllers
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
-
     // ══════════════════════════════════════════════
     // SADECE ADMIN: PERSONEL LİSTESİ & YÖNETİMİ
     // ══════════════════════════════════════════════
@@ -456,4 +502,116 @@ public class AccountController : Controller
 
         return new string(chars);
     }
+<<<<<<< HEAD
 }
+=======
+
+        // ══════════════════════════════════════════════
+    // ŞİFRE GÜNCELLEME İÇİN DOĞRULAMA SAYFASI VE KONTROLÜ
+    // ══════════════════════════════════════════════
+    [HttpGet]
+    [Authorize]
+    public IActionResult VerifyPasswordChange()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> VerifyPasswordChange(string code)
+    {
+        if (string.IsNullOrEmpty(code))
+        {
+            ModelState.AddModelError("", "Doğrulama kodu gereklidir.");
+            return View();
+        }
+
+        var currentUsername = User.Identity?.Name;
+        var user = await _context.Users.Find(u => u.Username == currentUsername).FirstOrDefaultAsync();
+        if (user == null) return NotFound();
+
+        // Kod ve Süre Kontrolü
+        if (user.PasswordResetCode != code || 
+            user.PasswordResetCodeExpireAt == null || 
+            user.PasswordResetCodeExpireAt < DateTime.UtcNow)
+        {
+            ModelState.AddModelError("", "Geçersiz veya süresi dolmuş doğrulama kodu.");
+            return View();
+        }
+
+        // Doğrulama başarılı: Geçici hash'i kalıcı hale getir
+        if (!string.IsNullOrEmpty(user.PendingPasswordHash))
+        {
+            user.PasswordHash = user.PendingPasswordHash;
+        }
+
+        // Doğrulama alanlarını temizle
+        user.PasswordResetCode = null;
+        user.PasswordResetCodeExpireAt = null;
+        user.PendingPasswordHash = null;
+
+        var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+        var update = Builders<User>.Update
+            .Set(u => u.PasswordHash, user.PasswordHash)
+            .Set(u => u.PasswordResetCode, user.PasswordResetCode)
+            .Set(u => u.PasswordResetCodeExpireAt, user.PasswordResetCodeExpireAt)
+            .Set(u => u.PendingPasswordHash, user.PendingPasswordHash);
+
+        await _context.Users.UpdateOneAsync(filter, update);
+
+        // Şifre değiştiği için oturumu kapatıp yeniden girişe yönlendir
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        TempData["success"] = "Şifreniz başarıyla doğrulandı ve güncellendi. Yeni şifrenizle giriş yapabilirsiniz.";
+        
+        return RedirectToAction("Login");
+    }
+
+        // ══════════════════════════════════════════════
+    // SADECE ADMIN: ÇALIŞAN ŞİFRESİNİ SIFIRLAMA (RESTART)
+    // ══════════════════════════════════════════════
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetUserPassword(string id)
+    {
+        var user = await _context.Users.Find(u => u.Id == id).FirstOrDefaultAsync();
+        if (user == null) return NotFound();
+
+        // Kendi şifresini buradan sıfırlamasını engelle (Profilini kullanmalı)
+        var currentUsername = User.Identity?.Name;
+        if (user.Username == currentUsername)
+        {
+            TempData["error"] = "Kendi şifrenizi personel yönetiminden sıfırlayamazsınız. Profil ayarlarınızı kullanın.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        // Yeni geçici şifre üretimi (8 haneli)
+        string newTemporaryPassword = GenerateRandomPassword(8);
+
+        // Şifreyi hashle ve kaydet
+        user.PasswordHash = _passwordHasher.HashPassword(user, newTemporaryPassword);
+        
+        // Varsa bekleyen doğrulama verilerini temizle
+        user.PasswordResetCode = null;
+        user.PasswordResetCodeExpireAt = null;
+        user.PendingPasswordHash = null;
+
+        var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+        var update = Builders<User>.Update
+            .Set(u => u.PasswordHash, user.PasswordHash)
+            .Set(u => u.PasswordResetCode, user.PasswordResetCode)
+            .Set(u => u.PasswordResetCodeExpireAt, user.PasswordResetCodeExpireAt)
+            .Set(u => u.PendingPasswordHash, user.PendingPasswordHash);
+
+        await _context.Users.UpdateOneAsync(filter, update);
+
+        // Yeni şifreyi e-posta ile gönder
+        await _emailService.SendNewTemporaryPasswordAsync(user.Email, newTemporaryPassword);
+
+        TempData["success"] = $"{user.Username} adlı personelin şifresi başarıyla sıfırlandı. Yeni geçici şifre ({newTemporaryPassword}) e-posta adresine gönderildi.";
+        
+        return RedirectToAction(nameof(Users));
+    }
+}
+>>>>>>> origin/EmreControllers
