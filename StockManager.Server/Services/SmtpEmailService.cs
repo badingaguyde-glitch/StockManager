@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using StockManager.Server.Models;
 
 namespace StockManager.Server.Services;
@@ -8,10 +9,12 @@ namespace StockManager.Server.Services;
 public class SmtpEmailService : IEmailService
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<SmtpEmailService> _logger;
 
-    public SmtpEmailService(IConfiguration configuration)
+    public SmtpEmailService(IConfiguration configuration, ILogger<SmtpEmailService> logger)
     {
         _configuration = configuration;
+        _logger = logger;
     }
 
     public async Task SendEmailAsync(string to, string subject, string body)
@@ -33,9 +36,11 @@ public class SmtpEmailService : IEmailService
             // Bilgiler eksikse çökme yerine konsola simüle et
             if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
             {
-                System.Diagnostics.Debug.WriteLine($"[EMAIL SIMULATION] Alıcı: {to}, Konu: {subject}, İçerik: {body}");
+                _logger.LogWarning($"[EMAIL SIMULATION] SMTP credentials missing. To: {to}, Subject: {subject}");
                 return;
             }
+
+            _logger.LogInformation($"Attempting to send email via SMTP to {to} using host {smtpHost}:{smtpPort}...");
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
@@ -49,10 +54,11 @@ public class SmtpEmailService : IEmailService
             };
 
             await client.SendMailAsync(mailMessage);
+            _logger.LogInformation($"Email successfully sent to {to}.");
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"E-posta gönderim hatası: {ex.Message}");
+            _logger.LogError(ex, $"E-posta gönderim hatası (SMTP Error): {ex.Message}");
         }
     }
 
