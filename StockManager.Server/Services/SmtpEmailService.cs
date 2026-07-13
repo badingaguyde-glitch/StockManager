@@ -48,8 +48,11 @@ public class SmtpEmailService : IEmailService
                 EnableSsl = true
             };
 
-            var mailMessage = new MailMessage(fromAddress, to, subject, body)
+            var fromMailAddress = new MailAddress(fromAddress, "StockManager");
+            var mailMessage = new MailMessage(fromMailAddress, new MailAddress(to))
             {
+                Subject = subject,
+                Body = body,
                 IsBodyHtml = true
             };
 

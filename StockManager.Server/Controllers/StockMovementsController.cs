@@ -28,7 +28,7 @@ namespace StockManager.Server.Controllers
                 .SortByDescending(m => m.Date)
                 .ToListAsync();
 
-            var productIds = movements.Where(m=> !string.IsNullOrEmpty(m.ProductId)).Select(m => m.ProductId).Distinct().ToList();
+            var productIds = movements.Where(m => !string.IsNullOrEmpty(m.ProductId)).Select(m => m.ProductId).Distinct().ToList();
             var supplierIds = movements.Where(m => !string.IsNullOrEmpty(m.SupplierId)).Select(m => m.SupplierId).Distinct().ToList();
             var customerIds = movements.Where(m => !string.IsNullOrEmpty(m.CustomerId)).Select(m => m.CustomerId).Distinct().ToList();
             var products = await _context.Products.Find(p => productIds.Contains(p.Id)).ToListAsync();
@@ -86,90 +86,127 @@ namespace StockManager.Server.Controllers
         {
             if (!ModelState.IsValid)
             {
-                var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
-                var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
-                var customers = await _context.Customers.Find(FilterDefinition<Customer>.Empty).SortBy(c => c.FullName).ToListAsync();
-                ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity})", p.Id)).ToList();
-                ViewBag.Suppliers = suppliers.Select(s => new SelectListItem(s.CompanyName, s.Id)).ToList();
-                ViewBag.Customers = customers.Select(c => new SelectListItem(c.FullName, c.Id)).ToList();
+                ViewBag.Products = new SelectList(await _context.Products.Find(_ => true).ToListAsync(), "Id", "Name", movement.ProductId);
+                ViewBag.Suppliers = new SelectList(await _context.Suppliers.Find(_ => true).ToListAsync(), "Id", "CompanyName", movement.SupplierId);
+                ViewBag.Customers = new SelectList(await _context.Customers.Find(_ => true).ToListAsync(), "Id", "FullName", movement.CustomerId);
                 return View(movement);
             }
-            movement.Date = DateTime.UtcNow;
-            await _context.StockMovements.InsertOneAsync(movement);
 
-            var productFilter = Builders<Product>.Filter.Eq(p => p.Id, movement.ProductId);
+            Product? checkProduct = null;
+            Notification? lowStockNotification = null;
 
-            if (movement.Type == StockMovementType.StockIn)
+            // 🔄 DÉBUT DE LA TRANSACTION
+            using (var session = await _context.Client.StartSessionAsync())
             {
-                var increaseQty = Builders<Product>.Update
-                    .Inc(p => p.Quantity, movement.Quantity);
-                await _context.Products.UpdateOneAsync(productFilter, increaseQty);
-
-                if (!string.IsNullOrEmpty(movement.SupplierId))
+                session.StartTransaction();
+                try
                 {
-                    var product = await _context.Products
-                        .Find(productFilter)
-                        .FirstOrDefaultAsync();
+                    movement.Date = DateTime.UtcNow;
 
-                    if (product != null)
+                    // a. Enregistrer le mouvement (en passant le paramètre session)
+                    await _context.StockMovements.InsertOneAsync(session, movement);
+
+                    var productFilter = Builders<Product>.Filter.Eq(p => p.Id, movement.ProductId);
+
+                    // b. Appliquer le mouvement sur la quantité du produit
+                    if (movement.Type == StockMovementType.StockIn)
                     {
-                        var totalCost = product.PurchasePrice * movement.Quantity;
-                        var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
-                        var increaseBalance = Builders<Supplier>.Update
-                            .Inc(s => s.Balance, totalCost);
-                        await _context.Suppliers.UpdateOneAsync(supplierFilter, increaseBalance);
+                        var increaseQty = Builders<Product>.Update.Inc(p => p.Quantity, movement.Quantity);
+                        await _context.Products.UpdateOneAsync(session, productFilter, increaseQty);
+
+                        // c. Ajuster la dette/crédit chez le fournisseur (si applicable)
+                        if (!string.IsNullOrEmpty(movement.SupplierId))
+                        {
+                            var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
+                            if (product != null)
+                            {
+                                var totalCost = product.PurchasePrice * movement.Quantity;
+                                var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
+                                var increaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, totalCost);
+
+                                await _context.Suppliers.UpdateOneAsync(session, supplierFilter, increaseBalance);
+                            }
+                        }
+                    }
+                    else if (movement.Type == StockMovementType.StockOut)
+                    {
+                        var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -movement.Quantity);
+                        await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+                    }
+                    else if (movement.Type == StockMovementType.Adjustment)
+                    {
+                        var setQty = Builders<Product>.Update.Set(p => p.Quantity, movement.Quantity);
+                        await _context.Products.UpdateOneAsync(session, productFilter, setQty);
+                    }
+
+                    // Récupérer le produit final pour vérifier le stock
+                    checkProduct = await _context.Products.Find(session, p => p.Id == movement.ProductId).FirstOrDefaultAsync();
+                    if (checkProduct != null && checkProduct.Quantity <= checkProduct.LowStockThreshold)
+                    {
+                        lowStockNotification = new Notification
+                        {
+                            Message = $"{checkProduct.Name} (Barkod: {checkProduct.Barcode}) kritik stok limitinin altına düştü! Kalan: {checkProduct.Quantity}",
+                            IsRead = false,
+                            CreatedAt = DateTime.UtcNow,
+                            ProductId = checkProduct.Id
+                        };
+
+                        await _context.Notifications.InsertOneAsync(session, lowStockNotification);
+                    }
+
+                    // 💾 Validation des changements
+                    await session.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    // ❌ Annulation complète en cas d'échec
+                    await session.AbortTransactionAsync();
+                    ModelState.AddModelError("", $"İşlem sırasında bir hata oluştu ve iptal edildi: {ex.Message}");
+
+                    ViewBag.Products = new SelectList(await _context.Products.Find(_ => true).ToListAsync(), "Id", "Name", movement.ProductId);
+                    ViewBag.Suppliers = new SelectList(await _context.Suppliers.Find(_ => true).ToListAsync(), "Id", "CompanyName", movement.SupplierId);
+                    ViewBag.Customers = new SelectList(await _context.Customers.Find(_ => true).ToListAsync(), "Id", "FullName", movement.CustomerId);
+                    return View(movement);
+                }
+            }
+            // 🔄 FIN DE LA TRANSACTION
+
+            // d. Envoi des e-mails d'alerte et journalisation hors transaction
+            if (lowStockNotification != null && checkProduct != null)
+            {
+                try
+                {
+                    var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
+                    var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
+                    if (adminEmails.Count == 0)
+                    {
+                        adminEmails.Add("admin@stockmanager.com");
+                    }
+
+                    string? supplierOrCustomerName = null;
+                    if (!string.IsNullOrEmpty(movement.SupplierId))
+                    {
+                        var supplier = await _context.Suppliers.Find(s => s.Id == movement.SupplierId).FirstOrDefaultAsync();
+                        supplierOrCustomerName = $"Tedarikçi: {supplier?.CompanyName}";
+                    }
+                    else if (!string.IsNullOrEmpty(movement.CustomerId))
+                    {
+                        var customer = await _context.Customers.Find(c => c.Id == movement.CustomerId).FirstOrDefaultAsync();
+                        supplierOrCustomerName = $"Müşteri: {customer?.FullName}";
+                    }
+                    else
+                    {
+                        supplierOrCustomerName = "Belirtilmedi";
+                    }
+
+                    foreach (var email in adminEmails)
+                    {
+                        await _emailService.SendLowStockAlertAsync(email, checkProduct, DateTime.UtcNow, supplierOrCustomerName);
                     }
                 }
-            }
-            else if (movement.Type == StockMovementType.StockOut)
-            {
-                var decreaseQty = Builders<Product>.Update
-                    .Inc(p => p.Quantity, -movement.Quantity);
-                await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
-            }
-            else if (movement.Type == StockMovementType.Adjustment)
-            {
-                var setQty = Builders<Product>.Update
-                    .Set(p => p.Quantity, movement.Quantity);
-                await _context.Products.UpdateOneAsync(productFilter, setQty);
-            }
-            var checkProduct = await _context.Products.Find(p => p.Id == movement.ProductId).FirstOrDefaultAsync();
-            if (checkProduct != null && checkProduct.Quantity <= checkProduct.LowStockThreshold)
-            {
-                var notification = new Notification
+                catch (Exception ex)
                 {
-                    Message = $"{checkProduct.Name} (Barkod: {checkProduct.Barcode}) kritik stok limitinin altına düştü! Kalan: {checkProduct.Quantity}",
-                    IsRead = false,
-                    CreatedAt = DateTime.UtcNow,
-                    ProductId = checkProduct.Id
-                };
-                await _context.Notifications.InsertOneAsync(notification);
-                var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
-                var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
-                if (adminEmails.Count == 0)
-                {
-                    adminEmails.Add("admin@stockmanager.com");
-                }
-
-                string? supplierOrCustomerName = null;
-                if (!string.IsNullOrEmpty(movement.SupplierId))
-                {
-                    var supplier = await _context.Suppliers.Find(s => s.Id == movement.SupplierId).FirstOrDefaultAsync();
-                    supplierOrCustomerName = $"Tedarikçi: {supplier?.CompanyName}";
-                }
-                else if (!string.IsNullOrEmpty(movement.CustomerId))
-                {
-                    var customer = await _context.Customers.Find(c => c.Id == movement.CustomerId).FirstOrDefaultAsync();
-                    supplierOrCustomerName = $"Müşteri: {customer?.FullName}";
-                }
-                else
-                {
-                    supplierOrCustomerName = "Belirtilmedi";
-                }
-
-                foreach (var email in adminEmails)
-                {
-                    await _emailService.SendLowStockAlertAsync(email, checkProduct, DateTime.UtcNow, supplierOrCustomerName);
+                    System.Diagnostics.Debug.WriteLine($"E-posta bildirim hatası (Mouvement stock): {ex.Message}");
                 }
             }
 

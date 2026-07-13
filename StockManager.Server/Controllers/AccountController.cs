@@ -387,7 +387,7 @@ public class AccountController : Controller
             // 6 haneli rastgele kod üretimi
             var random = new Random();
             resetCode = random.Next(100000, 999999).ToString();
-            resetCodeExpired = DateTime.UtcNow.AddMinutes(15); // 15 dk geçerlilik
+            resetCodeExpired = DateTime.UtcNow.AddMinutes(_securitySettings.CodeValidityMinutes);
 
             if (isPasswordChangeRequested)
             {
@@ -409,7 +409,7 @@ public class AccountController : Controller
             }
 
             // E-posta doğrulama kodunu MEVCUT doğrulanmış e-posta adresine gönder (Güvenlik gereği)
-            await _emailService.SendPasswordResetCodeAsync(originalEmail, resetCode);
+            await _emailService.SendPasswordResetCodeAsync(originalEmail, resetCode, _securitySettings.CodeValidityMinutes);
         }
 
         var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);

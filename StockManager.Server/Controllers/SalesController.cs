@@ -84,7 +84,7 @@ namespace StockManager.Server.Controllers
                 return RedirectToAction(nameof(POS));
             }
 
-            // 1. Stok yetersizliği kontrolü yap (eksiye düşmemesi için)
+            // 1. Contrôle préalable de la disponibilité (hors transaction pour éviter de bloquer inutilement des ressources)
             foreach (var item in sale.Items)
             {
                 var product = await _context.Products.Find(p => p.Id == item.ProductId).FirstOrDefaultAsync();
@@ -96,7 +96,6 @@ namespace StockManager.Server.Controllers
 
                 if (product.Quantity < item.Quantity)
                 {
-                    // Stok yetersizliği bildirimi oluştur (zile uyarı gitmesi için)
                     var hasUnreadNotification = await _context.Notifications
                         .Find(n => n.ProductId == product.Id && n.Message.Contains("yetersiz") && !n.IsRead)
                         .AnyAsync();
@@ -118,6 +117,7 @@ namespace StockManager.Server.Controllers
                 }
             }
 
+            // Préparation des métadonnées de la vente
             sale.SaleDate = DateTime.UtcNow;
             var count = await _context.Sales.CountDocumentsAsync(FilterDefinition<Sale>.Empty);
             sale.InvoiceNumber = $"INV-{DateTime.UtcNow:yyyyMMdd}-{count + 1:D3}";
@@ -130,32 +130,77 @@ namespace StockManager.Server.Controllers
                 $"Fatura {sale.InvoiceNumber}",
                 new Dictionary<string, string>
                 {
-                    { "invoice_number", sale.InvoiceNumber },
-                    { "payment_type", sale.PaymentType.ToString() }
+            { "invoice_number", sale.InvoiceNumber },
+            { "payment_type", sale.PaymentType.ToString() }
                 });
 
             sale.StripePaymentIntentId = paymentIntent.Id;
             sale.StripeStatus = paymentIntent.Status;
 
-            await _context.Sales.InsertOneAsync(sale);
+            // Liste temporaire pour différer l'envoi d'e-mails (on n'envoie les e-mails qu'APRES la confirmation de la transaction)
+            var notificationsToSend = new List<(Product product, Notification notification)>();
 
-            foreach (var item in sale.Items)
+            // 🔄 DÉBUT DE LA TRANSACTION
+            using (var session = await _context.Client.StartSessionAsync())
             {
-                var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
-                var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
-                await _context.Products.UpdateOneAsync(productFilter, decreaseQty);
-
-                var product = await _context.Products.Find(productFilter).FirstOrDefaultAsync();
-                if (product != null && product.Quantity <= product.LowStockThreshold)
+                session.StartTransaction();
+                try
                 {
-                    var notification = new Notification
+                    // a. Enregistrer la vente (en passant le paramètre session)
+                    await _context.Sales.InsertOneAsync(session, sale);
+
+                    // b. Décrémenter les stocks pour chaque article
+                    foreach (var item in sale.Items)
                     {
-                        Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
-                        IsRead = false,
-                        CreatedAt = DateTime.UtcNow,
-                        ProductId = product.Id
-                    };
-                    await _context.Notifications.InsertOneAsync(notification);
+                        var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
+                        var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
+
+                        await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+
+                        // Récupérer l'état du produit pour vérifier le seuil critique (en passant le paramètre session)
+                        var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
+                        if (product != null && product.Quantity <= product.LowStockThreshold)
+                        {
+                            var notification = new Notification
+                            {
+                                Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                                IsRead = false,
+                                CreatedAt = DateTime.UtcNow,
+                                ProductId = product.Id
+                            };
+
+                            // Enregistrer la notification (en passant le paramètre session)
+                            await _context.Notifications.InsertOneAsync(session, notification);
+                            notificationsToSend.Add((product, notification));
+                        }
+                    }
+
+                    // c. Mettre à jour le solde du client s'il y a une dette (en passant le paramètre session)
+                    if (!string.IsNullOrEmpty(sale.CustomerId))
+                    {
+                        var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);
+                        var decreaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, -sale.TotalAmount);
+                        await _context.Customers.UpdateOneAsync(session, customerFilter, decreaseBalance);
+                    }
+
+                    // 💾 Tout s'est bien déroulé -> Validation définitive en base de données
+                    await session.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    // ❌ En cas d'erreur -> Annulation complète de toutes les modifications
+                    await session.AbortTransactionAsync();
+                    TempData["error"] = $"Satış işlemi sırasında bir hata oluştu ve değişiklikler geri alındı: {ex.Message}";
+                    return RedirectToAction(nameof(POS));
+                }
+            }
+            // 🔄 FIN DE LA TRANSACTION
+
+            // d. Envoi des alertes e-mail (effectué hors transaction pour ne pas ralentir la base de données en cas de latence SMTP)
+            if (notificationsToSend.Count > 0)
+            {
+                try
+                {
                     var adminUsers = await _context.Users.Find(u => u.Role == UserRole.Admin).ToListAsync();
                     var adminEmails = adminUsers.Select(u => u.Email).Where(e => !string.IsNullOrEmpty(e)).ToList();
                     if (adminEmails.Count == 0)
@@ -173,16 +218,16 @@ namespace StockManager.Server.Controllers
 
                     foreach (var email in adminEmails)
                     {
-                        await _emailService.SendLowStockAlertAsync(email, product, DateTime.UtcNow, customerDetails);
+                        foreach (var (product, _) in notificationsToSend)
+                        {
+                            await _emailService.SendLowStockAlertAsync(email, product, DateTime.UtcNow, customerDetails);
+                        }
                     }
                 }
-            }
-
-            if (!string.IsNullOrEmpty(sale.CustomerId))
-            {
-                var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);
-                var decreaseBalance = Builders<Customer>.Update.Inc(c => c.Balance, -sale.TotalAmount);
-                await _context.Customers.UpdateOneAsync(customerFilter, decreaseBalance);
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"E-posta bildirim hatası (Satış sonrası): {ex.Message}");
+                }
             }
 
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
@@ -190,7 +235,6 @@ namespace StockManager.Server.Controllers
 
             return RedirectToAction(nameof(Invoice), new { id = sale.Id });
         }
-
         [HttpGet]
         public async Task<IActionResult> DownloadReceipt(string id)
         {
