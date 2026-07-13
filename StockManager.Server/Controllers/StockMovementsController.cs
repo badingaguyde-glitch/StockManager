@@ -35,10 +35,22 @@ namespace StockManager.Server.Controllers
             var suppliers = await _context.Suppliers.Find(s => supplierIds.Contains(s.Id)).ToListAsync();
             var customers = await _context.Customers.Find(c => customerIds.Contains(c.Id)).ToListAsync();
 
-            // Sözlükleri oluşturup ViewBag'e aktar (Null filtrelemeli ve uyarısız)
-            ViewBag.ProductNames = products.Where(p => p.Id != null).ToDictionary(p => p.Id!, p => p.Name);
-            ViewBag.SupplierNames = suppliers.Where(s => s.Id != null).ToDictionary(s => s.Id!, s => s.CompanyName);
-            ViewBag.CustomerNames = customers.Where(c => c.Id != null).ToDictionary(c => c.Id!, c => c.FullName);
+            // Sözlükleri güvenli oluştur (Null ve mükerrer anahtar korumalı)
+            ViewBag.ProductNames = products
+                .Where(p => !string.IsNullOrEmpty(p.Id))
+                .GroupBy(p => p.Id!)
+                .ToDictionary(g => g.Key, g => g.First().Name ?? "Bilinmeyen Ürün");
+
+            ViewBag.SupplierNames = suppliers
+                .Where(s => !string.IsNullOrEmpty(s.Id))
+                .GroupBy(s => s.Id!)
+                .ToDictionary(g => g.Key, g => g.First().CompanyName ?? "Bilinmeyen Tedarikçi");
+
+            ViewBag.CustomerNames = customers
+                .Where(c => !string.IsNullOrEmpty(c.Id))
+                .GroupBy(c => c.Id!)
+                .ToDictionary(g => g.Key, g => g.First().FullName ?? "Bilinmeyen Müşteri");
+
             return View(movements);
         }
 

@@ -240,7 +240,10 @@ namespace StockManager.Server.Controllers
                 .Find(Builders<Customer>.Filter.In(c => c.Id, customerIds))
                 .ToListAsync();
 
-            var customerDict = customers.ToDictionary(c => c.Id!, c => c.FullName);
+            var customerDict = customers
+                .Where(c => !string.IsNullOrEmpty(c.Id))
+                .GroupBy(c => c.Id!)
+                .ToDictionary(g => g.Key, g => g.First().FullName ?? "İsimsiz Müşteri");
             ViewBag.CustomerNames = customerDict;
 
             return View(sales);
@@ -269,7 +272,10 @@ namespace StockManager.Server.Controllers
                 .Find(Builders<Product>.Filter.In(p => p.Id, productIds))
                 .ToListAsync();
 
-            var productDict = products.ToDictionary(p => p.Id!, p => p);
+            var productDict = products
+                .Where(p => !string.IsNullOrEmpty(p.Id))
+                .GroupBy(p => p.Id!)
+                .ToDictionary(g => g.Key, g => g.First());
             ViewBag.Products = productDict;
 
             return View(sale);
