@@ -76,11 +76,10 @@
                     @if (!isSelf)
                     {
                         <!-- Şifreyi Sıfırla (Restart) Formu -->
-                        <form asp-action="ResetUserPassword" method="post" class="d-inline me-1">
+                        <form asp-action="ResetUserPassword" method="post" class="d-inline me-1" onsubmit="return handleResetSubmit(this, '@user.Username')">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@user.Id" />
-                            <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold"
-                                    onclick="return confirm('@user.Username adlı personelin şifresini sıfırlamak ve yeni şifreyi e-posta ile göndermek istediğinize emin misiniz?');">
+                            <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold">
                                 <i class="bi bi-arrow-counterclockwise"></i> Şifreyi Sıfırla
                             </button>
                         </form>
@@ -99,3 +98,52 @@
         }
     </tbody>
 </table>
+
+<!-- Global Yükleniyor Paneli (Overlay) -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none justify-content-center align-items-center bg-dark bg-opacity-50" style="z-index: 9999;">
+    <div class="card p-4 text-center border-0 shadow-lg" style="max-width: 350px; border-radius: 12px;">
+        <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <h5 class="fw-bold mb-1"><i class="bi bi-envelope-paper-fill text-warning me-1"></i> Şifre Sıfırlanıyor</h5>
+        <p class="text-muted small mb-0">Yeni şifre üretiliyor, veritabanı güncelleniyor ve personele e-posta gönderiliyor. Lütfen bekleyin...</p>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function handleResetSubmit(form, username) {
+            if (!confirm(username + ' adlı personelin şifresini sıfırlamak ve yeni şifreyi e-posta ile göndermek istediğinize emin misiniz?')) {
+                return false;
+            }
+
+            // 1. Ekranı Kilitle (Overlay göster)
+            const overlay = document.getElementById('loadingOverlay');
+            if (overlay) {
+                overlay.classList.remove('d-none');
+                overlay.classList.add('d-flex');
+            }
+
+            // 2. Butonu kilitle ve durumunu güncelle
+            const button = form.querySelector('button[type="submit"]');
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Sıfırlanıyor...';
+            }
+
+            // 3. Sayfadaki diğer tüm etkileşimleri kilitle
+            document.querySelectorAll('button, select, a').forEach(el => {
+                if (el !== button) {
+                    if (el.tagName === 'A') {
+                        el.classList.add('disabled');
+                        el.style.pointerEvents = 'none';
+                    } else {
+                        el.disabled = true;
+                    }
+                }
+            });
+
+            return true; // Formun gönderilmesine izin ver
+        }
+    </script>
+}
