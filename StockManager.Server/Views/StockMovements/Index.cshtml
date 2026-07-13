@@ -60,15 +60,12 @@ else
                     </td>
                     <td class="text-center fw-bold">@item.Quantity</td>
                     <td>
-                        @if (item.Type == StockManager.Server.Models.StockMovementType.StockIn &&
-            !string.IsNullOrEmpty(item.SupplierId))
+                        @if (!string.IsNullOrEmpty(item.SupplierId))
                         {
                             <span class="text-muted">Tedarikçi: </span>
                             @(supplierNames.ContainsKey(item.SupplierId) ? supplierNames[item.SupplierId] : "Bilinmeyen Tedarikçi")
-
                         }
-                        else if (item.Type == StockManager.Server.Models.StockMovementType.StockOut &&
-                !string.IsNullOrEmpty(item.CustomerId))
+                        else if (!string.IsNullOrEmpty(item.CustomerId))
                         {
                             <span class="text-muted">Müşteri: </span>
                             @(customerNames.ContainsKey(item.CustomerId) ? customerNames[item.CustomerId] : "Bilinmeyen Müşteri")

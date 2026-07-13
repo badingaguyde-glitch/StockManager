@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Authorization;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
@@ -147,53 +148,72 @@ public class ProductsController : Controller
             cloudinaryPublicId = uploadResult.PublicId;
         }
 
-        if (!string.IsNullOrWhiteSpace(model.SupplierName))
+        if (String.IsNullOrWhiteSpace(model.SupplierId))
         {
-            var supplier = new Supplier
+            if (!string.IsNullOrWhiteSpace(model.SupplierName))
             {
-                CompanyName = model.SupplierName
+                var supplier = new Supplier
+                {
+                    CompanyName = model.SupplierName
+                };
+                supplier.Id ??= MongoDB.Bson.ObjectId.GenerateNewId().ToString();
+                await _context.Suppliers.InsertOneAsync(supplier);
+
+                model.SupplierId = supplier.Id;
+            }
+        }
+            var product = new Product
+            {
+                Barcode = model.Barcode,
+                Name = model.Name,
+                Description = model.Description,
+                PurchasePrice = model.PurchasePrice,
+                SalePrice = model.SalePrice,
+                Quantity = model.Quantity,
+                LowStockThreshold = model.LowStockThreshold,
+                CategoryId = model.CategoryId,
+                SupplierId = model.SupplierId,
+                // 🆕 Görsel alanları
+                ImageUrl = imageUrl,
+                CloudinaryPublicId = cloudinaryPublicId,
+                ImageUploadedAt = DateTime.UtcNow
             };
 
-            await _context.Suppliers.InsertOneAsync(supplier);
-            model.SupplierId = supplier.Id;
-        }
+            product.Id ??= MongoDB.Bson.ObjectId.GenerateNewId().ToString();
 
-        var product = new Product
-        {
-            Barcode = model.Barcode,
-            Name = model.Name,
-            Description = model.Description,
-            PurchasePrice = model.PurchasePrice,
-            SalePrice = model.SalePrice,
-            Quantity = model.Quantity,
-            LowStockThreshold = model.LowStockThreshold,
-            CategoryId = model.CategoryId,
-            SupplierId = model.SupplierId,
-            // 🆕 Görsel alanları
-            ImageUrl = imageUrl,
-            CloudinaryPublicId = cloudinaryPublicId,
-            ImageUploadedAt = DateTime.UtcNow
-        };
+            await _context.Products.InsertOneAsync(product);
 
-        await _context.Products.InsertOneAsync(product);
-        
-        if (product.Quantity <= product.LowStockThreshold)
-        {
-            var notification = new Notification
+            if (product.Quantity > 0)
             {
-                Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow,
-                ProductId = product.Id
-            };
-            await _context.Notifications.InsertOneAsync(notification);
+                var initialMovement = new StockMovement
+                {
+                    ProductId = product.Id,
+                    SupplierId = product.SupplierId,
+                    Quantity = product.Quantity,
+                    Type = StockMovementType.Adjustment,
+                    Date = DateTime.UtcNow,
+                    Notes = "Ürün oluşturulurken otomatik kaydedilen başlangıç stoğu."
+                };
+                await _context.StockMovements.InsertOneAsync(initialMovement);
+            }
+
+            if (product.Quantity <= product.LowStockThreshold)
+            {
+                var notification = new Notification
+                {
+                    Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow,
+                    ProductId = product.Id
+                };
+                await _context.Notifications.InsertOneAsync(notification);
+            }
+
+            TempData["success"] = "Ürün başarıyla eklendi.";
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
+            return RedirectToAction(nameof(Index));
         }
-        
-        TempData["success"] = "Ürün başarıyla eklendi.";
-        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
-        return RedirectToAction(nameof(Index));
-    }
 
     public async Task<IActionResult> Edit(string id)
     {
@@ -222,6 +242,22 @@ public class ProductsController : Controller
             // 🆕 Görsel bilgisi
             ExistingImageUrl = product.ImageUrl
         };
+
+        int oldQuantity = product.Quantity;
+        int newQuantity = model.Quantity;
+
+        if (oldQuantity != newQuantity)
+        {
+            var stockMovement = new StockMovement
+            {
+                ProductId = product.Id,
+                Quantity = newQuantity - oldQuantity,
+                Type = StockMovementType.Adjustment,
+                Date = DateTime.UtcNow,
+                Notes = $"Ürün düzenleşe ekranında otomatik miktar ayarı(Eski Stok: {oldQuantity}, Yeni Stok: {newQuantity})"
+            };
+            await _context.StockMovements.InsertOneAsync(stockMovement);
+        }
 
         await PopulateDropdowns();
         return View(model);
@@ -269,6 +305,22 @@ public class ProductsController : Controller
             product.ImageUrl = uploadResult.ImageUrl;
             product.CloudinaryPublicId = uploadResult.PublicId;
             product.ImageUploadedAt = DateTime.UtcNow;
+        }
+
+        int oldQty = product.Quantity;
+        int newQty = model.Quantity;
+
+        if (oldQty != newQty)
+        {
+            var adjustmentMovement = new StockMovement
+            {
+                ProductId = product.Id ?? string.Empty,
+                Quantity = newQty,
+                Type = StockMovementType.Adjustment,
+                Date = DateTime.UtcNow,
+                Notes = $"Ürün düzenleme ekranından otomatik miktar ayarı (Eski Stok: {oldQty}, Yeni Stok: {newQty})."
+            };
+            await _context.StockMovements.InsertOneAsync(adjustmentMovement);
         }
 
         product.Name = model.Name;

@@ -28,6 +28,8 @@ namespace StockManager.Server.Controllers
                 .SortByDescending(m => m.Date)
                 .ToListAsync();
 
+            movements = movements.Where(m=> !string.IsNullOrEmpty(m.ProductId)).ToList();
+
             var productIds = movements.Where(m => !string.IsNullOrEmpty(m.ProductId)).Select(m => m.ProductId).Distinct().ToList();
             var supplierIds = movements.Where(m => !string.IsNullOrEmpty(m.SupplierId)).Select(m => m.SupplierId).Distinct().ToList();
             var customerIds = movements.Where(m => !string.IsNullOrEmpty(m.CustomerId)).Select(m => m.CustomerId).Distinct().ToList();
