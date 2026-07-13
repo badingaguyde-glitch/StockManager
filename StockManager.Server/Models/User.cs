@@ -49,6 +49,9 @@ public class User
     [BsonElement("pendingPasswordHash")]
     public string? PendingPasswordHash {get;set;}
 
+    [BsonElement("pendingEmail")]
+    public string? PendingEmail {get;set;}
+
     // PascalCase fallback properties (for deserialization of existing DB records with uppercase keys)
     [BsonElement("Email")]
     [BsonIgnoreIfNull]

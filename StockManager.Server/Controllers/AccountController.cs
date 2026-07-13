@@ -357,8 +357,6 @@ public class AccountController : Controller
                 ModelState.AddModelError("", passwordError);
                 return View(user);
             }
-
-            user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
         }
 
         if (user.Username != username)
@@ -372,49 +370,77 @@ public class AccountController : Controller
             user.Username = username;
         }
 
-        user.Email = email;
+        // E-posta ve şifre değişikliği isteklerini belirle
+        bool isEmailChangeRequested = user.Email != email;
+        bool isPasswordChangeRequested = wantsPasswordChange;
+        bool requiresVerification = isEmailChangeRequested || isPasswordChangeRequested;
 
-        bool isPasswordChangeRequested = !string.IsNullOrEmpty(newPassword);
         string? pendingHash = null;
+        string? pendingEmail = null;
         string? resetCode = null;
         DateTime? resetCodeExpired = null;
 
-        if (isPasswordChangeRequested)
-        {
-            // Yeni şifre girildiyse, hemen aktif etmiyoruz. Doğrulama kodu üretiyoruz.
-            pendingHash = _passwordHasher.HashPassword(user, newPassword!);
+        var originalEmail = user.Email; // Doğrulama kodunu alacak olan aktif güvenli e-posta
 
+        if (requiresVerification)
+        {
             // 6 haneli rastgele kod üretimi
             var random = new Random();
             resetCode = random.Next(100000, 999999).ToString();
             resetCodeExpired = DateTime.UtcNow.AddMinutes(15); // 15 dk geçerlilik
 
-            // E-posta gönderimi
-            await _emailService.SendPasswordResetCodeAsync(user.Email, resetCode);
+            if (isPasswordChangeRequested)
+            {
+                // Şifreyi hemen aktif etmiyoruz, onay bekleyen hash olarak tutuyoruz
+                pendingHash = _passwordHasher.HashPassword(user, newPassword!);
+            }
+
+            if (isEmailChangeRequested)
+            {
+                // E-postanın başka hesapta kullanılıp kullanılmadığını kontrol et
+                var emailExists = await _context.Users.Find(u => u.Email == email && u.Id != user.Id).AnyAsync();
+                if (emailExists)
+                {
+                    ModelState.AddModelError("Email", "Bu e-posta adresi başka bir hesap tarafından kullanılıyor.");
+                    return View(user);
+                }
+                // E-postayı onaylanana kadar geçici alana yazıyoruz
+                pendingEmail = email;
+            }
+
+            // E-posta doğrulama kodunu MEVCUT doğrulanmış e-posta adresine gönder (Güvenlik gereği)
+            await _emailService.SendPasswordResetCodeAsync(originalEmail, resetCode);
         }
+
         var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
-
+        
         var updateBuilder = Builders<User>.Update
-            .Set(u => u.Username, user.Username)
-            .Set(u => u.Email, user.Email);
+            .Set(u => u.Username, user.Username);
 
-        if (isPasswordChangeRequested)
+        if (requiresVerification)
         {
             updateBuilder = updateBuilder
                 .Set(u => u.PasswordResetCode, resetCode)
                 .Set(u => u.PasswordResetCodeExpireAt, resetCodeExpired)
-                .Set(u => u.PendingPasswordHash, pendingHash);
+                .Set(u => u.PendingPasswordHash, pendingHash)
+                .Set(u => u.PendingEmail, pendingEmail);
+        }
+        else
+        {
+            // Eğer doğrulama gerekmiyorsa e-postayı doğrudan güncelle
+            updateBuilder = updateBuilder
+                .Set(u => u.Email, user.Email);
         }
 
         await _context.Users.UpdateOneAsync(filter, updateBuilder);
 
-        if (isPasswordChangeRequested)
+        if (requiresVerification)
         {
-            TempData["success"] = "Şifre güncelleme doğrulama kodu e-posta adresinize gönderildi.";
+            TempData["success"] = "Profil değişikliklerini onaylamak için doğrulama kodu mevcut e-posta adresinize gönderildi.";
             return RedirectToAction(nameof(VerifyPasswordChange));
         }
 
-        // Eğer şifre değişmediyse sadece oturumu yeniliyoruz (kullanıcı adı değişmiş olabilir)
+        // Oturumu yenile (Kullanıcı adı değişmiş olabilir)
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
@@ -537,23 +563,30 @@ public class AccountController : Controller
             return View();
         }
 
-        // Doğrulama başarılı: Geçici hash'i kalıcı hale getir
+        // Doğrulama başarılı: Geçici hash'i ve geçici e-postayı kalıcı hale getir
         if (!string.IsNullOrEmpty(user.PendingPasswordHash))
         {
             user.PasswordHash = user.PendingPasswordHash;
+        }
+        if (!string.IsNullOrEmpty(user.PendingEmail))
+        {
+            user.Email = user.PendingEmail;
         }
 
         // Doğrulama alanlarını temizle
         user.PasswordResetCode = null;
         user.PasswordResetCodeExpireAt = null;
         user.PendingPasswordHash = null;
+        user.PendingEmail = null;
 
         var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
         var update = Builders<User>.Update
             .Set(u => u.PasswordHash, user.PasswordHash)
+            .Set(u => u.Email, user.Email)
             .Set(u => u.PasswordResetCode, user.PasswordResetCode)
             .Set(u => u.PasswordResetCodeExpireAt, user.PasswordResetCodeExpireAt)
-            .Set(u => u.PendingPasswordHash, user.PendingPasswordHash);
+            .Set(u => u.PendingPasswordHash, user.PendingPasswordHash)
+            .Set(u => u.PendingEmail, user.PendingEmail);
 
         await _context.Users.UpdateOneAsync(filter, update);
 
