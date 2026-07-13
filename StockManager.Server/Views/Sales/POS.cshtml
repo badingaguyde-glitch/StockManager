@@ -2,6 +2,7 @@
     ViewData["Title"] = "Hızlı Satış (POS)";
 }
 
+<<<<<<< HEAD
 <style>
     #reader {
         border: none !important;
@@ -13,6 +14,8 @@
     }
 </style>
 
+=======
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
 <div class="mb-3">
     <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left"></i> Geri
@@ -31,6 +34,7 @@
                 <!-- Arama ve Barkod Girişi -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
+<<<<<<< HEAD
                         <label class="form-label fw-bold d-flex justify-content-between align-items-center">
                             <span><i class="bi bi-upc-scan me-1"></i> Barkod Okutun</span>
                             <small class="text-muted fw-normal">Kamera / Barkod Tabancası</small>
@@ -41,6 +45,12 @@
                                 <i class="bi bi-camera-video-fill me-1"></i> Kamera <span class="badge bg-primary-subtle text-primary ms-1 d-none d-sm-inline">F2</span>
                             </button>
                             <button class="btn btn-primary fw-semibold" type="button" onclick="addProductByBarcode()">Ekle</button>
+=======
+                        <label class="form-label fw-bold">Barkod Okutun</label>
+                        <div class="input-group">
+                            <input type="text" id="barcode-input" class="form-control" placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off" />
+                            <button class="btn btn-primary" type="button" onclick="addProductByBarcode()">Ekle</button>
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -141,6 +151,7 @@
     </div>
 </div>
 
+<<<<<<< HEAD
 <!-- Kamera ile Barkod Okuma Modalı -->
 <div class="modal fade" id="cameraScanModal" tabindex="-1" aria-labelledby="cameraScanModalLabel" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -207,6 +218,9 @@
 
 @section Scripts {
     <script src="https://unpkg.com/html5-qrcode"></script>
+=======
+@section Scripts {
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
     <script>
         let cart = [];
         const barcodeInput = document.getElementById('barcode-input');
@@ -228,6 +242,7 @@
             }
         });
 
+<<<<<<< HEAD
         // F2 tuşu ile kamera arayüzünü açma kısayolu
         document.addEventListener('keydown', function (e) {
             if (e.key === 'F2') {
@@ -415,6 +430,11 @@
         // AJAX: Barkod ile ürünü sorgula ve sepete ekle
         async function addProductByBarcode(customBarcode = null, fromCamera = false) {
             const barcode = (typeof customBarcode === 'string' && customBarcode) ? customBarcode.trim() : barcodeInput.value.trim();
+=======
+        // AJAX: Barkod ile ürünü sorgula ve sepete ekle
+        async function addProductByBarcode() {
+            const barcode = barcodeInput.value.trim();
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
             if (!barcode) return;
 
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -430,11 +450,16 @@
                 const data = await response.json();
 
                 if (data.success) {
+<<<<<<< HEAD
                     const added = addToCartArray({
+=======
+                    addToCartArray({
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
                         productId: data.id,
                         name: data.name,
                         price: parseFloat(data.salePrice),
                         stock: parseInt(data.quantity)
+<<<<<<< HEAD
                     }, fromCamera);
 
                     if (fromCamera && added) {
@@ -459,6 +484,18 @@
                     barcodeInput.value = '';
                     barcodeInput.focus();
                 }
+=======
+                    });
+                } else {
+                    alert(data.message || 'Ürün bulunamadı.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Ürün eklenirken bir hata oluştu.');
+            } finally {
+                barcodeInput.value = '';
+                barcodeInput.focus();
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
             }
         }
 
@@ -478,23 +515,37 @@
         }
 
         // Arayüz verilerini JavaScript dizisine ekler/günceller
+<<<<<<< HEAD
         function addToCartArray(product, fromCamera = false) {
+=======
+        function addToCartArray(product) {
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
             const existingItem = cart.find(item => item.productId === product.productId);
 
             if (existingItem) {
                 if (existingItem.quantity >= product.stock) {
+<<<<<<< HEAD
                     const msg = `Bu üründen stokta sadece ${product.stock} adet mevcut.`;
                     if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
                     else alert(msg);
                     return false;
+=======
+                    alert(`Bu üründen stokta sadece ${product.stock} adet mevcut.`);
+                    return;
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
                 }
                 existingItem.quantity++;
             } else {
                 if (product.stock <= 0) {
+<<<<<<< HEAD
                     const msg = 'Bu ürün stokta bulunmamaktadır.';
                     if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
                     else alert(msg);
                     return false;
+=======
+                    alert('Bu ürün stokta bulunmamaktadır.');
+                    return;
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
                 }
                 cart.push({
                     productId: product.productId,
@@ -506,7 +557,10 @@
             }
 
             renderCart();
+<<<<<<< HEAD
             return true;
+=======
+>>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
         }
 
         // Sepeti HTML tarafında günceller
