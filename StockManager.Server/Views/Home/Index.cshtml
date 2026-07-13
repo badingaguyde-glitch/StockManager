@@ -1,307 +1,547 @@
 @model StockManager.Server.Models.HomeDashboardViewModel
 
 @{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Yönetici Komuta Merkezi";
 }
 
-<div class="mb-3">
-    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> Geri
-    </a>
+<style>
+    /* Aurora Hero Command Banner (GPU Optimized 144 FPS) */
+    .aurora-hero {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.96) 100%);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: 2.2rem 2.6rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow-luxury);
+        contain: content;
+    }
+    .hero-mesh-glow {
+        position: absolute;
+        width: 380px;
+        height: 380px;
+        border-radius: 50%;
+        background: radial-gradient(circle at center, rgba(99, 102, 241, 0.22) 0%, rgba(6, 182, 212, 0) 70%);
+        top: -120px;
+        right: -80px;
+        pointer-events: none;
+    }
+    .hero-search-wrapper {
+        position: relative;
+        max-width: 620px;
+    }
+    .hero-search-input {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 0.95rem 1.4rem 0.95rem 3.1rem;
+        font-size: 0.98rem;
+        color: var(--text-main);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .hero-search-input::placeholder {
+        color: var(--text-muted);
+    }
+    .hero-search-input:focus {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
+        color: var(--text-main);
+        outline: none;
+    }
+    .hero-search-icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 1.15rem;
+        pointer-events: none;
+    }
+    .search-dropdown {
+        position: absolute;
+        top: calc(100% + 10px);
+        left: 0;
+        right: 0;
+        background: var(--bg-card);
+        border-radius: 16px;
+        box-shadow: var(--shadow-luxury);
+        border: 1px solid var(--border-subtle);
+        z-index: 1040;
+        max-height: 380px;
+        overflow-y: auto;
+    }
+
+    /* KPI Card (Zero-Jank GPU Transform) */
+    .kpi-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.22s ease;
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        contain: content;
+    }
+    .kpi-card:hover {
+        transform: translate3d(0, -5px, 0);
+        border-color: rgba(99, 102, 241, 0.4);
+        box-shadow: 0 16px 36px -12px rgba(0, 0, 0, 0.4);
+    }
+    .kpi-icon-box {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.55rem;
+        flex-shrink: 0;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Shortcut Card */
+    .shortcut-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-subtle);
+        border-radius: 16px;
+        padding: 1rem 1.2rem;
+        color: var(--text-main);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        transition: all 0.22s ease;
+    }
+    .shortcut-card:hover {
+        background: rgba(99, 102, 241, 0.14);
+        border-color: var(--accent-primary);
+        color: var(--text-main);
+        transform: translateY(-2px);
+    }
+</style>
+
+<!-- Hero Executive Komuta Alanı -->
+<div class="aurora-hero mb-4">
+    <div class="hero-mesh-glow"></div>
+    <div class="row align-items-center g-4 position-relative">
+        <div class="col-lg-7">
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <span class="badge rounded-pill d-inline-flex align-items-center gap-1.5 px-3 py-1.5"
+                      style="background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35);">
+                    <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> CANLI SİSTEM DURUMU • AKTİF
+                </span>
+                <span class="text-muted small fw-medium" id="currentDateDisplay"></span>
+            </div>
+            <h1 class="fw-bold mb-2 display-6" style="letter-spacing: -1px;">
+                Yönetici Komuta Paneli, <span style="background: linear-gradient(135deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">@User.Identity?.Name</span>
+            </h1>
+            <p class="text-muted mb-4" style="max-width: 560px; line-height: 1.6; font-size: 0.96rem;">
+                Tüm şube ve depo verilerinizi, anlık ciro akışını ve kritik stok durumlarını tek merkezden izleyin.
+            </p>
+
+            <!-- Spotlight Hızlı Ürün & Barkod Arama Kutusu -->
+            <div class="hero-search-wrapper">
+                <i class="bi bi-search hero-search-icon"></i>
+                <input type="text" id="quickSearchInput" class="form-control hero-search-input"
+                       placeholder="Spotlight: Barkod, ürün adı veya stok sorgusu yapın... (Ctrl+K)" autocomplete="off" />
+
+                <div id="searchDropdown" class="search-dropdown d-none">
+                    <div id="searchResultsContainer"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hızlı Kısayollar Paneli -->
+        <div class="col-lg-5">
+            <div class="row g-3">
+                <div class="col-6">
+                    <a asp-controller="Sales" asp-action="POS" class="shortcut-card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.28), rgba(6, 182, 212, 0.2)); border-color: rgba(99, 102, 241, 0.45);">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:40px; height:40px; background: rgba(99, 102, 241, 0.25); color: #818cf8;">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <div>
+                            <div class="small fw-bold">Hızlı Satış (POS)</div>
+                            <small style="color: #38bdf8; font-size:0.72rem;">Kısayol: F2</small>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a asp-controller="Products" asp-action="Index" class="shortcut-card">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:40px; height:40px; background: rgba(6, 182, 212, 0.18); color: #06b6d4;">
+                            <i class="bi bi-box-seam-fill"></i>
+                        </div>
+                        <div>
+                            <div class="small fw-bold">Ürün Portföyü</div>
+                            <small class="text-muted" style="font-size:0.72rem;">@Model.ProductCount Ürün Kayıtlı</small>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a asp-controller="StockMovements" asp-action="Index" class="shortcut-card">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:40px; height:40px; background: rgba(16, 185, 129, 0.18); color: #10b981;">
+                            <i class="bi bi-arrow-left-right"></i>
+                        </div>
+                        <div>
+                            <div class="small fw-bold">Stok Transferi</div>
+                            <small class="text-muted" style="font-size:0.72rem;">Giriş / Çıkış Fişi</small>
+                        </div>
+                    </a>
+                </div>
+                <div class="col-6">
+                    <a asp-controller="Reports" asp-action="Index" class="shortcut-card">
+                        <div class="d-flex align-items-center justify-content-center rounded-circle" style="width:40px; height:40px; background: rgba(245, 158, 11, 0.18); color: #f59e0b;">
+                            <i class="bi bi-bar-chart-line-fill"></i>
+                        </div>
+                        <div>
+                            <div class="small fw-bold">Finans & Analiz</div>
+                            <small class="text-muted" style="font-size:0.72rem;">Detaylı Raporlar</small>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="py-4">
-    <div class="d-flex flex-column flex-md-row align-items-start justify-content-between mb-4">
-        <div>
-            <h1 class="display-5 fw-bold">StockManager</h1>
-            <p class="text-muted fs-6">Stok yönetimini, satışları ve tedarikçi/müşteri takibini tek ekranda yönetin.</p>
-        </div>
-        <div class="mt-3 mt-md-0">
-            <a asp-controller="Categories" asp-action="Index" class="btn btn-outline-primary me-2">Kategoriler</a>
-            <a asp-controller="Products" asp-action="Index" class="btn btn-outline-primary me-2">Ürünler</a>
-            <a asp-controller="Sales" asp-action="History" class="btn btn-primary">Satışlar</a>
-        </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Kategoriler</h6>
-                    <h2 class="fw-bold">@Model.CategoryCount</h2>
-                    <p class="mb-0 text-muted">Kayıtlı kategori sayısı.</p>
-                </div>
+<!-- 6 KPI Gösterge Grid -->
+<div class="row g-3 mb-4">
+    <!-- Bugünün Cirosu -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">BUGÜNÜN SATIŞ CİROSU</span>
+                <h3 class="fw-bold mb-1" style="color: #10b981;">₺@Model.TodaySalesTotal.ToString("N2")</h3>
+                <small style="color: #10b981;" class="fw-semibold"><i class="bi bi-arrow-up-right-circle me-1"></i>Günlük nakit & kart ciro</small>
             </div>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Ürünler</h6>
-                    <h2 class="fw-bold">@Model.ProductCount</h2>
-                    <p class="mb-0 text-muted">Stokta kayıtlı ürün sayısı.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Müşteriler</h6>
-                    <h2 class="fw-bold">@Model.CustomerCount</h2>
-                    <p class="mb-0 text-muted">Kayıtlı müşteri sayısı.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Tedarikçiler</h6>
-                    <h2 class="fw-bold">@Model.SupplierCount</h2>
-                    <p class="mb-0 text-muted">Kayıtlı tedarikçi sayısı.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Satışlar</h6>
-                    <h2 class="fw-bold">@Model.SalesCount</h2>
-                    <p class="mb-0 text-muted">Gerçekleştirilen satış işlemleri.</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-sm-6 col-lg-4">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h6 class="text-uppercase text-muted mb-3">Stok Değeri</h6>
-                    <h2 class="fw-bold">@Model.TotalStockValueFormatted</h2>
-                    <p class="mb-0 text-muted">Mevcut stokların toplam piyasa değeri.</p>
-                </div>
+            <div class="kpi-icon-box" style="background: rgba(16, 185, 129, 0.18); color: #10b981;">
+                <i class="bi bi-currency-dollar"></i>
             </div>
         </div>
     </div>
 
-    <div class="row g-3">
-        <div class="col-12 col-lg-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title">Hızlı Erişim</h5>
-                    <p class="text-muted">Yeni kategori, ürün, müşteri veya tedarikçi ekleyin ve günlük işlerinize
-                        hızlıca başlayın.</p>
-                        <div class="d-flex flex-wrap gap-2">
-                            <a asp-controller="Categories" asp-action="Index"
-                               class="btn btn-outline-secondary">Kategoriler</a>
-                            <a asp-controller="Products" asp-action="Index" class="btn btn-outline-secondary">Ürünler</a>
-                            <a asp-controller="Customers" asp-action="Index"
-                               class="btn btn-outline-secondary">Müşteriler</a>
-                        </div>
-                    </div>
-                </div>
+    <!-- Toplam Stok Değeri -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">STOK YATIRIM DEĞERİ</span>
+                <h3 class="fw-bold mb-1" style="color: #38bdf8;">@Model.TotalStockValueFormatted</h3>
+                <small style="color: #38bdf8;" class="fw-semibold"><i class="bi bi-layers me-1"></i>Mevcut depo varlık maliyeti</small>
             </div>
-            <div class="col-12 col-lg-6">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Satış & Stok</h5>
-                        <p class="text-muted">POS, stok hareketleri ve rapor ekranlarına ulaşarak işlem takip edin.</p>
-                        <div class="d-flex flex-wrap gap-2">
-                            <a asp-controller="Sales" asp-action="POS" class="btn btn-outline-secondary">POS</a>
-                            <a asp-controller="StockMovements" asp-action="Index" class="btn btn-outline-secondary">Stok
-                                Hareketleri</a>
-                                <a asp-controller="Reports" asp-action="Index" class="btn btn-outline-secondary">Raporlar</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div class="kpi-icon-box" style="background: rgba(6, 182, 212, 0.18); color: #06b6d4;">
+                <i class="bi bi-stack"></i>
             </div>
         </div>
-        </div>
+    </div>
 
-        <div class="row g-3 mt-4">
-            <div class="col-12 col-lg-8">
-                <div class="card border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 14px;">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-graph-up text-primary me-2"></i>Son 30 Günlük Satış Trendi</h5>
-                            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill small">Ciro Grafiği</span>
-                        </div>
-                        <div id="trendLoader" class="d-flex justify-content-center align-items-center" style="height: 250px;">
-                            <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
-                            <span class="ms-2 small text-muted">Veriler yükleniyor...</span>
-                        </div>
-                        <div style="height: 250px;" class="d-none" id="trendChartContainer">
-                            <canvas id="salesTrendChart"></canvas>
-                        </div>
-                    </div>
-                </div>
+    <!-- Kritik Stok Uyarısı -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">KRİTİK STOK SEVİYESİ</span>
+                <h3 class="fw-bold mb-1 @(Model.LowStockCount > 0 ? "text-danger" : "text-success")">
+                    @Model.LowStockCount.ToString("N0") <span class="fs-6 fw-normal text-muted">Ürün</span>
+                </h3>
+                <small class="@(Model.LowStockCount > 0 ? "text-danger" : "text-success") fw-semibold">
+                    <i class="bi @(Model.LowStockCount > 0 ? "bi-exclamation-triangle-fill" : "bi-check-circle-fill") me-1"></i>
+                    @(Model.LowStockCount > 0 ? "Tedarik siparişi gerektirir" : "Stok durumu ideal")
+                </small>
             </div>
-            <div class="col-12 col-lg-4">
-                <div class="card border-0 shadow-sm position-relative overflow-hidden" style="border-radius: 14px;">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="card-title mb-0 fw-bold"><i class="bi bi-pie-chart text-success me-2"></i>Kategori Dağılımı</h5>
-                            <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill small">Stok Değeri</span>
-                        </div>
-                        <div id="distLoader" class="d-flex justify-content-center align-items-center" style="height: 250px;">
-                            <div class="spinner-border text-success spinner-border-sm" role="status"></div>
-                            <span class="ms-2 small text-muted">Veriler yükleniyor...</span>
-                        </div>
-                        <div style="height: 250px;" class="d-none" id="distChartContainer">
-                            <canvas id="categoryDistChart"></canvas>
-                        </div>
-                    </div>
-                </div>
+            <div class="kpi-icon-box @(Model.LowStockCount > 0 ? "bg-danger bg-opacity-25 text-danger" : "bg-success bg-opacity-25 text-success")">
+                <i class="bi @(Model.LowStockCount > 0 ? "bi-exclamation-octagon-fill" : "bi-check-lg")"></i>
             </div>
         </div>
+    </div>
 
-    @section Scripts {
-        <script>
-            (function(){
-                async function fetchJson(url){
-                    const resp = await fetch(url);
-                    if(!resp.ok) throw new Error('Network error');
-                    return resp.json();
+    <!-- Kayıtlı Ürün Çeşidi -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">ÜRÜN PORTFÖYÜ</span>
+                <h3 class="fw-bold mb-1" style="color: #818cf8;">@Model.ProductCount.ToString("N0")</h3>
+                <small class="text-muted fw-semibold">@Model.CategoryCount Kategoride aktif</small>
+            </div>
+            <div class="kpi-icon-box" style="background: rgba(99, 102, 241, 0.18); color: #818cf8;">
+                <i class="bi bi-grid-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Müşteri Portföyü -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">MÜŞTERİ HESAPLARI</span>
+                <h3 class="fw-bold mb-1" style="color: #f59e0b;">@Model.CustomerCount.ToString("N0")</h3>
+                <small style="color: #f59e0b;" class="fw-semibold"><i class="bi bi-person-check-fill me-1"></i>Kayıtlı cari müşteri</small>
+            </div>
+            <div class="kpi-icon-box" style="background: rgba(245, 158, 11, 0.18); color: #f59e0b;">
+                <i class="bi bi-people-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gerçekleşen Toplam Satış -->
+    <div class="col-sm-6 col-xl-4">
+        <div class="kpi-card">
+            <div>
+                <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">TOPLAM SATIŞ İŞLEMİ</span>
+                <h3 class="fw-bold mb-1" style="color: #ec4899;">@Model.SalesCount.ToString("N0")</h3>
+                <small style="color: #ec4899;" class="fw-semibold"><i class="bi bi-receipt me-1"></i>Tamamlanan satış fişi</small>
+            </div>
+            <div class="kpi-icon-box" style="background: rgba(236, 72, 153, 0.18); color: #ec4899;">
+                <i class="bi bi-cart-check-fill"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dinamik Analiz ve Grafik Panelleri -->
+<div class="row g-4 mb-4">
+    <!-- 30 Günlük Gelir Akışı Grafiği -->
+    <div class="col-lg-8">
+        <div class="glass-card p-4 h-100">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-graph-up text-info me-2"></i>Satış Gelir ve Ciro Trendi
+                    </h5>
+                    <small class="text-muted">Günlük gerçekleşen ciro akış diyagramı</small>
+                </div>
+                <div class="btn-group btn-group-sm mt-2 mt-sm-0">
+                    <button type="button" class="btn btn-outline-info active" onclick="loadDashboardTrend(30, this)">30 Gün</button>
+                    <button type="button" class="btn btn-outline-info" onclick="loadDashboardTrend(14, this)">14 Gün</button>
+                    <button type="button" class="btn btn-outline-info" onclick="loadDashboardTrend(7, this)">7 Gün</button>
+                </div>
+            </div>
+            <div style="height: 320px;">
+                <canvas id="dashboardTrendChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kategori Bazlı Envanter Dağılımı -->
+    <div class="col-lg-4">
+        <div class="glass-card p-4 h-100">
+            <div class="mb-3">
+                <h5 class="fw-bold mb-0">
+                    <i class="bi bi-pie-chart-fill text-primary me-2"></i>Kategori Dağılımı
+                </h5>
+                <small class="text-muted">Değer oranına göre stok dağılım grafiği</small>
+            </div>
+            <div class="d-flex align-items-center justify-content-center" style="height: 290px;">
+                <canvas id="dashboardCategoryChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let dashboardTrendInstance = null;
+        let dashboardCatInstance = null;
+
+        document.addEventListener('DOMContentLoaded', async function () {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('tr-TR', options);
+
+            await Promise.all([
+                loadDashboardTrend(30),
+                loadDashboardCategoryChart()
+            ]);
+
+            setupQuickSearch();
+        });
+
+        async function loadDashboardTrend(days, btnElement) {
+            if (btnElement) {
+                document.querySelectorAll('.btn-group .btn').forEach(b => b.classList.remove('active'));
+                btnElement.classList.add('active');
+            }
+
+            try {
+                const res = await fetch(`/Reports/SalesTrend?days=${days}`);
+                const data = await res.json();
+
+                const ctx = document.getElementById('dashboardTrendChart').getContext('2d');
+                if (!ctx) return;
+
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(99, 102, 241, 0.45)');
+                gradient.addColorStop(1, 'rgba(6, 182, 212, 0.0)');
+
+                if (dashboardTrendInstance) {
+                    dashboardTrendInstance.destroy();
                 }
 
-                // Ciro Trendi Grafiği
-                fetchJson('@Url.Action("SalesTrend","Reports", new { days = 30 })')
-                    .then(data => {
-                        const labels = data.map(d => d.date);
-                        const totals = data.map(d => d.total);
-                        
-                        document.getElementById('trendLoader').classList.add('d-none');
-                        document.getElementById('trendChartContainer').classList.remove('d-none');
-                        
-                        const ctx = document.getElementById('salesTrendChart').getContext('2d');
-                        if(ctx){
-                            // Degrade arka plan oluşturma
-                            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-                            gradient.addColorStop(0, 'rgba(67, 97, 238, 0.4)');
-                            gradient.addColorStop(1, 'rgba(67, 97, 238, 0.0)');
-
-                            new Chart(ctx, {
-                                type: 'line',
-                                data: {
-                                    labels,
-                                    datasets: [{
-                                        label: 'Günlük Ciro',
-                                        data: totals,
-                                        borderColor: '#4361ee',
-                                        borderWidth: 3,
-                                        backgroundColor: gradient,
-                                        tension: 0.35,
-                                        fill: true,
-                                        pointBackgroundColor: '#4361ee',
-                                        pointBorderColor: '#fff',
-                                        pointBorderWidth: 2,
-                                        pointRadius: 4,
-                                        pointHoverRadius: 6
-                                    }]
-                                },
-                                options: { 
-                                    responsive: true,
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: { display: false },
-                                        tooltip: {
-                                            backgroundColor: '#212529',
-                                            padding: 10,
-                                            cornerRadius: 8,
-                                            titleFont: { size: 12, weight: 'bold' },
-                                            bodyFont: { size: 12 },
-                                            callbacks: {
-                                                label: function(context) {
-                                                    return ' Ciro: ₺' + parseFloat(context.raw).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
-                                                }
-                                            }
-                                        }
-                                    },
-                                    scales: {
-                                        y: {
-                                            grid: { color: '#f1f3f5' },
-                                            ticks: {
-                                                callback: function(value) {
-                                                    return '₺' + value.toLocaleString('tr-TR');
-                                                },
-                                                font: { size: 10 }
-                                            }
-                                        },
-                                        x: {
-                                            grid: { display: false },
-                                            ticks: { font: { size: 10 } }
-                                        }
-                                    }
+                dashboardTrendInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(x => x.label || x.date),
+                        datasets: [{
+                            label: 'Günlük Ciro (₺)',
+                            data: data.map(x => x.total),
+                            borderColor: '#6366f1',
+                            borderWidth: 3,
+                            backgroundColor: gradient,
+                            fill: true,
+                            tension: 0.38,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#ffffff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                                borderColor: 'rgba(255, 255, 255, 0.15)',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 10
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(255, 255, 255, 0.06)' },
+                                ticks: {
+                                    callback: val => '₺' + val.toLocaleString('tr-TR')
                                 }
+                            },
+                            x: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Ana sayfa trend grafiği yüklenemedi:", err);
+            }
+        }
+
+        async function loadDashboardCategoryChart() {
+            try {
+                const res = await fetch('/Reports/CategoryDistribution');
+                const data = await res.json();
+
+                const ctx = document.getElementById('dashboardCategoryChart').getContext('2d');
+                if (!ctx || !data.length) return;
+
+                if (dashboardCatInstance) {
+                    dashboardCatInstance.destroy();
+                }
+
+                dashboardCatInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.map(x => x.categoryName || '(Belirtilmemiş)'),
+                        datasets: [{
+                            data: data.map(x => x.stockValue),
+                            backgroundColor: [
+                                '#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e', '#ec4899', '#8b5cf6'
+                            ],
+                            borderWidth: 2,
+                            borderColor: 'rgba(255, 255, 255, 0.1)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        cutout: '70%',
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    boxWidth: 10,
+                                    font: { size: 11 }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (err) {
+                console.error("Kategori dağılım grafiği yüklenemedi:", err);
+            }
+        }
+
+        function setupQuickSearch() {
+            const input = document.getElementById('quickSearchInput');
+            const dropdown = document.getElementById('searchDropdown');
+            const container = document.getElementById('searchResultsContainer');
+            let debounceTimer = null;
+
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    input.focus();
+                }
+            });
+
+            input.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const query = input.value.trim();
+
+                if (query.length < 2) {
+                    dropdown.classList.add('d-none');
+                    return;
+                }
+
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/Home/QuickSearch?query=${encodeURIComponent(query)}`);
+                        const results = await res.json();
+
+                        container.innerHTML = '';
+
+                        if (results.length === 0) {
+                            container.innerHTML = `
+                                <div class="p-3 text-center text-muted small">
+                                    <i class="bi bi-search me-1"></i> "${query}" için ürün bulunamadı.
+                                </div>
+                            `;
+                        } else {
+                            results.forEach(p => {
+                                const priceFormatted = '₺' + parseFloat(p.salePrice).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                                const stockBadgeClass = p.lowStock ? 'bg-danger bg-opacity-25 text-danger' : 'bg-success bg-opacity-25 text-success';
+                                const itemHtml = `
+                                    <a href="/Products" class="d-flex align-items-center justify-content-between p-3 border-bottom text-decoration-none" style="border-color: rgba(255,255,255,0.06);">
+                                        <div>
+                                            <div class="fw-bold small text-main">${p.name}</div>
+                                            <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-upc-scan me-1"></i>${p.barcode || 'Barkodsiz'}</span>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold small" style="color: #38bdf8;">${priceFormatted}</div>
+                                            <span class="badge ${stockBadgeClass} rounded-pill" style="font-size: 0.7rem;">Stok: ${p.quantity}</span>
+                                        </div>
+                                    </a>
+                                `;
+                                container.insertAdjacentHTML('beforeend', itemHtml);
                             });
                         }
-                    })
-                    .catch(e => {
-                        console.error(e);
-                        document.getElementById('trendLoader').innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Veriler yüklenemedi.</span>';
-                    });
 
-                // Kategori Stok Dağılımı Grafiği (CamelCase/PascalCase uyumluluk düzeltmeli)
-                fetchJson('@Url.Action("CategoryDistribution","Reports")')
-                    .then(data => {
-                        // ASP.NET Core varsayılan JSON yapılandırmasına göre camelCase veya PascalCase eşleştirmesi yapılıyor
-                        const labels = data.map(d => d.categoryName || d.CategoryName || '(Belirtilmemiş)');
-                        const values = data.map(d => d.stockValue || d.StockValue || 0);
-                        
-                        document.getElementById('distLoader').classList.add('d-none');
-                        document.getElementById('distChartContainer').classList.remove('d-none');
+                        dropdown.classList.remove('d-none');
+                    } catch (err) {
+                        console.error("Hızlı arama hatası:", err);
+                    }
+                }, 220);
+            });
 
-                        const ctx = document.getElementById('categoryDistChart').getContext('2d');
-                        if(ctx){
-                            new Chart(ctx, {
-                                type: 'doughnut',
-                                data: {
-                                    labels,
-                                    datasets: [{
-                                        data: values,
-                                        backgroundColor: [
-                                            '#4361ee', // Indigo
-                                            '#7209b7', // Purple
-                                            '#e63946', // Red
-                                            '#f4a261', // Orange
-                                            '#2a9d8f', // Teal
-                                            '#52b788', // Green
-                                            '#e9c46a', // Yellow
-                                            '#6c757d'  // Gray
-                                        ],
-                                        borderWidth: 2,
-                                        borderColor: '#fff'
-                                    }]
-                                },
-                                options: { 
-                                    responsive: true, 
-                                    maintainAspectRatio: false,
-                                    plugins: {
-                                        legend: { 
-                                            position: 'right',
-                                            labels: {
-                                                boxWidth: 12,
-                                                font: { size: 10 }
-                                            }
-                                        },
-                                        tooltip: {
-                                            backgroundColor: '#212529',
-                                            padding: 10,
-                                            cornerRadius: 8,
-                                            callbacks: {
-                                                label: function(context) {
-                                                    const val = context.raw;
-                                                    return ' Stok Değeri: ₺' + parseFloat(val).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
-                                                }
-                                            }
-                                        }
-                                    },
-                                    cutout: '70%'
-                                }
-                            });
-                        }
-                    })
-                    .catch(e => {
-                        console.error(e);
-                        document.getElementById('distLoader').innerHTML = '<span class="text-danger small"><i class="bi bi-x-circle me-1"></i>Veriler yüklenemedi.</span>';
-                    });
-            })();
-        </script>
-    }
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.add('d-none');
+                }
+            });
+        }
+    </script>
+}
