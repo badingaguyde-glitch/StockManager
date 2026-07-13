@@ -20,11 +20,14 @@ public class ReportsController : Controller
     {
         var products = await _context.Products.Find(FilterDefinition<Product>.Empty).ToListAsync();
         var sales = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
+        var customers = await _context.Customers.Find(FilterDefinition<Customer>.Empty).ToListAsync();
 
         ViewBag.TotalProducts = products.Count;
         ViewBag.TotalStockValue = products.Sum(p => p.Quantity * p.PurchasePrice);
+        ViewBag.PotentialStockValue = products.Sum(p => p.Quantity * p.SalePrice);
         ViewBag.TotalSales = sales.Sum(s => s.TotalAmount);
         ViewBag.LowStockCount = products.Count(p => p.Quantity <= p.LowStockThreshold);
+        ViewBag.TotalCustomerBalance = customers.Sum(c => c.Balance);
 
         return View();
     }
@@ -42,8 +45,9 @@ public class ReportsController : Controller
             .ToListAsync();
 
         var totalTurnover = turnover.Sum(s => s.TotalAmount);
+        var saleCount = turnover.Count;
 
-        return Json(new { date = selectedDate.ToString("yyyy-MM-dd"), totalTurnover });
+        return Json(new { date = selectedDate.ToString("yyyy-MM-dd"), totalTurnover, saleCount });
     }
 
     [HttpGet]
@@ -80,12 +84,21 @@ public class ReportsController : Controller
             .Find(s => s.SaleDate >= from.Date && s.SaleDate <= to.Date.AddDays(1).AddTicks(-1))
             .ToListAsync();
 
+        var trCulture = new System.Globalization.CultureInfo("tr-TR");
         var trend = Enumerable.Range(0, days)
             .Select(i =>
             {
                 var day = from.Date.AddDays(i);
-                var total = sales.Where(s => s.SaleDate.Date == day).Sum(s => s.TotalAmount);
-                return new { date = day.ToString("yyyy-MM-dd"), total };
+                var daySales = sales.Where(s => s.SaleDate.Date == day);
+                var total = daySales.Sum(s => s.TotalAmount);
+                var count = daySales.Count();
+                return new
+                {
+                    date = day.ToString("yyyy-MM-dd"),
+                    label = day.ToString("dd MMM", trCulture),
+                    total,
+                    count
+                };
             })
             .ToList();
 
@@ -104,10 +117,62 @@ public class ReportsController : Controller
             .Select(g => new
             {
                 CategoryId = g.Key,
-                CategoryName = categories.FirstOrDefault(c => c.Id == g.Key)?.Name ?? "(Belirtilmemiş)",
-                StockValue = g.Sum(p => p.Quantity * p.PurchasePrice)
+                CategoryName = categories.FirstOrDefault(c => c.Id == g.Key)?.Name ?? "Kategorisiz",
+                StockValue = g.Sum(p => p.Quantity * p.PurchasePrice),
+                PotentialValue = g.Sum(p => p.Quantity * p.SalePrice),
+                ProductCount = g.Count()
             })
             .OrderByDescending(x => x.StockValue)
+            .ToList();
+
+        return Json(distribution);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> PaymentTypeDistribution()
+    {
+        var sales = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
+
+        var distribution = sales
+            .GroupBy(s => s.PaymentType)
+            .Select(g => new
+            {
+                PaymentType = g.Key switch
+                {
+                    PaymentType.Cash => "Nakit",
+                    PaymentType.Card => "Kredi / Banka Kartı",
+                    PaymentType.Debt => "Veresiye (Cari)",
+                    _ => "Diğer"
+                },
+                TotalAmount = g.Sum(s => s.TotalAmount),
+                Count = g.Count()
+            })
+            .OrderByDescending(x => x.TotalAmount)
+            .ToList();
+
+        return Json(distribution);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> PaymentTypeDistribution()
+    {
+        var sales = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
+
+        var distribution = sales
+            .GroupBy(s => s.PaymentType)
+            .Select(g => new
+            {
+                PaymentType = g.Key switch
+                {
+                    PaymentType.Cash => "Nakit",
+                    PaymentType.Card => "Kredi / Banka Kartı",
+                    PaymentType.Debt => "Veresiye (Cari)",
+                    _ => "Diğer"
+                },
+                TotalAmount = g.Sum(s => s.TotalAmount),
+                Count = g.Count()
+            })
+            .OrderByDescending(x => x.TotalAmount)
             .ToList();
 
         return Json(distribution);
@@ -125,6 +190,11 @@ public class ReportsController : Controller
             .Find(s => s.SaleDate >= fromDate.Date && s.SaleDate <= endOfDay)
             .ToListAsync();
 
+        var products = await _context.Products.Find(FilterDefinition<Product>.Empty).ToListAsync();
+        var productDict = products
+            .Where(p => !string.IsNullOrEmpty(p.Id))
+            .ToDictionary(p => p.Id!, p => p);
+
         decimal revenue = sales.Sum(s => s.TotalAmount);
         decimal cost = 0m;
 
@@ -132,8 +202,7 @@ public class ReportsController : Controller
         {
             foreach (var item in sale.Items)
             {
-                var product = await _context.Products.Find(p => p.Id == item.ProductId).FirstOrDefaultAsync();
-                if (product != null)
+                if (item.ProductId != null && productDict.TryGetValue(item.ProductId, out var product))
                 {
                     cost += product.PurchasePrice * item.Quantity;
                 }
@@ -141,8 +210,59 @@ public class ReportsController : Controller
         }
 
         var profitLoss = revenue - cost;
+        var profitMargin = revenue > 0 ? Math.Round((profitLoss / revenue) * 100, 2) : 0m;
 
-        return Json(new { startDate = fromDate.ToString("yyyy-MM-dd"), endDate = toDate.ToString("yyyy-MM-dd"), revenue, cost, profitLoss });
+        return Json(new
+        {
+            startDate = fromDate.ToString("yyyy-MM-dd"),
+            endDate = toDate.ToString("yyyy-MM-dd"),
+            revenue,
+            cost,
+            profitLoss,
+            profitMargin,
+            saleCount = sales.Count
+        });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> CriticalStockList()
+    {
+        var products = await _context.Products
+            .Find(p => p.Quantity <= p.LowStockThreshold)
+            .SortBy(p => p.Quantity)
+            .Limit(15)
+            .ToListAsync();
+
+        var result = products.Select(p => new
+        {
+            id = p.Id,
+            name = p.Name,
+            barcode = p.Barcode,
+            quantity = p.Quantity,
+            threshold = p.LowStockThreshold
+        });
+
+        return Json(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> TopDebtorsList()
+    {
+        var customers = await _context.Customers
+            .Find(c => c.Balance > 0)
+            .SortByDescending(c => c.Balance)
+            .Limit(10)
+            .ToListAsync();
+
+        var result = customers.Select(c => new
+        {
+            id = c.Id,
+            fullName = c.FullName,
+            phone = c.Phone,
+            balance = c.Balance
+        });
+
+        return Json(result);
     }
 
     [HttpGet]
