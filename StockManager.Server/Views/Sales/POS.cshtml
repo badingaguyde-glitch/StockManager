@@ -2,15 +2,14 @@
     ViewData["Title"] = "Hızlı Satış (POS)";
 }
 
-<<<<<<< HEAD
-<style>
+<<<<<<< HEAD <style>
     #reader {
-        border: none !important;
+    border: none !important;
     }
     #reader video {
-        border-radius: 0.5rem;
-        object-fit: cover;
-        width: 100% !important;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    width: 100% !important;
     }
 </style>
 
@@ -34,23 +33,20 @@
                 <!-- Arama ve Barkod Girişi -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-<<<<<<< HEAD
                         <label class="form-label fw-bold d-flex justify-content-between align-items-center">
                             <span><i class="bi bi-upc-scan me-1"></i> Barkod Okutun</span>
                             <small class="text-muted fw-normal">Kamera / Barkod Tabancası</small>
                         </label>
                         <div class="input-group">
-                            <input type="text" id="barcode-input" class="form-control" placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off" />
-                            <button class="btn btn-outline-primary fw-semibold d-flex align-items-center" type="button" onclick="openCameraModal()" title="Kamera ile Barkod Oku (F2)">
-                                <i class="bi bi-camera-video-fill me-1"></i> Kamera <span class="badge bg-primary-subtle text-primary ms-1 d-none d-sm-inline">F2</span>
+                            <input type="text" id="barcode-input" class="form-control"
+                                   placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off" />
+                            <button class="btn btn-outline-primary fw-semibold d-flex align-items-center"
+                                    type="button" onclick="openCameraModal()" title="Kamera ile Barkod Oku (F2)">
+                                <i class="bi bi-camera-video-fill me-1"></i> Kamera <span
+                                class="badge bg-primary-subtle text-primary ms-1 d-none d-sm-inline">F2</span>
                             </button>
-                            <button class="btn btn-primary fw-semibold" type="button" onclick="addProductByBarcode()">Ekle</button>
-=======
-                        <label class="form-label fw-bold">Barkod Okutun</label>
-                        <div class="input-group">
-                            <input type="text" id="barcode-input" class="form-control" placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off" />
-                            <button class="btn btn-primary" type="button" onclick="addProductByBarcode()">Ekle</button>
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                            <button class="btn btn-primary fw-semibold" type="button"
+                                    onclick="addProductByBarcode()">Ekle</button>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -60,15 +56,18 @@
                                 <option value="">Ürün Seçiniz...</option>
                                 @if (ViewBag.Products != null)
                                 {
-                                    @foreach (var p in (IEnumerable<StockManager.Server.Models.Product>)ViewBag.Products)
+                                    @foreach (var p in
+                                    (IEnumerable<StockManager.Server.Models.Product>)ViewBag.Products)
                                     {
-                                        <option value="@p.Barcode" data-stock="@p.Quantity" data-id="@p.Id" data-price="@p.SalePrice" data-name="@p.Name">
+                                        <option value="@p.Barcode" data-stock="@p.Quantity" data-id="@p.Id"
+                                                data-price="@p.SalePrice" data-name="@p.Name">
                                             @p.Name - @p.SalePrice.ToString("0.00") ₺ (Stok: @p.Quantity)
                                         </option>
                                     }
                                 }
                             </select>
-                            <button class="btn btn-outline-primary" type="button" onclick="addProductFromSelect()">Ekle</button>
+                            <button class="btn btn-outline-primary" type="button"
+                                    onclick="addProductFromSelect()">Ekle</button>
                         </div>
                     </div>
                 </div>
@@ -89,600 +88,604 @@
                         </thead>
                         <tbody id="cart-body">
                             <tr id="empty-cart-row">
-                                <td colspan="5" class="text-center text-muted py-5">Sepetiniz boş. Satış yapmak için ürün ekleyin.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                <td colspan="5" class="text-center text-muted py-5">Sepetiniz boş. Satış yapmak için
+                                    ürün ekleyin.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Sağ Panel: Satışı Sonlandırma -->
-    <div class="col-md-4">
-        <div class="card shadow-sm">
-            <div class="card-header bg-dark text-white text-center">
-                <h5 class="mb-0 fw-bold">Ödeme ve Onay</h5>
-            </div>
-            <div class="card-body">
-                <!-- Toplam Tutar Paneli -->
-                <div class="bg-light p-3 rounded mb-4 text-center border">
-                    <span class="text-muted fw-bold d-block mb-1">TOPLAM TUTAR</span>
-                    <h2 class="text-primary fw-bold mb-0" id="total-price-display">0.00 ₺</h2>
+        <!-- Sağ Panel: Satışı Sonlandırma -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white text-center">
+                    <h5 class="mb-0 fw-bold">Ödeme ve Onay</h5>
                 </div>
-
-                <form asp-action="Checkout" method="post" id="checkout-form">
-                    @Html.AntiForgeryToken()
-                    <!-- Dinamik olarak JS ile üretilecek gizli inputlar buraya gelecek -->
-                    <div id="hidden-cart-inputs"></div>
-
-                    <!-- Ödeme Tipi Seçimi -->
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Ödeme Yöntemi</label>
-                        <select name="PaymentType" id="payment-type" class="form-select" onchange="toggleCustomerSelect()">
-                            <option value="Cash">Nakit</option>
-                            <option value="Card">Kredi/Banka Kartı</option>
-                            <option value="Debt">Veresiye (Cari Hesap)</option>
-                        </select>
+                <div class="card-body">
+                    <!-- Toplam Tutar Paneli -->
+                    <div class="bg-light p-3 rounded mb-4 text-center border">
+                        <span class="text-muted fw-bold d-block mb-1">TOPLAM TUTAR</span>
+                        <h2 class="text-primary fw-bold mb-0" id="total-price-display">0.00 ₺</h2>
                     </div>
 
-                    <!-- Müşteri Seçimi -->
-                    <div class="mb-4" id="customer-select-group">
-                        <label class="form-label fw-bold">Müşteri Seçin <span class="text-danger" id="customer-required-star" style="display: none;">*</span></label>
-                        <select name="CustomerId" id="customer-select" class="form-select">
-                            <option value="">Müşteri Belirtilmedi (Anonim Satış)...</option>
-                            @if (ViewBag.Customers != null)
-                            {
-                                @foreach (var c in (IEnumerable<StockManager.Server.Models.Customer>)ViewBag.Customers)
-                                {
-                                    <option value="@c.Id">@c.FullName (Bakiye: @c.Balance.ToString("0.00") ₺)</option>
-                                }
-                            }
-                        </select>
-                    </div>
+                    <form asp-action="Checkout" method="post" id="checkout-form">
+                        @Html.AntiForgeryToken()
+                        <!-- Dinamik olarak JS ile üretilecek gizli inputlar buraya gelecek -->
+                        <div id="hidden-cart-inputs"></div>
 
-                    <!-- Satışı Bitir Butonu -->
-                    <button type="button" class="btn btn-success btn-lg w-100 fw-bold" onclick="submitCheckout()">
-                        <i class="bi bi-check-circle"></i> Satışı Tamamla
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<<<<<<< HEAD
-<!-- Kamera ile Barkod Okuma Modalı -->
-<div class="modal fade" id="cameraScanModal" tabindex="-1" aria-labelledby="cameraScanModalLabel" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-header-title mb-0 fw-bold" id="cameraScanModalLabel">
-                    <i class="bi bi-qr-code-scan me-2"></i>Kamera ile Barkod Tara
-                </h5>
-                <button type="button" class="btn-close btn-close-white" onclick="closeCameraModal()" aria-label="Kapat"></button>
-            </div>
-            <div class="modal-body p-4">
-                <!-- Kamera ve Mod Seçim Alanı -->
-                <div class="row g-3 mb-3 align-items-center">
-                    <div class="col-md-7">
-                        <label class="form-label fw-semibold text-muted small mb-1">Kamera Seçimi</label>
-                        <select id="camera-select" class="form-select" onchange="switchCamera()">
-                            <option value="">Kamera algılanıyor...</option>
-                        </select>
-                    </div>
-                    <div class="col-md-5 d-flex flex-column justify-content-end">
-                        <div class="form-check form-switch mt-md-3">
-                            <input class="form-check-input" type="checkbox" id="continuous-scan-toggle" checked />
-                            <label class="form-check-label fw-semibold" for="continuous-scan-toggle">
-                                Sürekli Tarama Modu
-                            </label>
+                        <!-- Ödeme Tipi Seçimi -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ödeme Yöntemi</label>
+                            <select name="PaymentType" id="payment-type" class="form-select"
+                                    onchange="toggleCustomerSelect()">
+                                <option value="Cash">Nakit</option>
+                                <option value="Card">Kredi/Banka Kartı</option>
+                                <option value="Debt">Veresiye (Cari Hesap)</option>
+                            </select>
                         </div>
-                        <small class="text-muted" style="font-size: 0.75rem;">Açıkken pencere kapanmadan arka arkaya okur</small>
-                    </div>
-                </div>
 
-                <!-- Tarama Alanı -->
-                <div class="position-relative bg-dark rounded-3 overflow-hidden d-flex justify-content-center align-items-center mb-3" style="min-height: 320px;">
-                    <div id="reader" style="width: 100%; max-width: 520px;"></div>
-                    <!-- Tarayıcı Yükleniyor Durumu -->
-                    <div id="camera-loading" class="position-absolute text-white text-center p-3">
-                        <div class="spinner-border text-primary mb-2" role="status"></div>
-                        <div>Kamera başlatılıyor, lütfen izin verin...</div>
-                    </div>
-                </div>
+                        <!-- Müşteri Seçimi -->
+                        <div class="mb-4" id="customer-select-group">
+                            <label class="form-label fw-bold">Müşteri Seçin <span class="text-danger"
+                                                                                      id="customer-required-star" style="display: none;">*</span></label>
+                                <select name="CustomerId" id="customer-select" class="form-select">
+                                    <option value="">Müşteri Belirtilmedi (Anonim Satış)...</option>
+                                    @if (ViewBag.Customers != null)
+                                    {
+                                        @foreach (var c in (IEnumerable<StockManager.Server.Models.Customer>)ViewBag.Customers)
+                                        {
+                                            <option value="@c.Id">@c.FullName (Bakiye: @c.Balance.ToString("0.00") ₺)</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
 
-                <!-- Canlı Geri Bildirim ve Durum Mesajı -->
-                <div id="camera-feedback" class="alert alert-secondary mb-0 d-flex align-items-center">
-                    <i class="bi bi-info-circle-fill fs-5 me-2 text-primary"></i>
-                    <span id="camera-feedback-text">Barkodu kameranın görüş alanına hizalayın.</span>
-                </div>
-            </div>
-            <div class="modal-footer bg-light justify-content-between">
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-success me-2" id="camera-status-badge">Hazır</span>
-                    <small class="text-muted">Son Okunan: <strong id="last-scanned-barcode">-</strong></small>
-                </div>
-                <div>
-                    <button type="button" class="btn btn-outline-secondary me-2" id="btn-toggle-camera" onclick="toggleCameraPause()">
-                        <i class="bi bi-pause-fill me-1"></i>Durdur
-                    </button>
-                    <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">
-                        Kapat
-                    </button>
+                            <!-- Satışı Bitir Butonu -->
+                            <button type="button" class="btn btn-success btn-lg w-100 fw-bold" onclick="submitCheckout()">
+                                <i class="bi bi-check-circle"></i> Satışı Tamamla
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>
 
-@section Scripts {
-    <script src="https://unpkg.com/html5-qrcode"></script>
-=======
-@section Scripts {
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-    <script>
-        let cart = [];
-        const barcodeInput = document.getElementById('barcode-input');
-        const productSelect = document.getElementById('product-select');
-        const paymentTypeSelect = document.getElementById('payment-type');
-        const customerSelect = document.getElementById('customer-select');
-        const customerSelectGroup = document.getElementById('customer-select-group');
-        const cartBody = document.getElementById('cart-body');
-        const emptyCartRow = document.getElementById('empty-cart-row');
-        const totalPriceDisplay = document.getElementById('total-price-display');
-        const itemCountBadge = document.getElementById('item-count');
-        const hiddenCartInputs = document.getElementById('hidden-cart-inputs');
+        <!-- Kamera ile Barkod Okuma Modalı -->
+        <div class="modal fade" id="cameraScanModal" tabindex="-1" aria-labelledby="cameraScanModalLabel" aria-hidden="true"
+             data-bs-backdrop="static">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-header-title mb-0 fw-bold" id="cameraScanModalLabel">
+                            <i class="bi bi-qr-code-scan me-2"></i>Kamera ile Barkod Tara
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" onclick="closeCameraModal()"
+                                aria-label="Kapat"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <!-- Kamera ve Mod Seçim Alanı -->
+                        <div class="row g-3 mb-3 align-items-center">
+                            <div class="col-md-7">
+                                <label class="form-label fw-semibold text-muted small mb-1">Kamera Seçimi</label>
+                                <select id="camera-select" class="form-select" onchange="switchCamera()">
+                                    <option value="">Kamera algılanıyor...</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5 d-flex flex-column justify-content-end">
+                                <div class="form-check form-switch mt-md-3">
+                                    <input class="form-check-input" type="checkbox" id="continuous-scan-toggle" checked />
+                                    <label class="form-check-label fw-semibold" for="continuous-scan-toggle">
+                                        Sürekli Tarama Modu
+                                    </label>
+                                </div>
+                                <small class="text-muted" style="font-size: 0.75rem;">Açıkken pencere kapanmadan arka arkaya
+                                    okur</small>
+                                </div>
+                            </div>
 
-        // Barkod okuyucu alanına enter basıldığında çalışır
-        barcodeInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                addProductByBarcode();
-            }
-        });
+                            <!-- Tarama Alanı -->
+                            <div class="position-relative bg-dark rounded-3 overflow-hidden d-flex justify-content-center align-items-center mb-3"
+                                 style="min-height: 320px;">
+                                <div id="reader" style="width: 100%; max-width: 520px;"></div>
+                                <!-- Tarayıcı Yükleniyor Durumu -->
+                                <div id="camera-loading" class="position-absolute text-white text-center p-3">
+                                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                                    <div>Kamera başlatılıyor, lütfen izin verin...</div>
+                                </div>
+                            </div>
 
-<<<<<<< HEAD
-        // F2 tuşu ile kamera arayüzünü açma kısayolu
-        document.addEventListener('keydown', function (e) {
-            if (e.key === 'F2') {
-                e.preventDefault();
-                openCameraModal();
-            }
-        });
+                            <!-- Canlı Geri Bildirim ve Durum Mesajı -->
+                            <div id="camera-feedback" class="alert alert-secondary mb-0 d-flex align-items-center">
+                                <i class="bi bi-info-circle-fill fs-5 me-2 text-primary"></i>
+                                <span id="camera-feedback-text">Barkodu kameranın görüş alanına hizalayın.</span>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-success me-2" id="camera-status-badge">Hazır</span>
+                                <small class="text-muted">Son Okunan: <strong id="last-scanned-barcode">-</strong></small>
+                            </div>
+                            <div>
+                                <button type="button" class="btn btn-outline-secondary me-2" id="btn-toggle-camera"
+                                        onclick="toggleCameraPause()">
+                                    <i class="bi bi-pause-fill me-1"></i>Durdur
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">
+                                    Kapat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        // Barkod okunduğunda bip sesi çal
-        function playBeepSound() {
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
-                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.12);
-            } catch (e) {
-                console.log('Audio context error:', e);
-            }
-        }
+            @section Scripts {
+                <script src="https://unpkg.com/html5-qrcode"></script>
+                <script>
+                    let cart = [];
+                    const barcodeInput = document.getElementById('barcode-input');
+                    const productSelect = document.getElementById('product-select');
+                    const paymentTypeSelect = document.getElementById('payment-type');
+                    const customerSelect = document.getElementById('customer-select');
+                    const customerSelectGroup = document.getElementById('customer-select-group');
+                    const cartBody = document.getElementById('cart-body');
+                    const emptyCartRow = document.getElementById('empty-cart-row');
+                    const totalPriceDisplay = document.getElementById('total-price-display');
+                    const itemCountBadge = document.getElementById('item-count');
+                    const hiddenCartInputs = document.getElementById('hidden-cart-inputs');
 
-        let html5QrCode = null;
-        let isCameraScanning = false;
-        let isCameraPaused = false;
-        let isProcessingScan = false;
+                    // Barkod okuyucu alanına enter basıldığında çalışır
+                    barcodeInput.addEventListener('keypress', function (e) {
+                    if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addProductByBarcode();
+                    }
+                    });
 
-        function openCameraModal() {
-            const modalEl = document.getElementById('cameraScanModal');
-            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            modal.show();
+                    <<<<<<< HEAD
+                    // F2 tuşu ile kamera arayüzünü açma kısayolu
+                    document.addEventListener('keydown', function (e) {
+                    if (e.key === 'F2') {
+                    e.preventDefault();
+                    openCameraModal();
+                    }
+                    });
 
-            document.getElementById('camera-loading').style.display = 'block';
-            showCameraFeedback(true, 'Barkodu kameranın görüş alanına hizalayın.');
+                    // Barkod okunduğunda bip sesi çal
+                    function playBeepSound() {
+                    try {
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                    gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.12);
+                    } catch (e) {
+                    console.log('Audio context error:', e);
+                    }
+                    }
 
-            Html5Qrcode.getCameras().then(devices => {
-                const cameraSelect = document.getElementById('camera-select');
-                cameraSelect.innerHTML = '';
+                    let html5QrCode = null;
+                    let isCameraScanning = false;
+                    let isCameraPaused = false;
+                    let isProcessingScan = false;
 
-                if (devices && devices.length) {
+                    function openCameraModal() {
+                    const modalEl = document.getElementById('cameraScanModal');
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+
+                    document.getElementById('camera-loading').style.display = 'block';
+                    showCameraFeedback(true, 'Barkodu kameranın görüş alanına hizalayın.');
+
+                    Html5Qrcode.getCameras().then(devices => {
+                    const cameraSelect = document.getElementById('camera-select');
+                    cameraSelect.innerHTML = '';
+
+                    if (devices && devices.length) {
                     let backCameraId = devices[0].id;
                     devices.forEach(device => {
-                        const opt = document.createElement('option');
-                        opt.value = device.id;
-                        opt.textContent = device.label || `Kamera ${cameraSelect.length + 1}`;
-                        cameraSelect.appendChild(opt);
+                    const opt = document.createElement('option');
+                    opt.value = device.id;
+                    opt.textContent = device.label || `Kamera ${cameraSelect.length + 1}`;
+                    cameraSelect.appendChild(opt);
 
-                        if ((device.label || '').toLowerCase().includes('back') || (device.label || '').toLowerCase().includes('arka')) {
-                            backCameraId = device.id;
-                        }
+                    if ((device.label || '').toLowerCase().includes('back') || (device.label || '').toLowerCase().includes('arka')) {
+                    backCameraId = device.id;
+                    }
                     });
 
                     cameraSelect.value = backCameraId;
                     startCameraScan(backCameraId);
-                } else {
+                    } else {
                     document.getElementById('camera-loading').style.display = 'none';
                     showCameraFeedback(false, 'Cihaza bağlı kullanılabilir kamera bulunamadı.');
-                }
-            }).catch(err => {
-                document.getElementById('camera-loading').style.display = 'none';
-                showCameraFeedback(false, 'Kamera erişim izni alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
-            });
-        }
+                    }
+                    }).catch(err => {
+                    document.getElementById('camera-loading').style.display = 'none';
+                    showCameraFeedback(false, 'Kamera erişim izni alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
+                    });
+                    }
 
-        function startCameraScan(cameraId) {
-            if (!html5QrCode) {
-                html5QrCode = new Html5Qrcode('reader');
-            }
+                    function startCameraScan(cameraId) {
+                    if (!html5QrCode) {
+                    html5QrCode = new Html5Qrcode('reader');
+                    }
 
-            const config = {
-                fps: 10,
-                qrbox: { width: 280, height: 160 },
-                aspectRatio: 1.333334
-            };
+                    const config = {
+                    fps: 10,
+                    qrbox: { width: 280, height: 160 },
+                    aspectRatio: 1.333334
+                    };
 
-            html5QrCode.start(
-                cameraId,
-                config,
-                onBarcodeDetected,
-                (errorMessage) => {
+                    html5QrCode.start(
+                    cameraId,
+                    config,
+                    onBarcodeDetected,
+                    (errorMessage) => {
                     // Karede barkod bulunamadığında sessizce devam et
-                }
-            ).then(() => {
-                isCameraScanning = true;
-                isCameraPaused = false;
-                document.getElementById('camera-loading').style.display = 'none';
-                updateCameraStatus('Hazır', 'bg-success');
-            }).catch(err => {
-                document.getElementById('camera-loading').style.display = 'none';
-                showCameraFeedback(false, 'Kamera başlatılamadı: ' + err);
-            });
-        }
+                    }
+                    ).then(() => {
+                    isCameraScanning = true;
+                    isCameraPaused = false;
+                    document.getElementById('camera-loading').style.display = 'none';
+                    updateCameraStatus('Hazır', 'bg-success');
+                    }).catch(err => {
+                    document.getElementById('camera-loading').style.display = 'none';
+                    showCameraFeedback(false, 'Kamera başlatılamadı: ' + err);
+                    });
+                    }
 
-        function switchCamera() {
-            const cameraId = document.getElementById('camera-select').value;
-            if (!cameraId || !html5QrCode || !isCameraScanning) return;
+                    function switchCamera() {
+                    const cameraId = document.getElementById('camera-select').value;
+                    if (!cameraId || !html5QrCode || !isCameraScanning) return;
 
-            html5QrCode.stop().then(() => {
-                isCameraScanning = false;
-                startCameraScan(cameraId);
-            }).catch(err => console.error(err));
-        }
+                    html5QrCode.stop().then(() => {
+                    isCameraScanning = false;
+                    startCameraScan(cameraId);
+                    }).catch(err => console.error(err));
+                    }
 
-        function toggleCameraPause() {
-            if (!html5QrCode || !isCameraScanning) return;
+                    function toggleCameraPause() {
+                    if (!html5QrCode || !isCameraScanning) return;
 
-            const btn = document.getElementById('btn-toggle-camera');
-            if (!isCameraPaused) {
-                html5QrCode.pause();
-                isCameraPaused = true;
-                btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Devam Et';
-                updateCameraStatus('Durduruldu', 'bg-warning text-dark');
-            } else {
-                html5QrCode.resume();
-                isCameraPaused = false;
-                btn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Durdur';
-                updateCameraStatus('Hazır', 'bg-success');
-            }
-        }
+                    const btn = document.getElementById('btn-toggle-camera');
+                    if (!isCameraPaused) {
+                    html5QrCode.pause();
+                    isCameraPaused = true;
+                    btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Devam Et';
+                    updateCameraStatus('Durduruldu', 'bg-warning text-dark');
+                    } else {
+                    html5QrCode.resume();
+                    isCameraPaused = false;
+                    btn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Durdur';
+                    updateCameraStatus('Hazır', 'bg-success');
+                    }
+                    }
 
-        function closeCameraModal() {
-            const modalEl = document.getElementById('cameraScanModal');
-            const modal = bootstrap.Modal.getInstance(modalEl);
+                    function closeCameraModal() {
+                    const modalEl = document.getElementById('cameraScanModal');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
 
-            if (html5QrCode && isCameraScanning) {
-                html5QrCode.stop().then(() => {
+                    if (html5QrCode && isCameraScanning) {
+                    html5QrCode.stop().then(() => {
                     isCameraScanning = false;
                     html5QrCode.clear();
                     if (modal) modal.hide();
                     barcodeInput.focus();
-                }).catch(err => {
+                    }).catch(err => {
                     if (modal) modal.hide();
-                });
-            } else {
-                if (modal) modal.hide();
-                barcodeInput.focus();
-            }
-        }
+                    });
+                    } else {
+                    if (modal) modal.hide();
+                    barcodeInput.focus();
+                    }
+                    }
 
-        function onBarcodeDetected(decodedText) {
-            if (isProcessingScan || isCameraPaused) return;
+                    function onBarcodeDetected(decodedText) {
+                    if (isProcessingScan || isCameraPaused) return;
 
-            isProcessingScan = true;
-            playBeepSound();
+                    isProcessingScan = true;
+                    playBeepSound();
 
-            document.getElementById('last-scanned-barcode').textContent = decodedText;
-            barcodeInput.value = decodedText;
+                    document.getElementById('last-scanned-barcode').textContent = decodedText;
+                    barcodeInput.value = decodedText;
 
-            addProductByBarcode(decodedText, true).finally(() => {
-                const isContinuous = document.getElementById('continuous-scan-toggle').checked;
-                if (isContinuous) {
+                    addProductByBarcode(decodedText, true).finally(() => {
+                    const isContinuous = document.getElementById('continuous-scan-toggle').checked;
+                    if (isContinuous) {
                     setTimeout(() => {
-                        isProcessingScan = false;
+                    isProcessingScan = false;
                     }, 1500);
-                } else {
+                    } else {
                     setTimeout(() => {
-                        isProcessingScan = false;
-                        closeCameraModal();
+                    isProcessingScan = false;
+                    closeCameraModal();
                     }, 650);
-                }
-            });
-        }
+                    }
+                    });
+                    }
 
-        function updateCameraStatus(text, badgeClass) {
-            const badge = document.getElementById('camera-status-badge');
-            if (badge) {
-                badge.className = `badge ${badgeClass} me-2`;
-                badge.textContent = text;
-            }
-        }
+                    function updateCameraStatus(text, badgeClass) {
+                    const badge = document.getElementById('camera-status-badge');
+                    if (badge) {
+                    badge.className = `badge ${badgeClass} me-2`;
+                    badge.textContent = text;
+                    }
+                    }
 
-        function showCameraFeedback(isSuccess, message) {
-            const feedbackEl = document.getElementById('camera-feedback');
-            const feedbackText = document.getElementById('camera-feedback-text');
-            if (feedbackEl && feedbackText) {
-                feedbackEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-warning'} mb-0 d-flex align-items-center`;
-                feedbackText.innerHTML = message;
-            }
-        }
+                    function showCameraFeedback(isSuccess, message) {
+                    const feedbackEl = document.getElementById('camera-feedback');
+                    const feedbackText = document.getElementById('camera-feedback-text');
+                    if (feedbackEl && feedbackText) {
+                    feedbackEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-warning'} mb-0 d-flex align-items-center`;
+                    feedbackText.innerHTML = message;
+                    }
+                    }
 
-        // AJAX: Barkod ile ürünü sorgula ve sepete ekle
-        async function addProductByBarcode(customBarcode = null, fromCamera = false) {
-            const barcode = (typeof customBarcode === 'string' && customBarcode) ? customBarcode.trim() : barcodeInput.value.trim();
-=======
-        // AJAX: Barkod ile ürünü sorgula ve sepete ekle
-        async function addProductByBarcode() {
-            const barcode = barcodeInput.value.trim();
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-            if (!barcode) return;
+                    // AJAX: Barkod ile ürünü sorgula ve sepete ekle
+                    async function addProductByBarcode(customBarcode = null, fromCamera = false) {
+                    const barcode = (typeof customBarcode === 'string' && customBarcode) ? customBarcode.trim() : barcodeInput.value.trim();
+                    =======
+                    // AJAX: Barkod ile ürünü sorgula ve sepete ekle
+                    async function addProductByBarcode() {
+                    const barcode = barcodeInput.value.trim();
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    if (!barcode) return;
 
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            const formData = new FormData();
-            formData.append('barcode', barcode);
-            formData.append('__RequestVerificationToken', token);
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    const formData = new FormData();
+                    formData.append('barcode', barcode);
+                    formData.append('__RequestVerificationToken', token);
 
-            try {
-                const response = await fetch('/Sales/AddToCart', {
+                    try {
+                    const response = await fetch('/Sales/AddToCart', {
                     method: 'POST',
                     body: formData
-                });
-                const data = await response.json();
+                    });
+                    const data = await response.json();
 
-                if (data.success) {
-<<<<<<< HEAD
+                    if (data.success) {
+                    <<<<<<< HEAD
                     const added = addToCartArray({
-=======
+                    =======
                     addToCartArray({
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-                        productId: data.id,
-                        name: data.name,
-                        price: parseFloat(data.salePrice),
-                        stock: parseInt(data.quantity)
-<<<<<<< HEAD
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    productId: data.id,
+                    name: data.name,
+                    price: parseFloat(data.salePrice),
+                    stock: parseInt(data.quantity)
+                    <<<<<<< HEAD
                     }, fromCamera);
 
                     if (fromCamera && added) {
-                        showCameraFeedback(true, `✅ <strong>${data.name}</strong> (${parseFloat(data.salePrice).toFixed(2)} ₺) sepete eklendi!`);
+                    showCameraFeedback(true, `✅ <strong>${data.name}</strong> (${parseFloat(data.salePrice).toFixed(2)} ₺) sepete eklendi!`);
                     }
-                } else {
-                    if (fromCamera) {
-                        showCameraFeedback(false, `⚠️ <strong>${barcode}</strong> barkodlu ürün bulunamadı!`);
                     } else {
-                        alert(data.message || 'Ürün bulunamadı.');
+                    if (fromCamera) {
+                    showCameraFeedback(false, `⚠️ <strong>${barcode}</strong> barkodlu ürün bulunamadı!`);
+                    } else {
+                    alert(data.message || 'Ürün bulunamadı.');
                     }
-                }
-            } catch (error) {
-                console.error(error);
-                if (fromCamera) {
+                    }
+                    } catch (error) {
+                    console.error(error);
+                    if (fromCamera) {
                     showCameraFeedback(false, '❌ Ürün sorgulanırken bir hata oluştu.');
-                } else {
+                    } else {
                     alert('Ürün eklenirken bir hata oluştu.');
-                }
-            } finally {
-                if (!fromCamera) {
+                    }
+                    } finally {
+                    if (!fromCamera) {
                     barcodeInput.value = '';
                     barcodeInput.focus();
-                }
-=======
+                    }
+                    =======
                     });
-                } else {
+                    } else {
                     alert(data.message || 'Ürün bulunamadı.');
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Ürün eklenirken bir hata oluştu.');
-            } finally {
-                barcodeInput.value = '';
-                barcodeInput.focus();
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-            }
-        }
+                    }
+                    } catch (error) {
+                    console.error(error);
+                    alert('Ürün eklenirken bir hata oluştu.');
+                    } finally {
+                    barcodeInput.value = '';
+                    barcodeInput.focus();
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    }
+                    }
 
-        // Listeden seçilen ürünü sepete ekle
-        function addProductFromSelect() {
-            const selectedOption = productSelect.options[productSelect.selectedIndex];
-            if (!selectedOption.value) return;
+                    // Listeden seçilen ürünü sepete ekle
+                    function addProductFromSelect() {
+                    const selectedOption = productSelect.options[productSelect.selectedIndex];
+                    if (!selectedOption.value) return;
 
-            addToCartArray({
-                productId: selectedOption.getAttribute('data-id'),
-                name: selectedOption.getAttribute('data-name'),
-                price: parseFloat(selectedOption.getAttribute('data-price')),
-                stock: parseInt(selectedOption.getAttribute('data-stock'))
-            });
+                    addToCartArray({
+                    productId: selectedOption.getAttribute('data-id'),
+                    name: selectedOption.getAttribute('data-name'),
+                    price: parseFloat(selectedOption.getAttribute('data-price')),
+                    stock: parseInt(selectedOption.getAttribute('data-stock'))
+                    });
 
-            productSelect.selectedIndex = 0;
-        }
+                    productSelect.selectedIndex = 0;
+                    }
 
-        // Arayüz verilerini JavaScript dizisine ekler/günceller
-<<<<<<< HEAD
-        function addToCartArray(product, fromCamera = false) {
-=======
-        function addToCartArray(product) {
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-            const existingItem = cart.find(item => item.productId === product.productId);
+                    // Arayüz verilerini JavaScript dizisine ekler/günceller
+                    <<<<<<< HEAD
+                    function addToCartArray(product, fromCamera = false) {
+                    =======
+                    function addToCartArray(product) {
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    const existingItem = cart.find(item => item.productId === product.productId);
 
-            if (existingItem) {
-                if (existingItem.quantity >= product.stock) {
-<<<<<<< HEAD
+                    if (existingItem) {
+                    if (existingItem.quantity >= product.stock) {
+                    <<<<<<< HEAD
                     const msg = `Bu üründen stokta sadece ${product.stock} adet mevcut.`;
                     if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
                     else alert(msg);
                     return false;
-=======
+                    =======
                     alert(`Bu üründen stokta sadece ${product.stock} adet mevcut.`);
                     return;
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-                }
-                existingItem.quantity++;
-            } else {
-                if (product.stock <= 0) {
-<<<<<<< HEAD
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    }
+                    existingItem.quantity++;
+                    } else {
+                    if (product.stock <= 0) {
+                    <<<<<<< HEAD
                     const msg = 'Bu ürün stokta bulunmamaktadır.';
                     if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
                     else alert(msg);
                     return false;
-=======
+                    =======
                     alert('Bu ürün stokta bulunmamaktadır.');
                     return;
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-                }
-                cart.push({
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    }
+                    cart.push({
                     productId: product.productId,
                     name: product.name,
                     price: product.price,
                     stock: product.stock,
                     quantity: 1
-                });
-            }
+                    });
+                    }
 
-            renderCart();
-<<<<<<< HEAD
-            return true;
-=======
->>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
-        }
+                    renderCart();
+                    <<<<<<< HEAD
+                    return true;
+                    =======
+                    >>>>>>> fd06531330b75cf7c56b2f4d9cd6befafe909844
+                    }
 
-        // Sepeti HTML tarafında günceller
-        function renderCart() {
-            cartBody.innerHTML = '';
+                    // Sepeti HTML tarafında günceller
+                    function renderCart() {
+                    cartBody.innerHTML = '';
 
-            if (cart.length === 0) {
-                cartBody.appendChild(emptyCartRow);
-                totalPriceDisplay.textContent = '0.00 ₺';
-                itemCountBadge.textContent = '0 Çeşit Ürün';
-                return;
-            }
+                    if (cart.length === 0) {
+                    cartBody.appendChild(emptyCartRow);
+                    totalPriceDisplay.textContent = '0.00 ₺';
+                    itemCountBadge.textContent = '0 Çeşit Ürün';
+                    return;
+                    }
 
-            let grandTotal = 0;
+                    let grandTotal = 0;
 
-            cart.forEach((item, index) => {
-                const totalLinePrice = item.price * item.quantity;
-                grandTotal += totalLinePrice;
+                    cart.forEach((item, index) => {
+                    const totalLinePrice = item.price * item.quantity;
+                    grandTotal += totalLinePrice;
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
                     <td>
-                        <span class="fw-bold">${item.name}</span>
-                        <br/>
-                        <small class="text-muted">Stok: ${item.stock}</small>
+                    <span class="fw-bold">${item.name}</span>
+                    <br/>
+                    <small class="text-muted">Stok: ${item.stock}</small>
                     </td>
                     <td class="text-center">${item.price.toFixed(2)} ₺</td>
                     <td class="text-center">
-                        <div class="input-group input-group-sm m-auto" style="max-width: 100px;">
-                            <button class="btn btn-outline-secondary btn-xs" type="button" onclick="updateQty('${item.productId}', ${item.quantity - 1})">-</button>
-                            <input type="text" class="form-control text-center py-0" value="${item.quantity}" onchange="updateQty('${item.productId}', this.value)" />
-                            <button class="btn btn-outline-secondary btn-xs" type="button" onclick="updateQty('${item.productId}', ${item.quantity + 1})">+</button>
-                        </div>
+                    <div class="input-group input-group-sm m-auto" style="max-width: 100px;">
+                    <button class="btn btn-outline-secondary btn-xs" type="button" onclick="updateQty('${item.productId}', ${item.quantity - 1})">-</button>
+                    <input type="text" class="form-control text-center py-0" value="${item.quantity}" onchange="updateQty('${item.productId}', this.value)" />
+                    <button class="btn btn-outline-secondary btn-xs" type="button" onclick="updateQty('${item.productId}', ${item.quantity + 1})">+</button>
+                    </div>
                     </td>
                     <td class="text-end fw-bold">${totalLinePrice.toFixed(2)} ₺</td>
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.productId}')">
-                            Sil
-                        </button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="removeFromCart('${item.productId}')">
+                    Sil
+                    </button>
                     </td>
-                `;
-                cartBody.appendChild(tr);
-            });
+                    `;
+                    cartBody.appendChild(tr);
+                    });
 
-            totalPriceDisplay.textContent = `${grandTotal.toFixed(2)} ₺`;
-            itemCountBadge.textContent = `${cart.length} Çeşit Ürün`;
-        }
+                    totalPriceDisplay.textContent = `${grandTotal.toFixed(2)} ₺`;
+                    itemCountBadge.textContent = `${cart.length} Çeşit Ürün`;
+                    }
 
-        // Adet güncelleme mekanizması
-        function updateQty(productId, newQty) {
-            const qty = parseInt(newQty);
-            const item = cart.find(i => i.productId === productId);
-            if (!item) return;
+                    // Adet güncelleme mekanizması
+                    function updateQty(productId, newQty) {
+                    const qty = parseInt(newQty);
+                    const item = cart.find(i => i.productId === productId);
+                    if (!item) return;
 
-            if (isNaN(qty) || qty <= 0) {
-                removeFromCart(productId);
-                return;
+                    if (isNaN(qty) || qty <= 0) {
+                    removeFromCart(productId);
+                    return;
+                    }
+
+                    if (qty > item.stock) {
+                    alert(`Bu üründen stokta sadece ${item.stock} adet mevcut.`);
+                    item.quantity = item.stock;
+                    } else {
+                    item.quantity = qty;
+                    }
+
+                    renderCart();
+                    }
+
+                    // Sepetten ürün sil
+                    function removeFromCart(productId) {
+                    cart = cart.filter(item => item.productId !== productId);
+                    renderCart();
+                    }
+
+                    // Veresiye seçildiğinde müşteri listesini zorunlu kıl
+                    function toggleCustomerSelect() {
+                    const star = document.getElementById('customer-required-star');
+                    if (paymentTypeSelect.value === 'Debt') {
+                    star.style.display = 'inline';
+                    customerSelect.setAttribute('required', 'required');
+                    } else {
+                    star.style.display = 'none';
+                    customerSelect.removeAttribute('required');
+                    }
+                    }
+
+                    // Sayfa yüklendiğinde durumu ilklendir
+                    toggleCustomerSelect();
+
+                    // Formu doğrulayıp C# model yapısına göre serileştirerek gönderir
+                    function submitCheckout() {
+                    if (cart.length === 0) {
+                    alert('Sepetiniz boş. Önce ürün ekleyin.');
+                    return;
+                    }
+
+                    if (paymentTypeSelect.value === 'Debt' && !customerSelect.value) {
+                    alert('Veresiye satışı için lütfen bir müşteri seçiniz.');
+                    customerSelect.focus();
+                    return;
+                    }
+
+                    // HTML formuna dinamik hidden inputlar ekleyerek bind olmasını sağla
+                    hiddenCartInputs.innerHTML = '';
+                    cart.forEach((item, index) => {
+                    createHiddenInput(`Items[${index}].ProductId`, item.productId);
+                    createHiddenInput(`Items[${index}].ProductName`, item.name);
+                    createHiddenInput(`Items[${index}].Quantity`, item.quantity);
+                    createHiddenInput(`Items[${index}].UnitPrice`, item.price);
+                    createHiddenInput(`Items[${index}].TotalLinePrice`, (item.price * item.quantity));
+                    });
+
+                    document.getElementById('checkout-form').submit();
+                    }
+
+                    function createHiddenInput(name, value) {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = name;
+                    input.value = value;
+                    hiddenCartInputs.appendChild(input);
+                    }
+                </script>
             }
-
-            if (qty > item.stock) {
-                alert(`Bu üründen stokta sadece ${item.stock} adet mevcut.`);
-                item.quantity = item.stock;
-            } else {
-                item.quantity = qty;
-            }
-
-            renderCart();
-        }
-
-        // Sepetten ürün sil
-        function removeFromCart(productId) {
-            cart = cart.filter(item => item.productId !== productId);
-            renderCart();
-        }
-
-        // Veresiye seçildiğinde müşteri listesini zorunlu kıl
-        function toggleCustomerSelect() {
-            const star = document.getElementById('customer-required-star');
-            if (paymentTypeSelect.value === 'Debt') {
-                star.style.display = 'inline';
-                customerSelect.setAttribute('required', 'required');
-            } else {
-                star.style.display = 'none';
-                customerSelect.removeAttribute('required');
-            }
-        }
-
-        // Sayfa yüklendiğinde durumu ilklendir
-        toggleCustomerSelect();
-
-        // Formu doğrulayıp C# model yapısına göre serileştirerek gönderir
-        function submitCheckout() {
-            if (cart.length === 0) {
-                alert('Sepetiniz boş. Önce ürün ekleyin.');
-                return;
-            }
-
-            if (paymentTypeSelect.value === 'Debt' && !customerSelect.value) {
-                alert('Veresiye satışı için lütfen bir müşteri seçiniz.');
-                customerSelect.focus();
-                return;
-            }
-
-            // HTML formuna dinamik hidden inputlar ekleyerek bind olmasını sağla
-            hiddenCartInputs.innerHTML = '';
-            cart.forEach((item, index) => {
-                createHiddenInput(`Items[${index}].ProductId`, item.productId);
-                createHiddenInput(`Items[${index}].ProductName`, item.name);
-                createHiddenInput(`Items[${index}].Quantity`, item.quantity);
-                createHiddenInput(`Items[${index}].UnitPrice`, item.price);
-                createHiddenInput(`Items[${index}].TotalLinePrice`, (item.price * item.quantity));
-            });
-
-            document.getElementById('checkout-form').submit();
-        }
-
-        function createHiddenInput(name, value) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = name;
-            input.value = value;
-            hiddenCartInputs.appendChild(input);
-        }
-    </script>
-}
