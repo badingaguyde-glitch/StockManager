@@ -19,10 +19,9 @@ public class AccountController : Controller
 
     private readonly MongoDBContext _context;
     private readonly PasswordHasher<User> _passwordHasher;
-<<<<<<< HEAD
+    private readonly IEmailService _emailService;
     private readonly IPasswordValidator _passwordValidator;
     private readonly IPasswordResetService _passwordResetService;
-    private readonly IEmailService _emailService;
     private readonly PasswordSecuritySettings _securitySettings;
 
     public AccountController(
@@ -31,19 +30,26 @@ public class AccountController : Controller
         IPasswordResetService passwordResetService,
         IEmailService emailService,
         IOptions<PasswordSecuritySettings> securitySettings)
-=======
-    private readonly StockManager.Server.Services.IEmailService _emailService;
-
-    public AccountController(MongoDBContext context, StockManager.Server.Services.IEmailService emailService)
->>>>>>> origin/EmreControllers
     {
         _context = context;
         _emailService = emailService;
         _passwordHasher = new PasswordHasher<User>();
         _passwordValidator = passwordValidator;
         _passwordResetService = passwordResetService;
-        _emailService = emailService;
         _securitySettings = securitySettings.Value;
+    }
+
+    private string GenerateRandomPassword(int length)
+    {
+        // Okunabilirliği zorlaştıran benzer karakterler (l, 1, I, o, O, 0) havuzdan çıkarılmıştır.
+        const string validChars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$";
+        StringBuilder res = new StringBuilder();
+        Random rnd = new Random();
+        while (0 < length--)
+        {
+            res.Append(validChars[rnd.Next(validChars.Length)]);
+        }
+        return res.ToString();
     }
 
     [HttpGet]
@@ -368,8 +374,6 @@ public class AccountController : Controller
 
         user.Email = email;
 
-<<<<<<< HEAD
-=======
         bool isPasswordChangeRequested = !string.IsNullOrEmpty(newPassword);
         string? pendingHash = null;
         string? resetCode = null;
@@ -388,8 +392,6 @@ public class AccountController : Controller
             // E-posta gönderimi
             await _emailService.SendPasswordResetCodeAsync(user.Email, resetCode);
         }
-
->>>>>>> origin/EmreControllers
         var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
 
         var updateBuilder = Builders<User>.Update
@@ -404,8 +406,6 @@ public class AccountController : Controller
                 .Set(u => u.PendingPasswordHash, pendingHash);
         }
 
-<<<<<<< HEAD
-=======
         await _context.Users.UpdateOneAsync(filter, updateBuilder);
 
         if (isPasswordChangeRequested)
@@ -415,7 +415,6 @@ public class AccountController : Controller
         }
 
         // Eğer şifre değişmediyse sadece oturumu yeniliyoruz (kullanıcı adı değişmiş olabilir)
->>>>>>> origin/EmreControllers
         await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         return RedirectToAction("Login");
     }
@@ -503,11 +502,8 @@ public class AccountController : Controller
 
         return new string(chars);
     }
-<<<<<<< HEAD
-}
-=======
 
-        // ══════════════════════════════════════════════
+    // ══════════════════════════════════════════════
     // ŞİFRE GÜNCELLEME İÇİN DOĞRULAMA SAYFASI VE KONTROLÜ
     // ══════════════════════════════════════════════
     [HttpGet]
@@ -568,7 +564,7 @@ public class AccountController : Controller
         return RedirectToAction("Login");
     }
 
-        // ══════════════════════════════════════════════
+    // ══════════════════════════════════════════════
     // SADECE ADMIN: ÇALIŞAN ŞİFRESİNİ SIFIRLAMA (RESTART)
     // ══════════════════════════════════════════════
     [HttpPost]
@@ -639,4 +635,3 @@ public class AccountController : Controller
         return View();
     }
 }
->>>>>>> origin/EmreControllers
