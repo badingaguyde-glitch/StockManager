@@ -91,7 +91,7 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
   width: 100vw;
   height: 100vh;
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
   overflow: hidden;
   contain: strict;
 }
@@ -148,7 +148,6 @@ h1, h2, h3, h4, h5, h6, .navbar-brand {
 /* App Content Layer */
 .app-content-wrapper {
   position: relative;
-  z-index: 10;
 }
 
 /* ==========================================================================
