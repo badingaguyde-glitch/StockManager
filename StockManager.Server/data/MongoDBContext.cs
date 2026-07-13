@@ -8,13 +8,15 @@ namespace StockManager.Server.Data
     {
         private readonly IMongoDatabase _database;
 
+        public IMongoClient Client {get;}
+
         public MongoDBContext(IConfiguration configuration)
         {
             var connectionString = Environment.GetEnvironmentVariable("MONGODB_CONNECTION_STRING") ?? configuration.GetSection("MongoDbSettings:ConnectionString").Value;
             var databaseName = configuration.GetSection("MongoDbSettings:DatabaseName").Value;
 
-            var client = new MongoClient(connectionString);
-            _database = client.GetDatabase(databaseName);
+            Client = new MongoClient(connectionString);
+            _database = Client.GetDatabase(databaseName);
 
             SeedData();
         }
