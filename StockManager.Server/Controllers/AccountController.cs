@@ -41,7 +41,8 @@ public class AccountController : Controller
             return View();
         }
 
-        var user = await _context.Users.Find(u => u.Username == username).FirstOrDefaultAsync();
+        // Kullanıcı adını büyük/küçük harf duyarsız (case-insensitive) sorgula
+        var user = await _context.Users.Find(u => u.Username != null && u.Username.ToLower() == username.ToLower()).FirstOrDefaultAsync();
 
         if (user == null)
         {
@@ -277,7 +278,8 @@ public class AccountController : Controller
 
     private string GenerateRandomPassword(int length)
     {
-        const string validChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$";
+        // Okunabilirliği zorlaştıran benzer karakterler (l, 1, I, o, O, 0) havuzdan çıkarılmıştır.
+        const string validChars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$";
         StringBuilder res = new StringBuilder();
         Random rnd = new Random();
         while (0 < length--)
