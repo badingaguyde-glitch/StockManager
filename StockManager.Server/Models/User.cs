@@ -29,7 +29,18 @@ public class User
     [BsonElement("role")]
     public UserRole Role {get;set;}=UserRole.Personel;
 
-    // PascalCase fallback properties (for deserialization of existing DB records with uppercase keys)
+    [BsonElement("passwordResetCodeHash")]
+    [BsonIgnoreIfNull]
+    public string? PasswordResetCodeHash { get; set; }
+
+    [BsonElement("passwordResetCodeExpiresAt")]
+    [BsonIgnoreIfNull]
+    public DateTime? PasswordResetCodeExpiresAt { get; set; }
+
+    [BsonElement("passwordResetCodeAttempts")]
+    public int PasswordResetCodeAttempts { get; set; }
+
+    // PascalCase fallback properties (for deserialization of existing DB records with uppercase keys) (for deserialization of existing DB records with uppercase keys)
     [BsonElement("Email")]
     [BsonIgnoreIfNull]
     private string? EmailAlt { get => null; set => Email = value ?? string.Empty; }

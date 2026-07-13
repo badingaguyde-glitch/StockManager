@@ -108,4 +108,23 @@ public class SmtpEmailService : IEmailService
 
         await SendEmailAsync(to, subject, body);
     }
+
+    public async Task SendPasswordResetCodeAsync(string to, string code, int validityMinutes)
+    {
+        var subject = "StockManager - Şifre Sıfırlama Doğrulama Kodu";
+        var body = $@"
+<div style=""font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;"">
+    <div style=""background: #0d6efd; color: #ffffff; padding: 20px; text-align: center;"">
+        <h2 style=""margin: 0;"">Şifre Sıfırlama</h2>
+    </div>
+    <div style=""padding: 24px; background-color: #fafafa; color: #333;"">
+        <p>Şifrenizi sıfırlamak için aşağıdaki doğrulama kodunu kullanın:</p>
+        <p style=""font-size: 32px; font-weight: bold; letter-spacing: 8px; text-align: center; color: #0d6efd; margin: 24px 0;"">{code}</p>
+        <p style=""color: #666; font-size: 14px;"">Bu kod <strong>{validityMinutes} dakika</strong> geçerlidir. 5 kez yanlış girilirse kod iptal edilir.</p>
+        <p style=""color: #888; font-size: 13px; margin-bottom: 0;"">Bu talebi siz yapmadıysanız bu e-postayı yok sayabilirsiniz.</p>
+    </div>
+</div>";
+
+        await SendEmailAsync(to, subject, body);
+    }
 }

@@ -33,6 +33,10 @@ builder.Services.Configure<CloudinarySettings>(options =>
 });
 
 builder.Services.AddSingleton<MongoDBContext>();
+builder.Services.Configure<PasswordSecuritySettings>(
+    builder.Configuration.GetSection(PasswordSecuritySettings.SectionName));
+builder.Services.AddSingleton<IPasswordValidator, PasswordValidator>();
+builder.Services.AddSingleton<IPasswordResetService, PasswordResetService>();
 builder.Services.AddSingleton<StockManager.Server.Services.IEmailService, StockManager.Server.Services.SmtpEmailService>();
 builder.Services.AddSingleton<StockManager.Server.Services.IAuditLogService, StockManager.Server.Services.AuditLogService>();
 builder.Services.AddSingleton<StripePaymentService>(sp =>
@@ -48,6 +52,14 @@ builder.Services.AddScoped<IImageUploadService, CloudinaryImageService>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(10);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -66,6 +78,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthentication();
 
