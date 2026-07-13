@@ -2,6 +2,17 @@
     ViewData["Title"] = "Hızlı Satış (POS)";
 }
 
+<style>
+    #reader {
+        border: none !important;
+    }
+    #reader video {
+        border-radius: 0.5rem;
+        object-fit: cover;
+        width: 100% !important;
+    }
+</style>
+
 <div class="mb-3">
     <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
         <i class="bi bi-arrow-left"></i> Geri
@@ -20,10 +31,16 @@
                 <!-- Arama ve Barkod Girişi -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label fw-bold">Barkod Okutun</label>
+                        <label class="form-label fw-bold d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-upc-scan me-1"></i> Barkod Okutun</span>
+                            <small class="text-muted fw-normal">Kamera / Barkod Tabancası</small>
+                        </label>
                         <div class="input-group">
                             <input type="text" id="barcode-input" class="form-control" placeholder="Barkod okutun veya yazın..." autofocus autocomplete="off" />
-                            <button class="btn btn-primary" type="button" onclick="addProductByBarcode()">Ekle</button>
+                            <button class="btn btn-outline-primary fw-semibold d-flex align-items-center" type="button" onclick="openCameraModal()" title="Kamera ile Barkod Oku (F2)">
+                                <i class="bi bi-camera-video-fill me-1"></i> Kamera <span class="badge bg-primary-subtle text-primary ms-1 d-none d-sm-inline">F2</span>
+                            </button>
+                            <button class="btn btn-primary fw-semibold" type="button" onclick="addProductByBarcode()">Ekle</button>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -124,7 +141,72 @@
     </div>
 </div>
 
+<!-- Kamera ile Barkod Okuma Modalı -->
+<div class="modal fade" id="cameraScanModal" tabindex="-1" aria-labelledby="cameraScanModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-header-title mb-0 fw-bold" id="cameraScanModalLabel">
+                    <i class="bi bi-qr-code-scan me-2"></i>Kamera ile Barkod Tara
+                </h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeCameraModal()" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Kamera ve Mod Seçim Alanı -->
+                <div class="row g-3 mb-3 align-items-center">
+                    <div class="col-md-7">
+                        <label class="form-label fw-semibold text-muted small mb-1">Kamera Seçimi</label>
+                        <select id="camera-select" class="form-select" onchange="switchCamera()">
+                            <option value="">Kamera algılanıyor...</option>
+                        </select>
+                    </div>
+                    <div class="col-md-5 d-flex flex-column justify-content-end">
+                        <div class="form-check form-switch mt-md-3">
+                            <input class="form-check-input" type="checkbox" id="continuous-scan-toggle" checked />
+                            <label class="form-check-label fw-semibold" for="continuous-scan-toggle">
+                                Sürekli Tarama Modu
+                            </label>
+                        </div>
+                        <small class="text-muted" style="font-size: 0.75rem;">Açıkken pencere kapanmadan arka arkaya okur</small>
+                    </div>
+                </div>
+
+                <!-- Tarama Alanı -->
+                <div class="position-relative bg-dark rounded-3 overflow-hidden d-flex justify-content-center align-items-center mb-3" style="min-height: 320px;">
+                    <div id="reader" style="width: 100%; max-width: 520px;"></div>
+                    <!-- Tarayıcı Yükleniyor Durumu -->
+                    <div id="camera-loading" class="position-absolute text-white text-center p-3">
+                        <div class="spinner-border text-primary mb-2" role="status"></div>
+                        <div>Kamera başlatılıyor, lütfen izin verin...</div>
+                    </div>
+                </div>
+
+                <!-- Canlı Geri Bildirim ve Durum Mesajı -->
+                <div id="camera-feedback" class="alert alert-secondary mb-0 d-flex align-items-center">
+                    <i class="bi bi-info-circle-fill fs-5 me-2 text-primary"></i>
+                    <span id="camera-feedback-text">Barkodu kameranın görüş alanına hizalayın.</span>
+                </div>
+            </div>
+            <div class="modal-footer bg-light justify-content-between">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success me-2" id="camera-status-badge">Hazır</span>
+                    <small class="text-muted">Son Okunan: <strong id="last-scanned-barcode">-</strong></small>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary me-2" id="btn-toggle-camera" onclick="toggleCameraPause()">
+                        <i class="bi bi-pause-fill me-1"></i>Durdur
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeCameraModal()">
+                        Kapat
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
         let cart = [];
         const barcodeInput = document.getElementById('barcode-input');
@@ -146,9 +228,193 @@
             }
         });
 
+        // F2 tuşu ile kamera arayüzünü açma kısayolu
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'F2') {
+                e.preventDefault();
+                openCameraModal();
+            }
+        });
+
+        // Barkod okunduğunda bip sesi çal
+        function playBeepSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(1200, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.12);
+            } catch (e) {
+                console.log('Audio context error:', e);
+            }
+        }
+
+        let html5QrCode = null;
+        let isCameraScanning = false;
+        let isCameraPaused = false;
+        let isProcessingScan = false;
+
+        function openCameraModal() {
+            const modalEl = document.getElementById('cameraScanModal');
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+
+            document.getElementById('camera-loading').style.display = 'block';
+            showCameraFeedback(true, 'Barkodu kameranın görüş alanına hizalayın.');
+
+            Html5Qrcode.getCameras().then(devices => {
+                const cameraSelect = document.getElementById('camera-select');
+                cameraSelect.innerHTML = '';
+
+                if (devices && devices.length) {
+                    let backCameraId = devices[0].id;
+                    devices.forEach(device => {
+                        const opt = document.createElement('option');
+                        opt.value = device.id;
+                        opt.textContent = device.label || `Kamera ${cameraSelect.length + 1}`;
+                        cameraSelect.appendChild(opt);
+
+                        if ((device.label || '').toLowerCase().includes('back') || (device.label || '').toLowerCase().includes('arka')) {
+                            backCameraId = device.id;
+                        }
+                    });
+
+                    cameraSelect.value = backCameraId;
+                    startCameraScan(backCameraId);
+                } else {
+                    document.getElementById('camera-loading').style.display = 'none';
+                    showCameraFeedback(false, 'Cihaza bağlı kullanılabilir kamera bulunamadı.');
+                }
+            }).catch(err => {
+                document.getElementById('camera-loading').style.display = 'none';
+                showCameraFeedback(false, 'Kamera erişim izni alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
+            });
+        }
+
+        function startCameraScan(cameraId) {
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode('reader');
+            }
+
+            const config = {
+                fps: 10,
+                qrbox: { width: 280, height: 160 },
+                aspectRatio: 1.333334
+            };
+
+            html5QrCode.start(
+                cameraId,
+                config,
+                onBarcodeDetected,
+                (errorMessage) => {
+                    // Karede barkod bulunamadığında sessizce devam et
+                }
+            ).then(() => {
+                isCameraScanning = true;
+                isCameraPaused = false;
+                document.getElementById('camera-loading').style.display = 'none';
+                updateCameraStatus('Hazır', 'bg-success');
+            }).catch(err => {
+                document.getElementById('camera-loading').style.display = 'none';
+                showCameraFeedback(false, 'Kamera başlatılamadı: ' + err);
+            });
+        }
+
+        function switchCamera() {
+            const cameraId = document.getElementById('camera-select').value;
+            if (!cameraId || !html5QrCode || !isCameraScanning) return;
+
+            html5QrCode.stop().then(() => {
+                isCameraScanning = false;
+                startCameraScan(cameraId);
+            }).catch(err => console.error(err));
+        }
+
+        function toggleCameraPause() {
+            if (!html5QrCode || !isCameraScanning) return;
+
+            const btn = document.getElementById('btn-toggle-camera');
+            if (!isCameraPaused) {
+                html5QrCode.pause();
+                isCameraPaused = true;
+                btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Devam Et';
+                updateCameraStatus('Durduruldu', 'bg-warning text-dark');
+            } else {
+                html5QrCode.resume();
+                isCameraPaused = false;
+                btn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Durdur';
+                updateCameraStatus('Hazır', 'bg-success');
+            }
+        }
+
+        function closeCameraModal() {
+            const modalEl = document.getElementById('cameraScanModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+
+            if (html5QrCode && isCameraScanning) {
+                html5QrCode.stop().then(() => {
+                    isCameraScanning = false;
+                    html5QrCode.clear();
+                    if (modal) modal.hide();
+                    barcodeInput.focus();
+                }).catch(err => {
+                    if (modal) modal.hide();
+                });
+            } else {
+                if (modal) modal.hide();
+                barcodeInput.focus();
+            }
+        }
+
+        function onBarcodeDetected(decodedText) {
+            if (isProcessingScan || isCameraPaused) return;
+
+            isProcessingScan = true;
+            playBeepSound();
+
+            document.getElementById('last-scanned-barcode').textContent = decodedText;
+            barcodeInput.value = decodedText;
+
+            addProductByBarcode(decodedText, true).finally(() => {
+                const isContinuous = document.getElementById('continuous-scan-toggle').checked;
+                if (isContinuous) {
+                    setTimeout(() => {
+                        isProcessingScan = false;
+                    }, 1500);
+                } else {
+                    setTimeout(() => {
+                        isProcessingScan = false;
+                        closeCameraModal();
+                    }, 650);
+                }
+            });
+        }
+
+        function updateCameraStatus(text, badgeClass) {
+            const badge = document.getElementById('camera-status-badge');
+            if (badge) {
+                badge.className = `badge ${badgeClass} me-2`;
+                badge.textContent = text;
+            }
+        }
+
+        function showCameraFeedback(isSuccess, message) {
+            const feedbackEl = document.getElementById('camera-feedback');
+            const feedbackText = document.getElementById('camera-feedback-text');
+            if (feedbackEl && feedbackText) {
+                feedbackEl.className = `alert ${isSuccess ? 'alert-success' : 'alert-warning'} mb-0 d-flex align-items-center`;
+                feedbackText.innerHTML = message;
+            }
+        }
+
         // AJAX: Barkod ile ürünü sorgula ve sepete ekle
-        async function addProductByBarcode() {
-            const barcode = barcodeInput.value.trim();
+        async function addProductByBarcode(customBarcode = null, fromCamera = false) {
+            const barcode = (typeof customBarcode === 'string' && customBarcode) ? customBarcode.trim() : barcodeInput.value.trim();
             if (!barcode) return;
 
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -164,21 +430,35 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    addToCartArray({
+                    const added = addToCartArray({
                         productId: data.id,
                         name: data.name,
                         price: parseFloat(data.salePrice),
                         stock: parseInt(data.quantity)
-                    });
+                    }, fromCamera);
+
+                    if (fromCamera && added) {
+                        showCameraFeedback(true, `✅ <strong>${data.name}</strong> (${parseFloat(data.salePrice).toFixed(2)} ₺) sepete eklendi!`);
+                    }
                 } else {
-                    alert(data.message || 'Ürün bulunamadı.');
+                    if (fromCamera) {
+                        showCameraFeedback(false, `⚠️ <strong>${barcode}</strong> barkodlu ürün bulunamadı!`);
+                    } else {
+                        alert(data.message || 'Ürün bulunamadı.');
+                    }
                 }
             } catch (error) {
                 console.error(error);
-                alert('Ürün eklenirken bir hata oluştu.');
+                if (fromCamera) {
+                    showCameraFeedback(false, '❌ Ürün sorgulanırken bir hata oluştu.');
+                } else {
+                    alert('Ürün eklenirken bir hata oluştu.');
+                }
             } finally {
-                barcodeInput.value = '';
-                barcodeInput.focus();
+                if (!fromCamera) {
+                    barcodeInput.value = '';
+                    barcodeInput.focus();
+                }
             }
         }
 
@@ -198,19 +478,23 @@
         }
 
         // Arayüz verilerini JavaScript dizisine ekler/günceller
-        function addToCartArray(product) {
+        function addToCartArray(product, fromCamera = false) {
             const existingItem = cart.find(item => item.productId === product.productId);
 
             if (existingItem) {
                 if (existingItem.quantity >= product.stock) {
-                    alert(`Bu üründen stokta sadece ${product.stock} adet mevcut.`);
-                    return;
+                    const msg = `Bu üründen stokta sadece ${product.stock} adet mevcut.`;
+                    if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
+                    else alert(msg);
+                    return false;
                 }
                 existingItem.quantity++;
             } else {
                 if (product.stock <= 0) {
-                    alert('Bu ürün stokta bulunmamaktadır.');
-                    return;
+                    const msg = 'Bu ürün stokta bulunmamaktadır.';
+                    if (fromCamera) showCameraFeedback(false, `⚠️ ${msg}`);
+                    else alert(msg);
+                    return false;
                 }
                 cart.push({
                     productId: product.productId,
@@ -222,6 +506,7 @@
             }
 
             renderCart();
+            return true;
         }
 
         // Sepeti HTML tarafında günceller
