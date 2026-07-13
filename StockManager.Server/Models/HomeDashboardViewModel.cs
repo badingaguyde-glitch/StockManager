@@ -11,5 +11,9 @@ public class HomeDashboardViewModel
     public int SalesCount { get; set; }
     public decimal TotalStockValue { get; set; }
 
+    public int LowStockCount { get; set; }
+    public decimal TodaySalesTotal { get; set; }
+
     public string TotalStockValueFormatted => TotalStockValue.ToString("C2", CultureInfo.GetCultureInfo("tr-TR"));
+    public string TodaySalesTotalFormatted => TodaySalesTotal.ToString("C2", CultureInfo.GetCultureInfo("tr-TR"));
 }

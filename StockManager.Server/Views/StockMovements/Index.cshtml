@@ -7,80 +7,119 @@
     var customerNames = ViewBag.CustomerNames as Dictionary<string, string> ?? new Dictionary<string, string>();
 }
 
-<div class="mb-3">
-    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
-        <i class="bi bi-arrow-left"></i> Geri
+<div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="mb-0 fw-bold">Stok Hareketleri</h2>
+        </div>
+        <p class="text-muted small mb-0 mt-1">Depoya giren, çıkan ve düzeltilen tüm stok işlem fişleri</p>
+    </div>
+    <a asp-action="Create" class="btn btn-primary d-inline-flex align-items-center gap-2 rounded-pill px-4">
+        <i class="bi bi-plus-lg"></i> Yeni Stok Hareketi Ekle
     </a>
 </div>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2>Stok Hareketleri</h2>
-    <a asp-action="Create" class="btn btn-primary">Yeni Stok Hareketi Ekle</a>
-</div>
+<div class="card glass-card border-0 shadow-sm overflow-hidden">
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="p-5 text-center text-muted">
+                <i class="bi bi-arrow-left-right display-4 d-block mb-3 opacity-50"></i>
+                <h5>Henüz stok hareketi kaydı bulunmuyor.</h5>
+                <p class="small text-muted mb-0">İlk stok hareketini oluşturmak için yukarıdaki butona tıklayın.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Tarih</th>
+                            <th>Ürün</th>
+                            <th>Hareket Türü</th>
+                            <th class="text-center">Miktar</th>
+                            <th>İlişkili Cari</th>
+                            <th>Notlar</th>
+                            <th class="text-end pe-4">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            var pName = !string.IsNullOrEmpty(item.ProductId) && productNames.TryGetValue(item.ProductId, out var foundProduct)
+                                ? foundProduct
+                                : "Bilinmeyen Ürün";
 
-@if (!Model.Any())
-{
-    <div class="alert alert-info">Henüz stok hareketi eklenmemiş.</div>
-}
-else
-{
-    <table class="table table-striped">
-        <thread>
-            <tr>
-                <th>Tarihi</th>
-                <th>Ürün</th>
-                <th>Tür</th>
-                <th class="text-center">Miktar</th>
-                <th>İlişkili Cari</th>
-                <th>Notlar</th>
-                <th></th>
-            </tr>
-        </thread>
-        <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</td>
-                    <td>
-                        @(productNames.ContainsKey(item.ProductId) ? productNames[item.ProductId] : "Bilinmeyen Ürün")
-                    </td>
-                    <td>
-                        @switch (item.Type)
-                        {
-                            case StockManager.Server.Models.StockMovementType.StockIn:
-                                <span class="badge bg-success">Stok Girişi</span>
-                                break;
-                            case StockManager.Server.Models.StockMovementType.StockOut:
-                                <span class="badge bg-danger">Stok Çıkışı</span>
-                                break;
-                            case StockManager.Server.Models.StockMovementType.Adjustment:
-                                <span class="badge bg-info text-dark">Düzeltme</span>
-                                break;
+                            <tr>
+                                <td class="ps-4 text-nowrap">
+                                    <div class="fw-semibold">@item.Date.ToLocalTime().ToString("dd.MM.yyyy")</div>
+                                    <small class="text-muted">@item.Date.ToLocalTime().ToString("HH:mm")</small>
+                                </td>
+                                <td>
+                                    <div class="fw-bold">@pName</div>
+                                </td>
+                                <td>
+                                    @switch (item.Type)
+                                    {
+                                        case StockManager.Server.Models.StockMovementType.StockIn:
+                                            <span class="badge rounded-pill bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-3 py-1.5">
+                                                <i class="bi bi-arrow-down-left me-1"></i> Stok Girişi
+                                            </span>
+                                            break;
+                                        case StockManager.Server.Models.StockMovementType.StockOut:
+                                            <span class="badge rounded-pill bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 px-3 py-1.5">
+                                                <i class="bi bi-arrow-up-right me-1"></i> Stok Çıkışı
+                                            </span>
+                                            break;
+                                        case StockManager.Server.Models.StockMovementType.Adjustment:
+                                            <span class="badge rounded-pill bg-info bg-opacity-25 text-info border border-info border-opacity-25 px-3 py-1.5">
+                                                <i class="bi bi-sliders me-1"></i> Düzeltme
+                                            </span>
+                                            break;
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <span class="fs-6 fw-bold">@item.Quantity</span>
+                                </td>
+                                <td>
+                                    @if (item.Type == StockManager.Server.Models.StockMovementType.StockIn && !string.IsNullOrEmpty(item.SupplierId))
+                                    {
+                                        var sName = supplierNames.TryGetValue(item.SupplierId, out var foundSupplier) ? foundSupplier : "Bilinmeyen Tedarikçi";
+                                        <span class="badge bg-secondary bg-opacity-25 text-secondary border border-secondary border-opacity-25">
+                                            <i class="bi bi-truck me-1"></i> @sName
+                                        </span>
+                                    }
+                                    else if (item.Type == StockManager.Server.Models.StockMovementType.StockOut && !string.IsNullOrEmpty(item.CustomerId))
+                                    {
+                                        var cName = customerNames.TryGetValue(item.CustomerId, out var foundCustomer) ? foundCustomer : "Bilinmeyen Müşteri";
+                                        <span class="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25">
+                                            <i class="bi bi-person me-1"></i> @cName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="text-truncate d-inline-block" style="max-width: 220px;" title="@item.Notes">
+                                        @(string.IsNullOrWhiteSpace(item.Notes) ? "-" : item.Notes)
+                                    </span>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+                                        <i class="bi bi-eye"></i> Detay
+                                    </a>
+                                </td>
+                            </tr>
                         }
-                    </td>
-                    <td class="text-center fw-bold">@item.Quantity</td>
-                    <td>
-                        @if (!string.IsNullOrEmpty(item.SupplierId))
-                        {
-                            <span class="text-muted">Tedarikçi: </span>
-                            @(supplierNames.ContainsKey(item.SupplierId) ? supplierNames[item.SupplierId] : "Bilinmeyen Tedarikçi")
-                        }
-                        else if (!string.IsNullOrEmpty(item.CustomerId))
-                        {
-                            <span class="text-muted">Müşteri: </span>
-                            @(customerNames.ContainsKey(item.CustomerId) ? customerNames[item.CustomerId] : "Bilinmeyen Müşteri")
-                        }
-                        else
-                        {
-                            <span class="text-muted">-</span>
-                        }
-                    </td>
-                    <td class="text-truncate" style="max-width: 150px;" title="@item.Notes">@item.Notes</td>
-                    <td>
-                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detay</a>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-}
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
