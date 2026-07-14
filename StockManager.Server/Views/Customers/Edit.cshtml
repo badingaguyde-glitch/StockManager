@@ -10,27 +10,45 @@
     </a>
 </div>
 
-<h2>Müşteri Düzenle</h2>
+<h2 class="mb-4 fw-bold"><i class="bi bi-pencil-square text-primary me-2"></i>Müşteri Düzenle</h2>
 
-<form asp-action="Edit" method="post">
-    <input asp-for="Id" type="hidden" />
-    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-    <div class="mb-3">
-        <label asp-for="FullName" class="form-label"></label>
-        <input asp-for="FullName" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Phone" class="form-label"></label>
-        <input asp-for="Phone" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Email" class="form-label"></label>
-        <input asp-for="Email" class="form-control" />
-    </div>
-    <div class="mb-3">
-        <label asp-for="Balance" class="form-label"></label>
-        <input asp-for="Balance" class="form-control" />
-    </div>
-    <button type="submit" class="btn btn-primary">Güncelle</button>
-    <a asp-action="Index" class="btn btn-secondary">İptal</a>
-</form>
+<div class="card glass-card p-4 border-0 shadow-sm" style="max-width: 600px; border-radius: 16px;">
+    <form asp-action="Edit" method="post">
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label fw-semibold">Müşteri Adı</label>
+            <input asp-for="FullName" class="form-control" placeholder="Müşterinin tam adını giriniz" required />
+            <span asp-validation-for="FullName" class="text-danger small mt-1 d-block"></span>
+        </div>
+        
+        <div class="mb-3">
+            <label asp-for="Phone" class="form-label fw-semibold d-block">Telefon Numarası</label>
+            <input asp-for="Phone" class="form-control intl-phone-input w-100" type="tel" />
+            <span asp-validation-for="Phone" class="text-danger small mt-1 d-block"></span>
+            <div class="phone-validation-error text-danger small mt-1" style="display:none;"></div>
+        </div>
+        
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label fw-semibold">E-Posta Adresi</label>
+            <input asp-for="Email" class="form-control" type="email" placeholder="ornek@domain.com" />
+            <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
+        </div>
+        
+        <div class="mb-3">
+            <label asp-for="Balance" class="form-label fw-semibold">Mevcut Bakiye</label>
+            <input asp-for="Balance" class="form-control" type="number" step="0.01" min="0" max="1000000000" placeholder="0.00" />
+            <span asp-validation-for="Balance" class="text-danger small mt-1 d-block"></span>
+        </div>
+        
+        <div class="mt-4 pt-2">
+            <button type="submit" class="btn btn-primary px-4 me-2">Güncelle</button>
+            <a asp-action="Index" class="btn btn-secondary px-4">İptal</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

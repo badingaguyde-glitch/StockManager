@@ -213,7 +213,7 @@
 <div class="row g-3 mb-4">
     <!-- Bugünün Cirosu -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="today-sales" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">BUGÜNÜN SATIŞ CİROSU</span>
                 <h3 class="fw-bold mb-1" style="color: #10b981;">₺@Model.TodaySalesTotal.ToString("N2")</h3>
@@ -227,7 +227,7 @@
 
     <!-- Toplam Stok Değeri -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="stock-value" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">STOK YATIRIM DEĞERİ</span>
                 <h3 class="fw-bold mb-1" style="color: #38bdf8;">@Model.TotalStockValueFormatted</h3>
@@ -241,7 +241,7 @@
 
     <!-- Kritik Stok Uyarısı -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="low-stock" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">KRİTİK STOK SEVİYESİ</span>
                 <h3 class="fw-bold mb-1 @(Model.LowStockCount > 0 ? "text-danger" : "text-success")">
@@ -260,7 +260,7 @@
 
     <!-- Kayıtlı Ürün Çeşidi -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="product-portfolio" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">ÜRÜN PORTFÖYÜ</span>
                 <h3 class="fw-bold mb-1" style="color: #818cf8;">@Model.ProductCount.ToString("N0")</h3>
@@ -274,7 +274,7 @@
 
     <!-- Müşteri Portföyü -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="customers" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">MÜŞTERİ HESAPLARI</span>
                 <h3 class="fw-bold mb-1" style="color: #f59e0b;">@Model.CustomerCount.ToString("N0")</h3>
@@ -288,7 +288,7 @@
 
     <!-- Gerçekleşen Toplam Satış -->
     <div class="col-sm-6 col-xl-4">
-        <div class="kpi-card">
+        <div class="kpi-card" data-kpi-type="total-sales" style="cursor: pointer;">
             <div>
                 <span class="text-muted fw-bold small d-block mb-1" style="letter-spacing: 0.5px;">TOPLAM SATIŞ İŞLEMİ</span>
                 <h3 class="fw-bold mb-1" style="color: #ec4899;">@Model.SalesCount.ToString("N0")</h3>
@@ -542,6 +542,63 @@
                     dropdown.classList.add('d-none');
                 }
             });
+
+            // KPI detaylarını yüklemek için olay dinleyicileri
+            document.querySelectorAll('.kpi-card[data-kpi-type]').forEach(card => {
+                card.addEventListener('click', async function() {
+                    const kpiType = this.getAttribute('data-kpi-type');
+                    const modalEl = document.getElementById('kpiDetailModal');
+                    const modalBody = document.getElementById('kpiDetailModalBody');
+                    const modalTitle = document.getElementById('kpiDetailModalLabel');
+                    
+                    if (!modalEl || !modalBody) return;
+                    
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                    
+                    modalBody.innerHTML = `
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-indigo" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    try {
+                        const response = await fetch(`/Home/GetKpiDetails?kpiType=${kpiType}`);
+                        if (response.ok) {
+                            const html = await response.text();
+                            modalBody.innerHTML = html;
+                            
+                            // Arama detayından başlığı güncelle
+                            const titleEl = modalBody.querySelector('[data-kpi-title]');
+                            if (titleEl && modalTitle) {
+                                modalTitle.textContent = titleEl.getAttribute('data-kpi-title');
+                            }
+                        } else {
+                            modalBody.innerHTML = `<div class="alert alert-danger">Detay verileri yüklenirken bir hata oluştu.</div>`;
+                        }
+                    } catch (error) {
+                        console.error("KPI detay yükleme hatası:", error);
+                        modalBody.innerHTML = `<div class="alert alert-danger">Sunucuya bağlanırken bir hata oluştu.</div>`;
+                    }
+                });
+            });
         }
     </script>
 }
+
+<!-- KPI Detay Modalı -->
+<div class="modal fade" id="kpiDetailModal" tabindex="-1" aria-labelledby="kpiDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg animate-fade-in" style="border-radius: 20px; overflow: hidden; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle) !important;">
+            <div class="modal-header border-0 pb-0" style="background: transparent;">
+                <h5 class="modal-title fw-bold text-main" id="kpiDetailModalLabel">KPI Detayları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat" style="filter: var(--theme-close-btn-filter);"></button>
+            </div>
+            <div class="modal-body p-4" id="kpiDetailModalBody">
+                <!-- İçerik AJAX ile yüklenecek -->
+            </div>
+        </div>
+    </div>
+</div>

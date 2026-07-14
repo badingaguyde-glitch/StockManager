@@ -1,0 +1,255 @@
+@using StockManager.Server.Controllers
+@{
+    var title = ViewBag.Title as string ?? "Detaylar";
+    var kpiType = ViewBag.KpiType as string ?? "";
+}
+
+<!-- Bu veri başlığını JS tarafına aktarmak için bir veri etiketi barındırıyor -->
+<div data-kpi-title="@title" style="display: none;"></div>
+
+<div class="table-responsive">
+    @if (kpiType == "today-sales")
+    {
+        var sales = Model as List<KpiTodaySaleDto>;
+        if (sales == null || !sales.Any())
+        {
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-calendar-x d-block fs-2 mb-2 opacity-50"></i>
+                Bugün henüz hiç satış işlemi gerçekleştirilmedi.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Saat</th>
+                        <th>Fiş/Fatura No</th>
+                        <th>Müşteri</th>
+                        <th>Ödeme Yöntemi</th>
+                        <th class="text-end">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in sales)
+                    {
+                        <tr>
+                            <td class="fw-semibold"><i class="bi bi-clock me-1 text-primary"></i>@s.Time</td>
+                            <td><span class="badge bg-secondary font-monospace">@s.InvoiceNumber</span></td>
+                            <td class="fw-medium">@s.CustomerName</td>
+                            <td>
+                                <span class="badge @(s.PaymentType.Contains("Kredi") ? "bg-info text-dark" : "bg-success")">
+                                    @s.PaymentType
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-success">₺@s.TotalAmount.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (kpiType == "stock-value")
+    {
+        var stats = Model as List<KpiCategoryValueDto>;
+        if (stats == null || !stats.Any())
+        {
+            <div class="text-center py-4 text-muted">
+                Kategori istatistikleri bulunamadı.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Kategori</th>
+                        <th class="text-center">Ürün Çeşidi</th>
+                        <th class="text-center">Toplam Adet</th>
+                        <th class="text-end">Maliyet Değeri</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in stats)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="d-flex align-items-center justify-content-center rounded-circle text-white" 
+                                          style="width: 32px; height: 32px; background: @(string.IsNullOrEmpty(c.Color) ? "var(--accent-primary)" : c.Color);">
+                                        <i class="bi @(string.IsNullOrEmpty(c.Icon) ? "bi-tag" : c.Icon) fs-6"></i>
+                                    </span>
+                                    <span class="fw-bold">@c.CategoryName</span>
+                                </div>
+                            </td>
+                            <td class="text-center fw-medium">@c.ProductCount.ToString("N0")</td>
+                            <td class="text-center fw-medium">@c.TotalQuantity.ToString("N0") Adet</td>
+                            <td class="text-end fw-bold text-info">₺@c.TotalValue.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="table-dark">
+                        <td class="fw-bold">TOPLAM</td>
+                        <td class="text-center fw-bold">@stats.Sum(x => x.ProductCount).ToString("N0")</td>
+                        <td class="text-center fw-bold">@stats.Sum(x => x.TotalQuantity).ToString("N0") Adet</td>
+                        <td class="text-end fw-bold text-success">₺@stats.Sum(x => x.TotalValue).ToString("N2")</td>
+                    </tr>
+                </tfoot>
+            </table>
+        }
+    }
+    else if (kpiType == "low-stock")
+    {
+        var products = Model as List<KpiLowStockDto>;
+        if (products == null || !products.Any())
+        {
+            <div class="text-center py-4 text-success">
+                <i class="bi bi-patch-check-fill d-block fs-1 mb-2"></i>
+                Harika! Kritik stok seviyesinin altında hiçbir ürününüz bulunmuyor.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Barkod</th>
+                        <th>Ürün Adı</th>
+                        <th class="text-center">Kritik Eşik</th>
+                        <th class="text-center">Mevcut Stok</th>
+                        <th class="text-end">Alış Fiyatı</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in products)
+                    {
+                        <tr>
+                            <td class="font-monospace text-muted">@(p.Barcode ?? "-")</td>
+                            <td class="fw-bold text-danger">@p.Name</td>
+                            <td class="text-center fw-medium">@p.Threshold.ToString("N0")</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger rounded-pill px-2.5 py-1.5 fw-bold">@p.Quantity.ToString("N0") Adet</span>
+                            </td>
+                            <td class="text-end fw-semibold">₺@p.PurchasePrice.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (kpiType == "product-portfolio")
+    {
+        var portfolio = Model as List<KpiProductPortfolioDto>;
+        if (portfolio == null || !portfolio.Any())
+        {
+            <div class="text-center py-4 text-muted">
+                Portföy bilgisi bulunamadı.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Kategori</th>
+                        <th class="text-center">Kayıtlı Ürün Sayısı</th>
+                        <th class="text-center">Depodaki Toplam Adet</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in portfolio)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="d-flex align-items-center justify-content-center rounded-circle text-white" 
+                                          style="width: 32px; height: 32px; background: @(string.IsNullOrEmpty(c.Color) ? "var(--accent-primary)" : c.Color);">
+                                        <i class="bi @(string.IsNullOrEmpty(c.Icon) ? "bi-tag" : c.Icon) fs-6"></i>
+                                    </span>
+                                    <span class="fw-bold">@c.CategoryName</span>
+                                </div>
+                            </td>
+                            <td class="text-center fw-semibold" style="color: var(--accent-primary);">@c.ProductCount.ToString("N0")</td>
+                            <td class="text-center fw-medium">@c.TotalQuantity.ToString("N0") Adet</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (kpiType == "customers")
+    {
+        var customers = Model as List<KpiCustomerDto>;
+        if (customers == null || !customers.Any())
+        {
+            <div class="text-center py-4 text-muted">
+                Cari müşteri bulunamadı.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Müşteri Adı</th>
+                        <th>Telefon</th>
+                        <th>E-Posta</th>
+                        <th class="text-end">Güncel Bakiye</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in customers)
+                    {
+                        <tr>
+                            <td class="fw-bold text-main">@c.FullName</td>
+                            <td class="font-monospace">@c.Phone</td>
+                            <td>@c.Email</td>
+                            <td class="text-end fw-bold text-warning">₺@c.Balance.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    else if (kpiType == "total-sales")
+    {
+        var sales = Model as List<KpiTotalSaleDto>;
+        if (sales == null || !sales.Any())
+        {
+            <div class="text-center py-4 text-muted">
+                Kayıtlı satış işlemi bulunamadı.
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th>Fiş/Fatura No</th>
+                        <th>Müşteri</th>
+                        <th>Ödeme</th>
+                        <th class="text-end">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in sales)
+                    {
+                        <tr>
+                            <td class="fw-medium"><i class="bi bi-calendar-event me-1 text-primary"></i>@s.Date</td>
+                            <td><span class="badge bg-secondary font-monospace">@s.InvoiceNumber</span></td>
+                            <td>@s.CustomerName</td>
+                            <td>
+                                <span class="badge @(s.PaymentType.Contains("Kredi") ? "bg-info text-dark" : "bg-success")">
+                                    @s.PaymentType
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-success">₺@s.TotalAmount.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>

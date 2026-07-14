@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace StockManager.Server.Models;
 
@@ -16,6 +17,7 @@ public class Sale
     public string InvoiceNumber { get; set; } = string.Empty;
 
     [BsonElement("totalAmount")]
+    [Range(0, 1000000000, ErrorMessage = "Satış tutarı 0 ile 1.000.000.000 TL arasında olmalıdır.")]
     public decimal TotalAmount { get; set; }
 
     [BsonElement("customerId")]

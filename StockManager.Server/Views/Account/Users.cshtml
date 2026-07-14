@@ -15,15 +15,13 @@
     <h2>Personel Yönetimi</h2>
     <a asp-action="Register" class="btn btn-primary">Yeni Personel Ekle</a>
 </div>
-
 <table class="table table-striped align-middle">
     <thead>
         <tr>
             <th>Kullanıcı Adı</th>
             <th>E-posta</th>
             <th>Mevcut Rol</th>
-            <th>Rolü Güncelle</th>
-            <th>Aksiyonlar</th>
+            <th class="text-center" style="width: 100px;">İşlemler</th>
         </tr>
     </thead>
     <tbody>
@@ -49,49 +47,61 @@
                             break;
                     }
                 </td>
-                <td>
+                <td class="text-center">
                     @if (!isSelf)
                     {
-                        <form asp-action="ChangeRole" method="post" class="d-inline-flex gap-1">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@user.Id" />
-                            @{
-                                string? selAdmin = user.Role == UserRole.Admin ? "selected" : null;
-                                string? selPersonel = user.Role == UserRole.Personel ? "selected" : null;
-                                string? selMuhasebeci = user.Role == UserRole.Muhasebeci ? "selected" : null;
-                            }
-                            <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="0" selected="@selAdmin">Yönetici (Admin)</option>
-                                <option value="1" selected="@selPersonel">Personel</option>
-                                <option value="2" selected="@selMuhasebeci">Muhasebeci</option>
-                            </select>
-                        </form>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-gear-fill"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0" style="border-radius: 12px; background: var(--bg-card); border: 1px solid var(--border-subtle) !important;">
+                                <!-- Rol Değiştirme Alt Menüsü -->
+                                <li class="dropdown-header text-muted small fw-bold pb-1.5">ROLÜ DEĞİŞTİR</li>
+                                <li class="px-3 pb-2">
+                                    <form asp-action="ChangeRole" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        @{
+                                            string? selAdmin = user.Role == UserRole.Admin ? "selected" : null;
+                                            string? selPersonel = user.Role == UserRole.Personel ? "selected" : null;
+                                            string? selMuhasebeci = user.Role == UserRole.Muhasebeci ? "selected" : null;
+                                        }
+                                        <select name="role" class="form-select form-select-sm" onchange="this.form.submit()">
+                                            <option value="0" selected="@selAdmin">Yönetici (Admin)</option>
+                                            <option value="1" selected="@selPersonel">Personel</option>
+                                            <option value="2" selected="@selMuhasebeci">Muhasebeci</option>
+                                        </select>
+                                    </form>
+                                </li>
+                                <li><hr class="dropdown-divider border-secondary opacity-25"></li>
+                                
+                                <!-- Şifreyi Sıfırla Eylemi -->
+                                <li>
+                                    <form asp-action="ResetUserPassword" method="post" class="m-0" onsubmit="return handleResetSubmit(this, '@user.Username')">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@user.Id" />
+                                        <button type="submit" class="dropdown-item text-warning py-2">
+                                            <i class="bi bi-arrow-counterclockwise me-2"></i>Şifreyi Sıfırla
+                                        </button>
+                                    </form>
+                                </li>
+                                
+                                <!-- Hesabı Sil Eylemi -->
+                                <li>
+                                    <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="m-0">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="dropdown-item text-danger py-2"
+                                                onclick="return confirm('@user.Username adlı personeli silmek istediğinize emin misiniz?');">
+                                            <i class="bi bi-trash me-2"></i>Hesabı Sil
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                     }
                     else
                     {
-                        <span class="text-muted small">Kendi rolünüzü değiştiremezsiniz.</span>
-                    }
-                </td>
-                <td>
-                    @if (!isSelf)
-                    {
-                        <!-- Şifreyi Sıfırla (Restart) Formu -->
-                        <form asp-action="ResetUserPassword" method="post" class="d-inline me-1" onsubmit="return handleResetSubmit(this, '@user.Username')">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@user.Id" />
-                            <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold">
-                                <i class="bi bi-arrow-counterclockwise"></i> Şifreyi Sıfırla
-                            </button>
-                        </form>
-
-                        <!-- Hesabı Sil Formu -->
-                        <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-danger"
-                                    onclick="return confirm('@user.Username adlı personeli silmek istediğinize emin misiniz?');">
-                                <i class="bi bi-trash"></i> Hesabı Sil
-                            </button>
-                        </form>
+                        <span class="text-muted small"><i class="bi bi-lock-fill"></i> Kilitli</span>
                     }
                 </td>
             </tr>

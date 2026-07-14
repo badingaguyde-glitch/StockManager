@@ -172,9 +172,9 @@ public class ReportsController : Controller
 
         decimal revenue = sales.Sum(s => s.TotalAmount);
         decimal cost = 0m;
-
         foreach (var sale in sales)
         {
+            if (sale.Items == null) continue;
             foreach (var item in sale.Items)
             {
                 if (item.ProductId != null && productDict.TryGetValue(item.ProductId, out var product))

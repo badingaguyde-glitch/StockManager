@@ -122,7 +122,13 @@
                     </div>
                 </td>
                 <td class="align-middle">@item.Barcode</td>
-                <td class="align-middle">@item.Name</td>
+                <td class="align-middle">
+                    <div class="fw-semibold text-main">@item.Name</div>
+                    @if (!string.IsNullOrWhiteSpace(item.Description))
+                    {
+                        <small class="text-muted d-block mt-0.5" style="font-size: 0.78rem;">@item.Description</small>
+                    }
+                </td>
                 <td class="align-middle">@item.Quantity</td>
                 <td class="align-middle">@item.PurchasePrice.ToString("0.00") ₺</td>
                 <td class="align-middle">@item.SalePrice.ToString("0.00") ₺</td>

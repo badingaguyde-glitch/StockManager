@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace StockManager.Server.Models;
 
@@ -11,6 +12,7 @@ public class Supplier
     public string? Id { get; set; }
 
     [BsonElement("companyName")]
+    [Required(ErrorMessage = "Firma adı zorunludur.")]
     public string CompanyName { get; set; } = string.Empty;
 
     [BsonElement("contactName")]
@@ -20,9 +22,11 @@ public class Supplier
     public string? Phone { get; set; }
 
     [BsonElement("email")]
+    [EmailAddress(ErrorMessage = "Geçersiz e-posta adresi.")]
     public string? Email { get; set; }
 
     [BsonElement("balance")]
+    [Range(0, 1000000000, ErrorMessage = "Bakiye 0 ile 1.000.000.000 TL arasında olmalıdır.")]
     public decimal Balance { get; set; }
 
     // 🆕 Yeni alan - Tedarikçi logosu URL'i

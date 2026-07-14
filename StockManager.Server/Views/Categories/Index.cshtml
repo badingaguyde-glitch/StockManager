@@ -3,6 +3,8 @@
 @{
     ViewData["Title"] = "Kategoriler";
     var productCounts = ViewBag.ProductCounts as Dictionary<string, int> ?? new Dictionary<string, int>();
+    var categoryStats = ViewBag.CategoryStats as Dictionary<string, StockManager.Server.Controllers.CategoryStats> 
+                        ?? new Dictionary<string, StockManager.Server.Controllers.CategoryStats>();
     var totalProducts  = productCounts.Values.Sum();
     var categoryList   = Model.ToList();
     var avgPerCategory = categoryList.Any() ? (totalProducts / categoryList.Count) : 0;
@@ -121,23 +123,35 @@ else
             var icon  = string.IsNullOrEmpty(item.Icon)  ? "bi-tag-fill" : item.Icon;
             var count = (item.Id != null && productCounts.ContainsKey(item.Id))
                         ? productCounts[item.Id] : 0;
+            var stats = (item.Id != null && categoryStats.ContainsKey(item.Id))
+                        ? categoryStats[item.Id] : new StockManager.Server.Controllers.CategoryStats();
 
             <div class="col-md-6 col-lg-4 cat-item">
                 <div class="card cat-card shadow-sm h-100">
                     <div class="cat-accent" style="background-color: @color;"></div>
                     <div class="card-body d-flex flex-column gap-2 p-3">
 
-                        <!-- İkon + İsim + Rozet -->
+                        <!-- İkon + İsim + Rozetler -->
                         <div class="d-flex align-items-center gap-3">
                             <div class="cat-icon-circle" style="background-color: @color;">
                                 <i class="bi @icon"></i>
                             </div>
                             <div>
                                 <h5 class="mb-1 fw-bold cat-name">@item.Name</h5>
-                                <span class="badge rounded-pill"
-                                      style="background-color: @color; font-size:.72rem;">
-                                    <i class="bi bi-box-seam me-1"></i>@count ürün
-                                </span>
+                                <div class="d-flex flex-wrap gap-1 align-items-center">
+                                    <span class="badge rounded-pill"
+                                          style="background-color: @color; font-size:.68rem;">
+                                        <i class="bi bi-box-seam me-1"></i>@count Çeşit
+                                    </span>
+                                    <span class="badge bg-secondary text-white rounded-pill"
+                                          style="font-size:.68rem;">
+                                        <i class="bi bi-boxes me-1"></i>@stats.TotalStock.ToString("N0") Adet
+                                    </span>
+                                    <span class="badge bg-success text-white rounded-pill"
+                                          style="font-size:.68rem;">
+                                        <i class="bi bi-currency-dollar me-1"></i>₺@stats.TotalValue.ToString("N2")
+                                    </span>
+                                </div>
                             </div>
                         </div>
 

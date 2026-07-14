@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <!-- Bootstrap Icons CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236366f1'><path d='M8.235 1.559a.5.5 0 0 0-.47 0l-7.5 4a.5.5 0 0 0 0 .882L3.188 8 .264 9.559a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882L12.813 8l2.922-1.559a.5.5 0 0 0 0-.882l-7.5-4z'/></svg>" />
     <!-- Tema Seçimi Betiği (Sayfa titreşimini önler) -->
@@ -252,10 +253,69 @@
         </div>
     </div>
 
+    <!-- Global Quick Menu (Spotlight) Modal -->
+    <div class="modal fade" id="globalQuickMenuModal" tabindex="-1" aria-labelledby="globalQuickMenuModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden; background: var(--bg-card); backdrop-filter: blur(20px); border: 1px solid var(--border-subtle) !important;">
+                <div class="modal-body p-4">
+                    <!-- Hızlı Arama Kutusu -->
+                    <div class="position-relative mb-3">
+                        <i class="bi bi-search position-absolute text-muted fs-4" style="left: 16px; top: 50%; transform: translateY(-50%); pointer-events: none;"></i>
+                        <input type="text" id="globalSearchInput" class="form-control form-control-lg border-0 ps-5" 
+                               placeholder="Ürün adı, barkod girin veya hızlı menüyü kullanın..." 
+                               style="background: rgba(255, 255, 255, 0.05); border-radius: 14px; color: var(--text-main); font-size: 1.1rem; box-shadow: none;" autocomplete="off" />
+                        <span class="position-absolute badge bg-secondary text-white rounded-pill px-2 py-1 small" style="right: 16px; top: 50%; transform: translateY(-50%); font-size: 0.72rem;">ESC</span>
+                    </div>
+
+                    <!-- Dinamik Arama Sonuçları -->
+                    <div id="globalSearchResults" class="mb-4 d-none" style="max-height: 250px; overflow-y: auto;">
+                        <h6 class="text-muted small fw-bold mb-2 px-2">ARAMA SONUÇLARI</h6>
+                        <div id="globalSearchResultsList"></div>
+                    </div>
+
+                    <!-- Hızlı Gezinme Kartları -->
+                    <div class="row g-2">
+                        <h6 class="text-muted small fw-bold mb-2 px-2">HIZLI ERİŞİM</h6>
+                        <div class="col-6 col-md-3">
+                            <a href="/Sales/POS" class="d-flex flex-column align-items-center justify-content-center p-3 rounded-4 border text-decoration-none text-main hover-gradient" style="background: rgba(255, 255, 255, 0.02); border-color: var(--border-subtle); transition: all 0.2s;">
+                                <i class="bi bi-lightning-charge-fill fs-3 text-warning mb-2"></i>
+                                <span class="fw-bold small">Hızlı Satış (POS)</span>
+                                <span class="text-muted" style="font-size: 0.68rem;">Kısayol: F2</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="/Products" class="d-flex flex-column align-items-center justify-content-center p-3 rounded-4 border text-decoration-none text-main hover-gradient" style="background: rgba(255, 255, 255, 0.02); border-color: var(--border-subtle); transition: all 0.2s;">
+                                <i class="bi bi-box-seam fs-3 text-info mb-2"></i>
+                                <span class="fw-bold small">Ürün Yönetimi</span>
+                                <span class="text-muted" style="font-size: 0.68rem;">G + P</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="/Customers" class="d-flex flex-column align-items-center justify-content-center p-3 rounded-4 border text-decoration-none text-main hover-gradient" style="background: rgba(255, 255, 255, 0.02); border-color: var(--border-subtle); transition: all 0.2s;">
+                                <i class="bi bi-people fs-3 text-success mb-2"></i>
+                                <span class="fw-bold small">Müşteri Cari</span>
+                                <span class="text-muted" style="font-size: 0.68rem;">G + C</span>
+                            </a>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <a href="/Reports" class="d-flex flex-column align-items-center justify-content-center p-3 rounded-4 border text-decoration-none text-main hover-gradient" style="background: rgba(255, 255, 255, 0.02); border-color: var(--border-subtle); transition: all 0.2s;">
+                                <i class="bi bi-bar-chart-line-fill fs-3 text-primary mb-2"></i>
+                                <span class="fw-bold small">Finans & Rapor</span>
+                                <span class="text-muted" style="font-size: 0.68rem;">G + R</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap JS CDN -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- intl-tel-input JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <!-- Tema Değiştirici ve Bildirim Yönetimi -->

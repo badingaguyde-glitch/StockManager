@@ -399,7 +399,6 @@
             // Varsayılan tarihleri ayarla
             setQuickDateRange(30);
             await loadAllCharts();
-            await loadProfitLossData();
             await loadAllTabularReports();
         });
 
@@ -574,11 +573,39 @@
         }
 
         async function loadProfitLossData() {
-            const start = document.getElementById('plStartDate').value;
-            const end = document.getElementById('plEndDate').value;
+            const btn = document.querySelector('button[onclick="loadProfitLossData()"]');
+            const originalContent = btn ? btn.innerHTML : null;
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Hesaplıyor...';
+            }
+
+            const startInput = document.getElementById('plStartDate');
+            const endInput = document.getElementById('plEndDate');
+            if (!startInput || !endInput) return;
+
+            let start = startInput.value;
+            let end = endInput.value;
+
+            // Boş bırakıldıysa varsayılan 30 günlük tarihi doldur ve görselleştir
+            if (!start || !end) {
+                const today = new Date();
+                const past = new Date();
+                past.setDate(today.getDate() - 29);
+                
+                if (!start) {
+                    start = past.toISOString().split('T')[0];
+                    startInput.value = start;
+                }
+                if (!end) {
+                    end = today.toISOString().split('T')[0];
+                    endInput.value = end;
+                }
+            }
 
             try {
                 const res = await fetch(`/Reports/ProfitLoss?startDate=${start}&endDate=${end}`);
+                if (!res.ok) throw new Error("Sunucu hata kodu döndürdü: " + res.status);
                 const data = await res.json();
 
                 document.getElementById('plRevenueDisplay').textContent = '₺' + parseFloat(data.revenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
@@ -588,13 +615,34 @@
                 const profit = parseFloat(data.profitLoss);
                 const profitEl = document.getElementById('plProfitDisplay');
                 profitEl.textContent = '₺' + profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 });
-                profitEl.className = profit >= 0 ? 'fw-bold mb-0 text-success' : 'fw-bold mb-0 text-danger';
+                
+                // Kar/zarar durumuna göre kutu arka planı ve yazı rengini güncelle
+                const profitBox = document.getElementById('plProfitBox');
+                if (profitBox) {
+                    if (profit >= 0) {
+                        profitBox.style.backgroundColor = 'rgba(25, 135, 84, 0.08)';
+                        profitBox.style.borderColor = 'rgba(25, 135, 84, 0.2)';
+                        profitEl.className = 'fw-bold mb-0 text-success';
+                    } else {
+                        profitBox.style.backgroundColor = 'rgba(220, 53, 69, 0.08)';
+                        profitBox.style.borderColor = 'rgba(220, 53, 69, 0.2)';
+                        profitEl.className = 'fw-bold mb-0 text-danger';
+                    }
+                } else {
+                    profitEl.className = profit >= 0 ? 'fw-bold mb-0 text-success' : 'fw-bold mb-0 text-danger';
+                }
 
                 const marginEl = document.getElementById('plMarginDisplay');
                 marginEl.textContent = `%${data.profitMargin}`;
                 marginEl.className = profit >= 0 ? 'fw-bold mb-0 text-primary' : 'fw-bold mb-0 text-danger';
             } catch (err) {
                 console.error("Kar zarar analizi hesaplanamadı:", err);
+                alert("Kar / Zarar analizi verileri yüklenirken bir hata oluştu: " + err.message);
+            } finally {
+                if (btn && originalContent) {
+                    btn.disabled = false;
+                    btn.innerHTML = originalContent;
+                }
             }
         }
 

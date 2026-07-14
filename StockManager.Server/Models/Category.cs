@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.ComponentModel.DataAnnotations;
 
 namespace StockManager.Server.Models;
 
@@ -11,6 +12,7 @@ public class Category
     public string? Id { get; set; }
 
     [BsonElement("name")]
+    [Required(ErrorMessage = "Kategori adı zorunludur.")]
     public string Name { get; set; } = string.Empty;
 
     [BsonElement("description")]

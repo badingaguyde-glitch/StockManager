@@ -23,16 +23,28 @@ public class CategoriesController : Controller
             .SortBy(c => c.Name)
             .ToListAsync();
 
-        // Kategorilere göre ürün sayılarını hesapla
+        // Kategorilere göre detaylı envanter istatistiklerini hesapla
         var allProducts = await _context.Products
             .Find(FilterDefinition<Product>.Empty)
             .ToListAsync();
 
-        var productCounts = allProducts
+        var categoryStats = allProducts
             .Where(p => p.CategoryId != null)
             .GroupBy(p => p.CategoryId!)
-            .ToDictionary(g => g.Key, g => g.Count());
+            .ToDictionary(
+                g => g.Key,
+                g => new CategoryStats
+                {
+                    ProductCount = g.Count(),
+                    TotalStock = g.Sum(p => p.Quantity),
+                    TotalValue = g.Sum(p => p.Quantity * p.SalePrice)
+                }
+            );
 
+        // Eski productCounts uyumluluğu için de dolduruyoruz
+        var productCounts = categoryStats.ToDictionary(k => k.Key, k => k.Value.ProductCount);
+
+        ViewBag.CategoryStats = categoryStats;
         ViewBag.ProductCounts = productCounts;
 
         return View(categories);
@@ -94,4 +106,11 @@ public class CategoriesController : Controller
         await _context.Categories.DeleteOneAsync(c => c.Id == id);
         return RedirectToAction(nameof(Index));
     }
+}
+
+public class CategoryStats
+{
+    public int ProductCount { get; set; }
+    public int TotalStock { get; set; }
+    public decimal TotalValue { get; set; }
 }
