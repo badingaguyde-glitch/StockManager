@@ -159,6 +159,52 @@ public class AuditLogService : IAuditLogService
     {
         var cutoffDate = DateTime.UtcNow.AddDays(-daysToKeep);
         var filter = Builders<AuditLog>.Filter.Lt(x => x.Timestamp, cutoffDate);
+
+        // 1. Silinecek eski logları veritabanından çek
+        var logsToBackup = await _context.AuditLogs.Find(filter).ToListAsync();
+
+        if (logsToBackup != null && logsToBackup.Count > 0)
+        {
+            // 2. Backups dizinini oluştur ve yedekleme yap
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var backupDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Backups");
+            if (!System.IO.Directory.Exists(backupDir))
+            {
+                System.IO.Directory.CreateDirectory(backupDir);
+            }
+
+            var backupPath = System.IO.Path.Combine(backupDir, $"auditlogs_backup_{timestamp}.csv");
+            var csv = new System.Text.StringBuilder();
+            csv.Append('\uFEFF'); // Excel'de Türkçe/Fransızca karakterlerin bozulmasını önlemek için UTF-8 BOM
+            csv.AppendLine("Id;Timestamp;UserEmail;Username;Action;Details");
+
+            foreach (var log in logsToBackup)
+            {
+                var id = log.Id ?? "";
+                var time = log.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                var email = EscapeCsvField(log.UserEmail);
+                var user = EscapeCsvField(log.Username);
+                var action = EscapeCsvField(log.Action);
+                var details = EscapeCsvField(log.Details);
+
+                csv.AppendLine($"{id};{time};{email};{user};{action};{details}");
+            }
+
+            await System.IO.File.WriteAllTextAsync(backupPath, csv.ToString(), System.Text.Encoding.UTF8);
+        }
+
+        // 3. Eski logları sil
         await _context.AuditLogs.DeleteManyAsync(filter);
+    }
+
+    private static string EscapeCsvField(string? field)
+    {
+        if (string.IsNullOrEmpty(field)) return "";
+        var val = field.Replace("\"", "\"\"");
+        if (val.Contains(";") || val.Contains("\"") || val.Contains("\n") || val.Contains("\r"))
+        {
+            return $"\"{val}\"";
+        }
+        return val;
     }
 }

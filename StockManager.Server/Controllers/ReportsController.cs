@@ -267,14 +267,101 @@ public class ReportsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResetAllSalesAndStockData()
     {
+        // 1. Silinecek verileri veritabanından çek
+        var salesToBackup = await _context.Sales.Find(FilterDefinition<Sale>.Empty).ToListAsync();
+        var movementsToBackup = await _context.StockMovements.Find(FilterDefinition<StockMovement>.Empty).ToListAsync();
+
+        // 2. Backups dizinini oluştur ve yedekleme yap
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var backupDir = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Backups");
+        if (!System.IO.Directory.Exists(backupDir))
+        {
+            System.IO.Directory.CreateDirectory(backupDir);
+        }
+
+        if (salesToBackup != null && salesToBackup.Count > 0)
+        {
+            var salesBackupPath = System.IO.Path.Combine(backupDir, $"sales_backup_{timestamp}.csv");
+            var csv = new System.Text.StringBuilder();
+            csv.Append('\uFEFF'); // Excel'de Türkçe/Fransızca karakterlerin bozulmasını önlemek için UTF-8 BOM
+            csv.AppendLine("SaleId;SaleDate;InvoiceNumber;TotalAmount;PaymentType;Currency;CustomerId;ProductId;ProductName;Quantity;UnitPrice;TotalLinePrice");
+            
+            foreach (var sale in salesToBackup)
+            {
+                var saleId = sale.Id ?? "";
+                var saleDate = sale.SaleDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                var invoice = EscapeCsvField(sale.InvoiceNumber);
+                var total = sale.TotalAmount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                var payType = sale.PaymentType.ToString();
+                var currency = EscapeCsvField(sale.Currency);
+                var customerId = sale.CustomerId ?? "";
+
+                if (sale.Items != null && sale.Items.Count > 0)
+                {
+                    foreach (var item in sale.Items)
+                    {
+                        var prodId = item.ProductId ?? "";
+                        var prodName = EscapeCsvField(item.ProductName);
+                        var qty = item.Quantity.ToString();
+                        var unitPrice = item.UnitPrice.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        var linePrice = item.TotalLinePrice.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+                        csv.AppendLine($"{saleId};{saleDate};{invoice};{total};{payType};{currency};{customerId};{prodId};{prodName};{qty};{unitPrice};{linePrice}");
+                    }
+                }
+                else
+                {
+                    csv.AppendLine($"{saleId};{saleDate};{invoice};{total};{payType};{currency};{customerId};;;;;");
+                }
+            }
+
+            await System.IO.File.WriteAllTextAsync(salesBackupPath, csv.ToString(), System.Text.Encoding.UTF8);
+        }
+
+        if (movementsToBackup != null && movementsToBackup.Count > 0)
+        {
+            var movementsBackupPath = System.IO.Path.Combine(backupDir, $"stockmovements_backup_{timestamp}.csv");
+            var csv = new System.Text.StringBuilder();
+            csv.Append('\uFEFF'); // Excel'de Türkçe/Fransızca karakterlerin bozulmasını önlemek için UTF-8 BOM
+            csv.AppendLine("MovementId;Date;Type;Quantity;ProductId;SupplierId;CustomerId;Notes");
+
+            foreach (var mov in movementsToBackup)
+            {
+                var movId = mov.Id ?? "";
+                var date = mov.Date.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                var type = mov.Type.ToString();
+                var qty = mov.Quantity.ToString();
+                var prodId = mov.ProductId ?? "";
+                var supId = mov.SupplierId ?? "";
+                var custId = mov.CustomerId ?? "";
+                var notes = EscapeCsvField(mov.Notes);
+
+                csv.AppendLine($"{movId};{date};{type};{qty};{prodId};{supId};{custId};{notes}");
+            }
+
+            await System.IO.File.WriteAllTextAsync(movementsBackupPath, csv.ToString(), System.Text.Encoding.UTF8);
+        }
+
+        // 3. Verileri sıfırla
         await _context.Sales.DeleteManyAsync(FilterDefinition<Sale>.Empty);
         await _context.StockMovements.DeleteManyAsync(FilterDefinition<StockMovement>.Empty);
 
         var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
         var username = User.Identity?.Name ?? "Belirtilmedi";
-        await _auditLogService.LogActionAsync(userEmail, username, "Veri Sıfırlama", "Tüm satış geçmişi (Sales & SaleItems) ve tüm stok hareketleri (StockMovements) kalıcı olarak sıfırlandı.");
+        await _auditLogService.LogActionAsync(userEmail, username, "Veri Sıfırlama", "Tüm satış geçmişi (Sales & SaleItems) ve tüm stok hareketleri (StockMovements) kalıcı olarak sıfırlandı. Sıfırlama öncesinde yerel yedek alındı.");
 
-        TempData["success"] = "Tüm satış geçmişi ve stok hareketleri başarıyla sıfırlandı.";
+        TempData["success"] = "Tüm satış geçmişi ve stok hareketleri başarıyla sıfırlandı. (Yedek: /Backups klasörüne CSV olarak kaydedilmiştir)";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static string EscapeCsvField(string? field)
+    {
+        if (string.IsNullOrEmpty(field)) return "";
+        var val = field.Replace("\"", "\"\"");
+        if (val.Contains(";") || val.Contains("\"") || val.Contains("\n") || val.Contains("\r"))
+        {
+            return $"\"{val}\"";
+        }
+        return val;
     }
 }

@@ -1,0 +1,2 @@
+﻿﻿SaleId;SaleDate;InvoiceNumber;TotalAmount;PaymentType;Currency;CustomerId;ProductId;ProductName;Quantity;UnitPrice;TotalLinePrice
+6a5600b70b25fb165ab4e28f;2026-07-14 12:26:14;INV-20260714-001;11000;Cash;TRY;;6a4e4913ae37bce0a286ca6e;laptop;1;11000;11000
