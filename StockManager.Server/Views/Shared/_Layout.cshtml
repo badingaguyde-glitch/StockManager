@@ -14,6 +14,7 @@
     <!-- Bootstrap Icons CDN -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%236366f1'><path d='M8.235 1.559a.5.5 0 0 0-.47 0l-7.5 4a.5.5 0 0 0 0 .882L3.188 8 .264 9.559a.5.5 0 0 0 0 .882l7.5 4a.5.5 0 0 0 .47 0l7.5-4a.5.5 0 0 0 0-.882L12.813 8l2.922-1.559a.5.5 0 0 0 0-.882l-7.5-4z'/></svg>" />
     <!-- Tema Seçimi Betiği (Sayfa titreşimini önler) -->
     <script>
         (function() {
@@ -52,40 +53,61 @@
                     </button>
 
                     <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                        <ul class="navbar-nav flex-grow-1 gap-1 my-2 my-lg-0">
+                        <ul class="navbar-nav flex-grow-1 gap-2 my-2 my-lg-0 align-items-lg-center">
                             @if (User.Identity != null && User.Identity.IsAuthenticated)
                             {
+                                <li class="nav-item">
+                                    <a class="nav-link-custom" asp-controller="Home" asp-action="Index">
+                                        <i class="bi bi-house-door-fill me-1.5 text-primary"></i>Ana Sayfa
+                                    </a>
+                                </li>
+
                                 @if (User.IsInRole("Admin") || User.IsInRole("Personel"))
                                 {
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Products" asp-action="Index">
-                                            <i class="bi bi-box me-1.5 opacity-75"></i>Ürünler
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link-custom dropdown-toggle" href="#" id="tanimlarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-box-seam-fill me-1.5 opacity-75"></i>Tanımlar
                                         </a>
+                                        <ul class="dropdown-menu shadow border-0 rounded-4 py-2 mt-2 glass-card" aria-labelledby="tanimlarDropdown">
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Products" asp-action="Index">
+                                                    <i class="bi bi-box me-2.5 text-primary"></i> Ürünler
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Categories" asp-action="Index">
+                                                    <i class="bi bi-tags me-2.5 text-info"></i> Kategoriler
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Customers" asp-action="Index">
+                                                    <i class="bi bi-people me-2.5 text-success"></i> Müşteriler
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Suppliers" asp-action="Index">
+                                                    <i class="bi bi-truck me-2.5 text-warning"></i> Tedarikçiler
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Categories" asp-action="Index">
-                                            <i class="bi bi-tags me-1.5 opacity-75"></i>Kategoriler
+
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link-custom dropdown-toggle" href="#" id="stokDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-inboxes-fill me-1.5 opacity-75"></i>Stok
                                         </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Customers" asp-action="Index">
-                                            <i class="bi bi-people me-1.5 opacity-75"></i>Müşteriler
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Suppliers" asp-action="Index">
-                                            <i class="bi bi-truck me-1.5 opacity-75"></i>Tedarikçiler
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="StockMovements" asp-action="Index">
-                                            <i class="bi bi-arrow-left-right me-1.5 opacity-75"></i>Stok Hareketleri
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Sales" asp-action="History">
-                                            <i class="bi bi-receipt me-1.5 opacity-75"></i>Satışlar
-                                        </a>
+                                        <ul class="dropdown-menu shadow border-0 rounded-4 py-2 mt-2 glass-card" aria-labelledby="stokDropdown">
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="StockMovements" asp-action="Index">
+                                                    <i class="bi bi-arrow-left-right me-2.5 text-primary"></i> Stok Hareketleri
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Sales" asp-action="History">
+                                                    <i class="bi bi-receipt me-2.5 text-success"></i> Satış Geçmişi
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </li>
                                 }
 
@@ -100,15 +122,22 @@
 
                                 @if (User.IsInRole("Admin"))
                                 {
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="Account" asp-action="Users">
-                                            <i class="bi bi-person-badge-fill me-1.5" style="color: #f59e0b;"></i>Personel
+                                    <li class="nav-item dropdown">
+                                        <a class="nav-link-custom dropdown-toggle" href="#" id="ayarlarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="bi bi-gear-fill me-1.5" style="color: #f59e0b;"></i>Ayarlar
                                         </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a class="nav-link-custom" asp-controller="AuditLogs" asp-action="Index">
-                                            <i class="bi bi-shield-lock-fill me-1.5" style="color: #10b981;"></i>Denetim Logları
-                                        </a>
+                                        <ul class="dropdown-menu shadow border-0 rounded-4 py-2 mt-2 glass-card" aria-labelledby="ayarlarDropdown">
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="Account" asp-action="Users">
+                                                    <i class="bi bi-person-badge-fill me-2.5" style="color: #f59e0b;"></i> Personel
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item py-2 d-flex align-items-center" asp-controller="AuditLogs" asp-action="Index">
+                                                    <i class="bi bi-shield-lock-fill me-2.5" style="color: #10b981;"></i> Denetim Logları
+                                                </a>
+                                            </li>
+                                        </ul>
                                     </li>
                                 }
                             }
@@ -168,7 +197,7 @@
                                         </div>
                                         <span class="small">@User.Identity.Name</span>
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2 py-2 glass-card" aria-labelledby="userMenuButton">
+                                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 mt-2 py-2 glass-card" aria-labelledby="userMenuButton" style="right: 0; left: auto; min-width: 210px;">
                                         <li>
                                             <a class="dropdown-item py-2 d-flex align-items-center text-decoration-none" asp-controller="Account" asp-action="Profile">
                                                 <i class="bi bi-gear me-2 text-info"></i> Profil Ayarlarım

@@ -54,22 +54,24 @@
     }
     .icon-btn {
         width: 52px; height: 52px;
-        border: 2px solid #dee2e6;
+        border: 2px solid var(--border-subtle);
         border-radius: 10px;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
         font-size: 1.3rem;
-        transition: border-color .15s, background .15s;
+        transition: all .15s ease;
         cursor: pointer;
-        background: #fff;
+        background: var(--bg-surface);
+        color: var(--text-main);
     }
-    .icon-btn:hover { border-color: #4361ee; background: #f0f3ff; }
+    .icon-btn:hover { border-color: #4361ee; background: rgba(67, 97, 238, 0.18); color: #818cf8; }
     input[name="Icon"]:checked + .icon-btn {
         border-color: #4361ee;
-        background: #e8ecff;
-        color: #4361ee;
+        background: rgba(67, 97, 238, 0.28);
+        color: #818cf8;
+        box-shadow: 0 0 12px rgba(67, 97, 238, 0.45);
     }
     #preview-circle {
         width: 64px; height: 64px;
