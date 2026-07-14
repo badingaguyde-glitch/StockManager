@@ -20,12 +20,24 @@
         <input asp-for="FullName" class="form-control" />
     </div>
     <div class="mb-3">
+        <label asp-for="CompanyName" class="form-label">Şirket Adı</label>
+        <input asp-for="CompanyName" class="form-control" />
+    </div>
+    <div class="mb-3">
         <label asp-for="Phone" class="form-label"></label>
         <input asp-for="Phone" class="form-control" />
     </div>
     <div class="mb-3">
         <label asp-for="Email" class="form-label"></label>
         <input asp-for="Email" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="TaxOffice" class="form-label">Vergi Dairesi / No</label>
+        <input asp-for="TaxOffice" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Address" class="form-label">Açık Adres</label>
+        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
     </div>
     <div class="mb-3">
         <label asp-for="Balance" class="form-label"></label>

@@ -4,16 +4,20 @@ using MongoDB.Driver;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
 
+using StockManager.Server.Services;
+
 namespace StockManager.Server.Controllers;
 
 [Authorize(Roles = "Admin,Muhasebeci")]
 public class ReportsController : Controller
 {
     private readonly MongoDBContext _context;
+    private readonly IAuditLogService _auditLogService;
 
-    public ReportsController(MongoDBContext context)
+    public ReportsController(MongoDBContext context, IAuditLogService auditLogService)
     {
         _context = context;
+        _auditLogService = auditLogService;
     }
 
     public async Task<IActionResult> Index()
@@ -184,14 +188,18 @@ public class ReportsController : Controller
             }
         }
 
-        var profitLoss = revenue - cost;
-        var profitMargin = revenue > 0 ? Math.Round((profitLoss / revenue) * 100, 2) : 0m;
+        var netRevenue = Math.Round(revenue / 1.20m, 2);
+        var vatAmount = revenue - netRevenue;
+        var profitLoss = netRevenue - cost;
+        var profitMargin = netRevenue > 0 ? Math.Round((profitLoss / netRevenue) * 100, 2) : 0m;
 
         return Json(new
         {
             startDate = fromDate.ToString("yyyy-MM-dd"),
             endDate = toDate.ToString("yyyy-MM-dd"),
             revenue,
+            netRevenue,
+            vatAmount,
             cost,
             profitLoss,
             profitMargin,
@@ -252,5 +260,21 @@ public class ReportsController : Controller
         ViewBag.TotalValue = totalValue;
 
         return View(products);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetAllSalesAndStockData()
+    {
+        await _context.Sales.DeleteManyAsync(FilterDefinition<Sale>.Empty);
+        await _context.StockMovements.DeleteManyAsync(FilterDefinition<StockMovement>.Empty);
+
+        var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+        var username = User.Identity?.Name ?? "Belirtilmedi";
+        await _auditLogService.LogActionAsync(userEmail, username, "Veri Sıfırlama", "Tüm satış geçmişi (Sales & SaleItems) ve tüm stok hareketleri (StockMovements) kalıcı olarak sıfırlandı.");
+
+        TempData["success"] = "Tüm satış geçmişi ve stok hareketleri başarıyla sıfırlandı.";
+        return RedirectToAction(nameof(Index));
     }
 }

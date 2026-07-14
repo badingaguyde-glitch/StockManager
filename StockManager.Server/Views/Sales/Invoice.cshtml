@@ -10,7 +10,6 @@
     </a>
 </div>
 
-<!-- Baskı esnasında butonları gizleyen CSS stili -->
 <style>
     @@media print {
         .no-print {
@@ -18,8 +17,8 @@
         }
 
         body {
-            background-color: white;
-            color: black;
+            background-color: white !important;
+            color: black !important;
             padding: 0;
             margin: 0;
         }
@@ -32,110 +31,198 @@
         }
 
         .card {
-            border: none !important;
+            border: 1px solid #ddd !important;
+            box-shadow: none !important;
         }
+
+        .table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+
+        .table th, .table td {
+            border: 1px solid #ccc !important;
+            padding: 8px !important;
+        }
+    }
+
+    .invoice-header {
+        border-bottom: 2px solid #0d6efd;
+        padding-bottom: 1.5rem;
+    }
+
+    .company-card, .customer-card {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 1.25rem;
+        height: 100%;
+        border: 1px solid #e9ecef;
     }
 </style>
 
 <div class="container mt-4">
     <!-- Yazdırma ve Kontrol Butonları (Baskıda gizlenir) -->
     <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-        <h2>Fatura / Fiş Ayrıntısı</h2>
-        <div>
-            <button onclick="window.print();" class="btn btn-primary">
-                <i class="bi bi-printer"></i> Yazdır
+        <h2>Kurumsal Fatura / Fiş Ayrıntısı</h2>
+        <div class="d-flex gap-2">
+            <button onclick="window.print();" class="btn btn-primary fw-semibold">
+                <i class="bi bi-printer me-1"></i> Yazdır / PDF Al
             </button>
+            <a asp-action="DownloadReceipt" asp-route-id="@Model.Id" class="btn btn-outline-danger fw-semibold">
+                <i class="bi bi-file-earmark-pdf me-1"></i> PDF İndir
+            </a>
             <a asp-action="POS" class="btn btn-secondary">Yeni Satışa Dön</a>
             <a asp-action="History" class="btn btn-outline-secondary">Satış Geçmişi</a>
         </div>
     </div>
 
     <!-- Fatura İçeriği -->
-    <div class="card">
-        <div class="card-body">
+    <div class="card shadow-sm mb-5">
+        <div class="card-body p-4 p-md-5">
             <!-- Başlık ve Fatura Numarası -->
-            <div class="row mb-4">
+            <div class="row mb-4 invoice-header align-items-center">
                 <div class="col-sm-6">
-                    <h3 class="fw-bold">STOCK MANAGER</h3>
-                    <p class="text-muted">Stok ve Satış Yönetim Sistemi</p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="bg-primary text-white rounded p-3 d-flex align-items-center justify-content-center" style="width: 56px; height: 56px;">
+                            <i class="bi bi-building-check fs-3"></i>
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-1 text-primary">STOCK MANAGER</h3>
+                            <p class="text-muted mb-0 small">Kurumsal Stok ve Satış Yönetim Sistemi</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-sm-6 text-sm-end">
-                    <h4 class="text-primary fw-bold">FATURA / FİŞ</h4>
-                    <p class="mb-0"><strong>Fatura No:</strong> @Model.InvoiceNumber</p>
-                    <p><strong>Tarih:</strong> @Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+                <div class="col-sm-6 text-sm-end mt-3 mt-sm-0">
+                    <h4 class="fw-bold text-dark mb-1">E-ARŞİV FATURA / FİŞ</h4>
+                    <p class="mb-1"><strong>Fatura No:</strong> <span class="badge bg-light text-dark border fs-6">@Model.InvoiceNumber</span></p>
+                    <p class="mb-0 text-muted small"><strong>Düzenleme Tarihi:</strong> @Model.SaleDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
                 </div>
             </div>
 
-            <hr />
-
-            <!-- Müşteri ve Ödeme Bilgileri -->
-            <div class="row mb-4">
-                <div class="col-sm-6">
-                    <h6 class="text-muted fw-bold">Müşteri Bilgileri:</h6>
-                    @if (ViewBag.Customer != null)
-                    {
-                        <div><strong>@ViewBag.Customer.FullName</strong></div>
-                        <div>Telefon: @(ViewBag.Customer.Phone ?? "-")</div>
-                        <div>E-posta: @(ViewBag.Customer.Email ?? "-")</div>
-                    }
-                    else
-                    {
-                        <div><em>Bilinmeyen / Perakende Müşteri</em></div>
-                    }
+            <!-- Satıcı ve Müşteri Kartları -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-6">
+                    <div class="company-card">
+                        <h6 class="text-primary fw-bold text-uppercase mb-3">
+                            <i class="bi bi-shop me-1"></i> Satıcı Bilgileri
+                        </h6>
+                        <div class="fw-bold mb-1">STOCK MANAGER TEKNOLOJİ VE TİCARET A.Ş.</div>
+                        <div class="text-muted small mb-2">Teknoloji Geliştirme Bölgesi, Bilişim Plaza No: 42, Maslak / İstanbul</div>
+                        <div class="small mb-1"><strong>Vergi Dairesi / No:</strong> Maslak VD - 1234567890</div>
+                        <div class="small mb-1"><strong>Telefon:</strong> 0 (212) 555 01 23</div>
+                        <div class="small"><strong>Web & E-posta:</strong> www.stockmanager.com.tr | bilgi@stockmanager.com.tr</div>
+                    </div>
                 </div>
-                <div class="col-sm-6 text-sm-end">
-                    <h6 class="text-muted fw-bold">Ödeme Yöntemi:</h6>
-                    <div>
-                        @switch (Model.PaymentType)
+                <div class="col-md-6">
+                    <div class="customer-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h6 class="text-primary fw-bold text-uppercase mb-0">
+                                <i class="bi bi-person-vcard me-1"></i> Müşteri Bilgileri
+                            </h6>
+                            <span class="badge @(Model.PaymentType == StockManager.Server.Models.PaymentType.Cash ? "bg-success" : Model.PaymentType == StockManager.Server.Models.PaymentType.Card ? "bg-primary" : "bg-danger")">
+                                @(Model.PaymentType == StockManager.Server.Models.PaymentType.Cash ? "Nakit Ödeme" : Model.PaymentType == StockManager.Server.Models.PaymentType.Card ? "Kredi / Banka Kartı" : "Veresiye (Cari Hesap)")
+                            </span>
+                        </div>
+                        @if (ViewBag.Customer != null)
                         {
-                            case StockManager.Server.Models.PaymentType.Cash:
-                                <strong class="text-success">Nakit</strong>
-                                break;
-                            case StockManager.Server.Models.PaymentType.Card:
-                                <strong class="text-primary">Kart</strong>
-                                break;
-                            case StockManager.Server.Models.PaymentType.Debt:
-                                <strong class="text-danger">Veresiye (Cari Hesap)</strong>
-                                break;
+                            <div class="fw-bold fs-6 mb-1">@ViewBag.Customer.FullName</div>
+                            @if (!string.IsNullOrEmpty(ViewBag.Customer.CompanyName))
+                            {
+                                <div class="text-dark small fw-semibold mb-1"><i class="bi bi-building me-1"></i> @ViewBag.Customer.CompanyName</div>
+                            }
+                            @if (!string.IsNullOrEmpty(ViewBag.Customer.TaxOffice))
+                            {
+                                <div class="small mb-1"><strong>Vergi Dairesi / No:</strong> @ViewBag.Customer.TaxOffice</div>
+                            }
+                            @if (!string.IsNullOrEmpty(ViewBag.Customer.Address))
+                            {
+                                <div class="text-muted small mb-1"><i class="bi bi-geo-alt me-1"></i> @ViewBag.Customer.Address</div>
+                            }
+                            <div class="small mt-2">
+                                <strong>Tel:</strong> @(ViewBag.Customer.Phone ?? "-") | <strong>E-posta:</strong> @(ViewBag.Customer.Email ?? "-")
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-muted mt-2">
+                                <i class="bi bi-person me-1"></i> <em>Perakende / Muhtelif Müşteri (Anonim Satış)</em>
+                            </div>
                         }
                     </div>
                 </div>
             </div>
 
             <!-- Ürün Listesi Tablosu -->
-            <div class="table-responsive">
-                <table class="table table-bordered table-striped">
-                    <thead>
-                        <tr class="bg-light">
-                            <th style="width: 50%">Ürün Adı</th>
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered table-hover align-middle mb-0">
+                    <thead class="table-light text-uppercase small">
+                        <tr>
+                            <th style="width: 5%" class="text-center">#</th>
+                            <th style="width: 45%">Ürün / Hizmet Açıklaması</th>
                             <th class="text-center" style="width: 15%">Birim Fiyat</th>
                             <th class="text-center" style="width: 15%">Miktar</th>
-                            <th class="text-end" style="width: 20%">Toplam Fiyat</th>
+                            <th class="text-end" style="width: 20%">Toplam Tutar</th>
                         </tr>
                     </thead>
                     <tbody>
+                        @{
+                            int rowNum = 1;
+                        }
                         @foreach (var item in Model.Items)
                         {
                             <tr>
-                                <td>@item.ProductName</td>
-                                <td class="text-center">@item.UnitPrice.ToString("0.00") ₺</td>
-                                <td class="text-center">@item.Quantity</td>
-                                <td class="text-end">@item.TotalLinePrice.ToString("0.00") ₺</td>
+                                <td class="text-center text-muted">@(rowNum++)</td>
+                                <td class="fw-semibold">@item.ProductName</td>
+                                <td class="text-center">@item.UnitPrice.ToString("N2") ₺</td>
+                                <td class="text-center"><span class="badge bg-secondary">@item.Quantity</span></td>
+                                <td class="text-end fw-bold">@item.TotalLinePrice.ToString("N2") ₺</td>
                             </tr>
                         }
                     </tbody>
-                    <tfoot>
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Toplam Tutar:</td>
-                            <td class="text-end fw-bold text-primary fs-5">@Model.TotalAmount.ToString("0.00") ₺</td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
 
-            <!-- Bilgilendirme Notu -->
-            <div class="mt-5 text-center text-muted fs-7 no-print">
-                <p>Bu fatura StockManager sistemi tarafından otomatik olarak üretilmiştir.</p>
+            <!-- KDV ve Genel Toplam Dökümü -->
+            <div class="row justify-content-end">
+                <div class="col-md-5 col-lg-4">
+                    <table class="table table-sm table-borderless mb-0">
+                        <tbody>
+                            @{
+                                var kdvHaric = Model.TotalAmount / 1.20m;
+                                var kdvTutari = Model.TotalAmount - kdvHaric;
+                            }
+                            <tr>
+                                <td class="text-muted">Ara Toplam (KDV Hariç):</td>
+                                <td class="text-end fw-semibold">@kdvHaric.ToString("N2") ₺</td>
+                            </tr>
+                            <tr>
+                                <td class="text-muted">Hesaplanan KDV (%20):</td>
+                                <td class="text-end fw-semibold">@kdvTutari.ToString("N2") ₺</td>
+                            </tr>
+                            <tr class="border-top">
+                                <td class="fs-6 fw-bold text-dark pt-2">GENEL TOPLAM:</td>
+                                <td class="text-end fs-5 fw-bold text-primary pt-2">@Model.TotalAmount.ToString("N2") ₺</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- Dipnot / Kaşe ve İmza Alanı -->
+            <div class="row text-muted small align-items-center">
+                <div class="col-sm-8">
+                    <p class="mb-1"><i class="bi bi-info-circle me-1"></i> Bu belge 213 sayılı VUK hükümlerine göre düzenlenmiş e-arşiv fatura/fiş niteliğindedir.</p>
+                    <p class="mb-0">Ödemeler ve banka hesap bilgileri ile ilgili sorularınız için muhasebe birimimiz ile iletişime geçebilirsiniz.</p>
+                </div>
+                <div class="col-sm-4 text-sm-end mt-3 mt-sm-0">
+                    <div class="border rounded p-3 text-center bg-light">
+                        <div class="fw-bold mb-3 small">KAŞE / YETKİLİ İMZA</div>
+                        <div style="height: 40px;"></div>
+                        <div class="text-muted" style="font-size: 0.7rem;">Stock Manager Yetkilisi</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

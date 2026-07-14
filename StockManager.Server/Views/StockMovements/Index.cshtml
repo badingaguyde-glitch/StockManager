@@ -17,9 +17,14 @@
         </div>
         <p class="text-muted small mb-0 mt-1">Depoya giren, çıkan ve düzeltilen tüm stok işlem fişleri</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary d-inline-flex align-items-center gap-2 rounded-pill px-4">
-        <i class="bi bi-plus-lg"></i> Yeni Stok Hareketi Ekle
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a asp-action="SupplierReturn" class="btn btn-warning text-dark fw-semibold d-inline-flex align-items-center gap-2 rounded-pill px-4">
+            <i class="bi bi-truck"></i> Tedarikçi Stok İadesi
+        </a>
+        <a asp-action="Create" class="btn btn-primary d-inline-flex align-items-center gap-2 rounded-pill px-4">
+            <i class="bi bi-plus-lg"></i> Yeni Stok Hareketi Ekle
+        </a>
+    </div>
 </div>
 
 <div class="card glass-card border-0 shadow-sm overflow-hidden">
