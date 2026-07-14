@@ -103,6 +103,7 @@
 
                 <form asp-action="Checkout" method="post" id="checkout-form">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" id="forceDebt" name="forceDebt" value="false" />
                     <!-- Dinamik olarak JS ile üretilecek gizli inputlar buraya gelecek -->
                     <div id="hidden-cart-inputs"></div>
 
@@ -120,12 +121,12 @@
                     <div class="mb-4" id="customer-select-group">
                         <label class="form-label fw-bold">Müşteri Seçin <span class="text-danger" id="customer-required-star" style="display: none;">*</span></label>
                         <select name="CustomerId" id="customer-select" class="form-select">
-                            <option value="">Müşteri Belirtilmedi (Anonim Satış)...</option>
+                            <option value="" data-balance="0">Müşteri Belirtilmedi (Anonim Satış)...</option>
                             @if (ViewBag.Customers != null)
                             {
                                 @foreach (var c in (IEnumerable<StockManager.Server.Models.Customer>)ViewBag.Customers)
                                 {
-                                    <option value="@c.Id">@c.FullName (Bakiye: @c.Balance.ToString("0.00") ₺)</option>
+                                    <option value="@c.Id" data-balance="@c.Balance.ToString(System.Globalization.CultureInfo.InvariantCulture)">@c.FullName (Bakiye: @c.Balance.ToString("0.00") ₺)</option>
                                 }
                             }
                         </select>
@@ -608,6 +609,19 @@
                 alert('Veresiye satışı için lütfen bir müşteri seçiniz.');
                 customerSelect.focus();
                 return;
+            }
+
+            if (paymentTypeSelect.value === 'Debt' && customerSelect.value) {
+                const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+                const balance = parseFloat(selectedOption.getAttribute('data-balance') || '0');
+                const grandTotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                if (balance < grandTotal) {
+                    if (!confirm('Müşteri limiti/bakiyesi yetersiz, işleme devam edilsin mi?')) {
+                        return;
+                    } else {
+                        document.getElementById('forceDebt').value = 'true';
+                    }
+                }
             }
 
             // HTML formuna dinamik hidden inputlar ekleyerek bind olmasını sağla

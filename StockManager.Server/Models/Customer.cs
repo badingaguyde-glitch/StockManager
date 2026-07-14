@@ -15,12 +15,21 @@ public class Customer
     [Required(ErrorMessage = "Müşteri adı zorunludur.")]
     public string FullName { get; set; } = string.Empty;
 
+    [BsonElement("companyName")]
+    public string? CompanyName { get; set; }
+
     [BsonElement("phone")]
     public string? Phone { get; set; }
 
     [BsonElement("email")]
     [EmailAddress(ErrorMessage = "Geçersiz e-posta adresi.")]
     public string? Email { get; set; }
+
+    [BsonElement("address")]
+    public string? Address { get; set; }
+
+    [BsonElement("taxOffice")]
+    public string? TaxOffice { get; set; }
 
     [BsonElement("balance")]
     [Range(0, 1000000000, ErrorMessage = "Bakiye 0 ile 1.000.000.000 TL arasında olmalıdır.")]

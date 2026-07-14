@@ -21,6 +21,10 @@
             <input asp-for="FullName" class="form-control" placeholder="Müşterinin tam adını giriniz" required />
             <span asp-validation-for="FullName" class="text-danger small mt-1 d-block"></span>
         </div>
+    <div class="mb-3">
+        <label asp-for="CompanyName" class="form-label">Şirket Adı</label>
+        <input asp-for="CompanyName" class="form-control" />
+    </div>
         
         <div class="mb-3">
             <label asp-for="Phone" class="form-label fw-semibold d-block">Telefon Numarası</label>
@@ -34,6 +38,14 @@
             <input asp-for="Email" class="form-control" type="email" placeholder="ornek@domain.com" />
             <span asp-validation-for="Email" class="text-danger small mt-1 d-block"></span>
         </div>
+    <div class="mb-3">
+        <label asp-for="TaxOffice" class="form-label">Vergi Dairesi / No</label>
+        <input asp-for="TaxOffice" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label asp-for="Address" class="form-label">Açık Adres</label>
+        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+    </div>
         
         <div class="mb-3">
             <label asp-for="Balance" class="form-label fw-semibold">Başlangıç Bakiyesi</label>

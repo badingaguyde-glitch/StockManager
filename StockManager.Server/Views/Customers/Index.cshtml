@@ -12,7 +12,12 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Müşteriler</h2>
-    <a asp-action="Create" class="btn btn-primary">Yeni Müşteri</a>
+    <div class="d-flex gap-2">
+        <a asp-action="Collection" class="btn btn-outline-danger fw-semibold">
+            <i class="bi bi-cash-stack me-1"></i> Veresiye Tahsilat
+        </a>
+        <a asp-action="Create" class="btn btn-primary">Yeni Müşteri</a>
+    </div>
 </div>
 
 <table class="table table-striped">

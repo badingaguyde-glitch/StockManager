@@ -61,6 +61,15 @@
         <p class="text-muted mb-0 small">İşletmenizin ciro, karlılık, stok sağlığı ve veresiye alacak durumunu canlı grafiklerle takip edin</p>
     </div>
     <div class="mt-3 mt-md-0 d-flex flex-wrap gap-2 no-print">
+        @if (User.IsInRole("Admin"))
+        {
+            <form asp-action="ResetAllSalesAndStockData" id="resetDataForm" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="button" class="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center" onclick="confirmResetData()">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Satış & Stok Verilerini Sıfırla
+                </button>
+            </form>
+        }
         <a asp-action="RemainingStock" class="btn btn-outline-primary btn-sm fw-semibold d-flex align-items-center">
             <i class="bi bi-box-seam me-1"></i> Kalan Stok Envanteri
         </a>
@@ -72,6 +81,20 @@
         </a>
     </div>
 </div>
+
+@if (User.IsInRole("Admin"))
+{
+    <script>
+        function confirmResetData() {
+            if (confirm('DİKKAT: Tüm satış geçmişi (Sales & SaleItems) ve tüm stok hareketleri (StockMovements) kalıcı olarak silinecektir. Devam etmek istiyor musunuz?')) {
+                if (confirm('Bu işlem GERİ ALINAMAZ! Son kez onaylıyor musunuz?')) {
+                    document.getElementById('resetDataForm').submit();
+                }
+            }
+        }
+    </script>
+}
+
 
 <!-- 6 Temel Gösterge Kartı (Executive KPI Cards) -->
 <div class="row g-3 mb-4">
@@ -292,33 +315,40 @@
                     </div>
                 </div>
 
-                <div class="row g-3 text-center" id="profitLossContainer">
-                    <div class="col-md-3">
-                        <div class="p-4 border rounded-3 bg-white h-100">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-5 g-3 text-center" id="profitLossContainer">
+                    <div class="col">
+                        <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-center">
                             <span class="text-muted small fw-bold d-block mb-1">BRÜT SATIŞ GELİRİ</span>
-                            <h3 class="fw-bold text-dark mb-0" id="plRevenueDisplay">₺0.00</h3>
+                            <h4 class="fw-bold text-dark mb-0" id="plRevenueDisplay">₺0.00</h4>
                             <small class="text-muted" id="plSaleCountDisplay">0 İşlem</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-4 border rounded-3 bg-white h-100">
-                            <span class="text-muted small fw-bold d-block mb-1">SMM (SATILAN MALIN MALİYETİ)</span>
-                            <h3 class="fw-bold text-secondary mb-0" id="plCostDisplay">₺0.00</h3>
-                            <small class="text-muted">Ürün alış maliyetleri toplamı</small>
+                    <div class="col">
+                        <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-center">
+                            <span class="text-muted small fw-bold d-block mb-1">NET CİRO & KDV (%20)</span>
+                            <h4 class="fw-bold text-info mb-0" id="plNetRevenueDisplay">₺0.00</h4>
+                            <small class="text-muted" id="plVatDisplay">KDV: ₺0.00</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-4 border rounded-3 bg-white h-100" id="plProfitBox">
+                    <div class="col">
+                        <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-center">
+                            <span class="text-muted small fw-bold d-block mb-1">SMM (MALİYET)</span>
+                            <h4 class="fw-bold text-secondary mb-0" id="plCostDisplay">₺0.00</h4>
+                            <small class="text-muted">Ürün alış maliyetleri</small>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-center" id="plProfitBox">
                             <span class="text-muted small fw-bold d-block mb-1">NET KAR / ZARAR</span>
-                            <h3 class="fw-bold mb-0 text-success" id="plProfitDisplay">₺0.00</h3>
-                            <small class="text-muted">Gelir - Maliyet</small>
+                            <h4 class="fw-bold mb-0 text-success" id="plProfitDisplay">₺0.00</h4>
+                            <small class="text-muted">Net Ciro - SMM</small>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="p-4 border rounded-3 bg-white h-100">
+                    <div class="col">
+                        <div class="p-3 border rounded-3 bg-white h-100 d-flex flex-column justify-content-center">
                             <span class="text-muted small fw-bold d-block mb-1">KAR MARJI ORANI</span>
-                            <h3 class="fw-bold text-primary mb-0" id="plMarginDisplay">%0.00</h3>
-                            <small class="text-muted">Net Kar / Brüt Gelir</small>
+                            <h4 class="fw-bold text-primary mb-0" id="plMarginDisplay">%0.00</h4>
+                            <small class="text-muted">Net Kar / Net Ciro</small>
                         </div>
                     </div>
                 </div>
@@ -610,6 +640,10 @@
 
                 document.getElementById('plRevenueDisplay').textContent = '₺' + parseFloat(data.revenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
                 document.getElementById('plSaleCountDisplay').textContent = `${data.saleCount} İşlem`;
+                if (document.getElementById('plNetRevenueDisplay')) {
+                    document.getElementById('plNetRevenueDisplay').textContent = '₺' + parseFloat(data.netRevenue).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                    document.getElementById('plVatDisplay').textContent = 'KDV: ₺' + parseFloat(data.vatAmount).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
+                }
                 document.getElementById('plCostDisplay').textContent = '₺' + parseFloat(data.cost).toLocaleString('tr-TR', { minimumFractionDigits: 2 });
 
                 const profit = parseFloat(data.profitLoss);

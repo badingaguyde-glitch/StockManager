@@ -124,6 +124,16 @@ namespace StockManager.Server.Controllers
             sale.TotalAmount = sale.Items.Sum(i => i.Quantity * i.UnitPrice);
             sale.Currency = sale.Currency ?? "TRY";
 
+            if (sale.PaymentType == PaymentType.Debt && !string.IsNullOrEmpty(sale.CustomerId))
+            {
+                var customer = await _context.Customers.Find(c => c.Id == sale.CustomerId).FirstOrDefaultAsync();
+                if (customer != null && customer.Balance < sale.TotalAmount && Request.Form["forceDebt"] != "true")
+                {
+                    TempData["error"] = "Müşteri limiti/bakiyesi yetersiz, işleme devam edilsin mi? (POS ekranındaki uyarıyı onaylayarak devam edebilirsiniz.)";
+                    return RedirectToAction(nameof(POS));
+                }
+            }
+
             var paymentIntent = await _stripePaymentService.CreatePaymentIntentAsync(
                 sale.TotalAmount,
                 sale.Currency,

@@ -15,12 +15,18 @@
 <dl class="row">
     <dt class="col-sm-3">Ad Soyad</dt>
     <dd class="col-sm-9">@Model.FullName</dd>
+    <dt class="col-sm-3">Şirket Adı</dt>
+    <dd class="col-sm-9">@(Model.CompanyName ?? "—")</dd>
     <dt class="col-sm-3">Telefon</dt>
     <dd class="col-sm-9">@Model.Phone</dd>
     <dt class="col-sm-3">E-posta</dt>
     <dd class="col-sm-9">@Model.Email</dd>
+    <dt class="col-sm-3">Vergi Dairesi / No</dt>
+    <dd class="col-sm-9">@(Model.TaxOffice ?? "—")</dd>
+    <dt class="col-sm-3">Açık Adres</dt>
+    <dd class="col-sm-9">@(Model.Address ?? "—")</dd>
     <dt class="col-sm-3">Bakiye</dt>
-    <dd class="col-sm-9">@Model.Balance.ToString("0.00")</dd>
+    <dd class="col-sm-9">@Model.Balance.ToString("0.00") ₺</dd>
 </dl>
 
 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-secondary">Düzenle</a>

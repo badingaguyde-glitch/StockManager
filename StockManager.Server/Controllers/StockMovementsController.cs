@@ -146,6 +146,18 @@ namespace StockManager.Server.Controllers
                     {
                         var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -movement.Quantity);
                         await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+
+                        if (!string.IsNullOrEmpty(movement.SupplierId))
+                        {
+                            var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
+                            if (product != null)
+                            {
+                                var totalCost = product.PurchasePrice * movement.Quantity;
+                                var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
+                                var decreaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, -totalCost);
+                                await _context.Suppliers.UpdateOneAsync(session, supplierFilter, decreaseBalance);
+                            }
+                        }
                     }
                     else if (movement.Type == StockMovementType.Adjustment)
                     {
@@ -227,6 +239,85 @@ namespace StockManager.Server.Controllers
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
             await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Stok Hareketi Oluşturma", $"Yeni stok hareketi oluşturuldu: {movement.Type}, Ürün: {checkProduct?.Name}");
 
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SupplierReturn()
+        {
+            var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
+            var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
+            ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity} | Alış: {p.PurchasePrice:N2} ₺)", p.Id)).ToList();
+            ViewBag.Suppliers = suppliers.Select(s => new SelectListItem($"{s.CompanyName} (Bakiye: {s.Balance:N2} ₺)", s.Id)).ToList();
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SupplierReturn(string productId, string supplierId, int quantity, string? notes)
+        {
+            if (string.IsNullOrEmpty(productId) || string.IsNullOrEmpty(supplierId) || quantity <= 0)
+            {
+                TempData["error"] = "Lütfen ürün, tedarikçi ve geçerli bir miktar seçiniz.";
+                return RedirectToAction(nameof(SupplierReturn));
+            }
+
+            Product? product = null;
+            using (var session = await _context.Client.StartSessionAsync())
+            {
+                session.StartTransaction();
+                try
+                {
+                    product = await _context.Products.Find(session, p => p.Id == productId).FirstOrDefaultAsync();
+                    if (product == null)
+                    {
+                        TempData["error"] = "Seçilen ürün bulunamadı.";
+                        await session.AbortTransactionAsync();
+                        return RedirectToAction(nameof(SupplierReturn));
+                    }
+
+                    if (product.Quantity < quantity)
+                    {
+                        TempData["error"] = $"Yetersiz stok! Mevcut stok: {product.Quantity}, İade edilmek istenen: {quantity}";
+                        await session.AbortTransactionAsync();
+                        return RedirectToAction(nameof(SupplierReturn));
+                    }
+
+                    var movement = new StockMovement
+                    {
+                        ProductId = productId,
+                        SupplierId = supplierId,
+                        Quantity = quantity,
+                        Type = StockMovementType.StockOut,
+                        Date = DateTime.UtcNow,
+                        Notes = string.IsNullOrWhiteSpace(notes) ? "Tedarikçiye Stok İadesi" : notes
+                    };
+
+                    await _context.StockMovements.InsertOneAsync(session, movement);
+
+                    var productFilter = Builders<Product>.Filter.Eq(p => p.Id, productId);
+                    var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -quantity);
+                    await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+
+                    var totalReturnCost = product.PurchasePrice * quantity;
+                    var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, supplierId);
+                    var decreaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, -totalReturnCost);
+                    await _context.Suppliers.UpdateOneAsync(session, supplierFilter, decreaseBalance);
+
+                    await session.CommitTransactionAsync();
+                }
+                catch (Exception ex)
+                {
+                    await session.AbortTransactionAsync();
+                    TempData["error"] = $"İade işlemi sırasında hata oluştu: {ex.Message}";
+                    return RedirectToAction(nameof(SupplierReturn));
+                }
+            }
+
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Tedarikçi Stok İadesi", $"Tedarikçiye stok iadesi yapıldı. Ürün: {product?.Name}, Miktar: {quantity}, Düşülen Tutar: {(product?.PurchasePrice * quantity):N2} ₺");
+
+            TempData["success"] = $"Stok iadesi başarıyla tamamlandı. {product?.Name} ürününden {quantity} adet çıkış yapıldı ve tedarikçi bakiyesinden {(product?.PurchasePrice * quantity):N2} ₺ düşüldü.";
             return RedirectToAction(nameof(Index));
         }
     }
