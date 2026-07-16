@@ -7,24 +7,21 @@ using System.Text;
 using System.Text.Json;
 
 namespace StockManager.Server.Controllers;
+
 [Authorize]
-public class StockAiController: Controller
+public class StockAiController : Controller
 {
-    private readonly StockManager.Server.Data.MongoDBContext _context;
+    private readonly MongoDBContext _context;
     private readonly IConfiguration _configuration;
     private readonly HttpClient _httpClient;
+    private readonly ILogger<StockAiController> _logger;
 
-    public StockAiController(StockManager.Server.Data.MongoDBContext context, IConfiguration configuration)
+    public StockAiController(MongoDBContext context, IConfiguration configuration, ILogger<StockAiController> logger)
     {
         _context = context;
         _configuration = configuration;
+        _logger = logger;
         _httpClient = new HttpClient();
-    }
-
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return View();
     }
 
     [HttpPost]
@@ -33,31 +30,41 @@ public class StockAiController: Controller
     {
         if (!body.TryGetProperty("message", out var messageProp) || string.IsNullOrWhiteSpace(messageProp.GetString()))
         {
-            return Json(new {error = "Mesaj boş olamaz."});
+            _logger.LogWarning("AI Asistanı isteği reddedildi: Boş mesaj gönderildi.");
+            return Json(new { error = "Mesaj boş olamaz." });
         }
 
         string userMessage = messageProp.GetString()!;
+        _logger.LogInformation("AI Asistanına yeni soru soruldu: {UserMessage}", userMessage);
 
-        string apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY_2")?? _configuration["GEMINI_API_KEY_2"]??"";
+        string apiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") 
+                        ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY_2")
+                        ?? _configuration["GEMINI_API_KEY"] 
+                        ?? _configuration["GEMINI_API_KEY_2"] 
+                        ?? "";
 
         if (string.IsNullOrEmpty(apiKey))
         {
-            return Json(new {reply = "API anahtarı bulunamadı. Lütfen yapılandırmayı kontrol edin."});
+            _logger.LogError("Yapay Zeka API Hatası: 'GEMINI_API_KEY' veya 'GEMINI_API_KEY_2' ortam değişkeni bulunamadı.");
+            return Json(new { reply = "Hata: Yapay zeka API anahtarı (.env dosyasında GEMINI_API_KEY veya GEMINI_API_KEY_2 olarak) bulunamadı." });
         }
 
         try
         {
+            // MongoDB'den güncel envanteri al
             var products = await _context.Products.Find(FilterDefinition<Product>.Empty).ToListAsync();
-
-            var StockSummary = new StringBuilder();
-            StockSummary.AppendLine("Mevcut Stok verileri:");
+            
+            var stockSummary = new StringBuilder();
+            stockSummary.AppendLine("Mevcut Stok Verileri:");
             foreach (var p in products)
             {
-                StockSummary.AppendLine($"- Ürün Adı: {p.Name}, Stok Miktarı: {p.Quantity}, Fiyat: {p.SalePrice} TRY, Barkod: {p.Barcode}, Kategori: {_context.Categories.Find(c => c.Id == p.CategoryId).FirstOrDefault()?.Name ?? "Bilinmiyor"}, Tedarikçi: {_context.Suppliers.Find(s => s.Id == p.SupplierId).FirstOrDefault()?.CompanyName ?? "Bilinmiyor"}, kritik seviye: {p.LowStockThreshold}");
+                stockSummary.AppendLine($"- Ürün Adı: {p.Name}, Barkod: {p.Barcode}, Stok Adedi: {p.Quantity}, Kritik Seviye Eşiği: {p.LowStockThreshold}, Fiyat: {p.SalePrice} TRY");
             }
 
-            string systemInstruction ="Sen Stock Manager uygulamasının yardımcı yapay zeka asistanısın.\n" +
-                "Kullanıcıya sadece sana sunulan 'Mevcut Stok Verileri' bağlamında yer alan bilgilere dayanarak cevap vereceksin.\n" +
+            // Sistem talimatları (Gelecek tahmini yapmayı engeller)
+            string systemInstruction = 
+                "Sen Stock Manager uygulamasının yardımcı yapay zeka asistanısın.\n" +
+                "Kullanıcıya sadece sana sunulan 'Mevcut Stok Verileri' bağlamında yer alan bilgilere dayanarak cevap vereceksiniz.\n" +
                 "ÖNEMLİ KURALLAR:\n" +
                 "1. Geleceğe dair tahminler, öngörüler veya stok satış projeksiyonları ASLA yapmayacaksın.\n" +
                 "2. Kullanıcı gelecek tahmini veya tahminleme yapmanı isterse, kuralların gereği sadece güncel durum hakkında bilgi verebileceğini belirtip bu isteği kibarca reddet.\n" +
@@ -68,7 +75,7 @@ public class StockAiController: Controller
             {
                 systemInstruction = new
                 {
-                    parts = new[] {new {text = systemInstruction}}
+                    parts = new[] { new { text = systemInstruction } }
                 },
                 contents = new[]
                 {
@@ -76,34 +83,42 @@ public class StockAiController: Controller
                     {
                         parts = new[]
                         {
-                            new {text =$"[kullanıcı mesajı]: {userMessage}\n\n[Mevcut Stok Verileri]:\n{StockSummary}"},
+                            new { text = $"[Kullanıcı Sorusu]: {userMessage}\n\n[Bağlam (Mevcut Durum)]:\n{stockSummary}" }
                         }
                     }
                 }
             };
-            var jsonContent= JsonSerializer.Serialize(requestBody);
-            var content = new StringContent(jsonContent, Encoding.UTF8,"application/json");
 
-            string url =$"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={apiKey}";
+            var jsonContent = JsonSerializer.Serialize(requestBody);
+            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            string url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={apiKey}";
             var response = await _httpClient.PostAsync(url, content);
+
             if (!response.IsSuccessStatusCode)
             {
-                return Json(new { reply = $"Gemini API Hatası: Sunucu {response.StatusCode} kodu döndürdü." });
+                var errResponse = await response.Content.ReadAsStringAsync();
+                _logger.LogError("Gemini API Hata Yanıtı: Kodu: {StatusCode}, Yanıt İçeriği: {Response}", response.StatusCode, errResponse);
+                return Json(new { reply = $"Gemini API Hatası oluştu. HTTP Kodu: {response.StatusCode}." });
             }
+
             var responseData = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(responseData);
             
-            // Cevap metnini ayıkla
             string aiReply = doc.RootElement
                 .GetProperty("candidates")[0]
                 .GetProperty("content")
                 .GetProperty("parts")[0]
                 .GetProperty("text")
-                .GetString() ?? "Üzgünüm, cevap üretilemedi.";
+                .GetString() ?? "Cevap üretilemedi.";
+
+            _logger.LogInformation("AI Asistanı başarıyla yanıt üretti.");
             return Json(new { reply = aiReply });
-        }catch (Exception ex)
+        }
+        catch (Exception ex)
         {
-            return Json(new { reply = $"Bir hata oluştu: {ex.Message}" });
+            _logger.LogError(ex, "Stok AI Asistanı isteği işlenirken beklenmeyen bir hata oluştu.");
+            return Json(new { reply = $"Hata: {ex.Message}" });
         }
     }
 }

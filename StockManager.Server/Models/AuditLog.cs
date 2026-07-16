@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace StockManager.Server.Models;
 
+[BsonIgnoreExtraElements]
 public class AuditLog
 {
     [BsonId]

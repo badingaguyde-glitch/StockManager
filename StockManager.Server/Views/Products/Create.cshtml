@@ -18,97 +18,267 @@
     <!-- 🆕 Görsel Yükleme -->
     <div class="mb-3">
         <label for="imageFile" class="form-label"><i class="bi bi-image"></i> Ürün Görseli</label>
-        <input type="file" class="form-control" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" onchange="previewImage(event)">
+        <input type="file" class="form-control" id="imageFile" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp"
+               onchange="previewImage(event)">
         <small class="form-text text-muted">JPG, PNG, GIF, WebP (Max: 5MB)</small>
         <div id="imagePreview" class="mt-3"></div>
     </div>
+    <!-- Barkod Çözümleyici Bileşeni -->
+    <div class="card bg-light border-0 rounded-3 mb-4 shadow-sm">
+        <div class="card-body p-3">
+            <h6 class="fw-bold mb-1 text-primary"><i class="bi bi-upc-scan me-1"></i> Barkod Çözümleyici (Otomatik Doldurucu)</h6>
+            <p class="text-muted small mb-3">
+                Format: <code>[Miktar]-[Ürünİsmi]-[Seri]-[AlışFiyatı]-[SatışFiyatı]-[GörselURL (İsteğe Bağlı)]</code>
+            </p>
+            <div class="input-group">
+                <input type="text" id="barcodeParserInput" class="form-control" placeholder="Örn: 50-IPhone16-V1-45000-55000-https://resim-adresi.com/iphone.jpg" autocomplete="off">
+                <button type="button" class="btn btn-primary" onclick="parseBarcodeString()">Çözümle</button>
+                <button type="button" class="btn btn-outline-primary" onclick="toggleCameraScanner()">
+                    <i class="bi bi-camera-fill"></i> Kamera ile Tara
+                </button>
+            </div>
+            
+            <!-- Kamera Vizör Penceresi -->
+            <div id="interactive-camera-scanner" class="mt-3 d-none border rounded p-2 bg-white text-center" style="max-width: 320px; margin: 0 auto;">
+                <div id="scanner-reader" style="width: 100%;"></div>
+                <button type="button" class="btn btn-danger btn-sm mt-2" onclick="stopCameraScanner()">Kamerayı Kapat</button>
+            </div>
 
-    <hr class="my-4" />
-
-    <div class="mb-3">
-        <label asp-for="Barcode" class="form-label"></label>
-        <input asp-for="Barcode" class="form-control" />
-        <span asp-validation-for="Barcode" class="text-danger"></span>
+            <div id="barcodeParserFeedback" class="text-danger small mt-2 d-none"></div>
+        </div>
     </div>
+            <hr class="my-4" />
 
-    <div class="mb-3">
-        <label asp-for="Name" class="form-label"></label>
-        <input asp-for="Name" class="form-control" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
+            <div class="mb-3">
+                <label asp-for="Barcode" class="form-label"></label>
+                <input asp-for="Barcode" class="form-control" />
+                <span asp-validation-for="Barcode" class="text-danger"></span>
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="Description" class="form-label"></label>
-        <textarea asp-for="Description" class="form-control"></textarea>
-    </div>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="PurchasePrice" class="form-label"></label>
-        <input asp-for="PurchasePrice" class="form-control" />
-    </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="SalePrice" class="form-label"></label>
-        <input asp-for="SalePrice" class="form-control" />
-    </div>
+            <div class="mb-3">
+                <label asp-for="PurchasePrice" class="form-label"></label>
+                <input asp-for="PurchasePrice" class="form-control" />
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="Quantity" class="form-label"></label>
-        <input asp-for="Quantity" class="form-control" />
-    </div>
+            <div class="mb-3">
+                <label asp-for="SalePrice" class="form-label"></label>
+                <input asp-for="SalePrice" class="form-control" />
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="LowStockThreshold" class="form-label"></label>
-        <input asp-for="LowStockThreshold" class="form-control" />
-    </div>
+            <div class="mb-3">
+                <label asp-for="Quantity" class="form-label"></label>
+                <input asp-for="Quantity" class="form-control" />
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="CategoryId" class="form-label">Kategori</label>
-        <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
-            <option value="">Seçiniz</option>
-        </select>
-    </div>
+            <div class="mb-3">
+                <label asp-for="LowStockThreshold" class="form-label"></label>
+                <input asp-for="LowStockThreshold" class="form-control" />
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="SupplierId" class="form-label">Tedarikçi</label>
-        <select asp-for="SupplierId" class="form-select" asp-items="ViewBag.Suppliers">
-            <option value="">Seçiniz</option>
-        </select>
-    </div>
+            <div class="mb-3">
+                <label asp-for="CategoryId" class="form-label">Kategori</label>
+                <select asp-for="CategoryId" class="form-select" asp-items="ViewBag.Categories">
+                    <option value="">Seçiniz</option>
+                </select>
+            </div>
 
-    <div class="mb-3">
-        <label asp-for="SupplierName" class="form-label">Yeni Tedarikçi Adı</label>
-        <input asp-for="SupplierName" class="form-control" placeholder="Tedarikçi adı girin" />
-        <span asp-validation-for="SupplierName" class="text-danger"></span>
-    </div>
+            <div class="mb-3">
+                <label asp-for="SupplierId" class="form-label">Tedarikçi</label>
+                <select asp-for="SupplierId" class="form-select" asp-items="ViewBag.Suppliers">
+                    <option value="">Seçiniz</option>
+                </select>
+            </div>
 
-    <button type="submit" class="btn btn-primary">Kaydet</button>
-    <a asp-action="Index" class="btn btn-secondary">İptal</a>
-</form>
+            <div class="mb-3">
+                <label asp-for="SupplierName" class="form-label">Yeni Tedarikçi Adı</label>
+                <input asp-for="SupplierName" class="form-control" placeholder="Tedarikçi adı girin" />
+                <span asp-validation-for="SupplierName" class="text-danger"></span>
+            </div>
 
-<style>
-    #imagePreview {
-        max-width: 300px;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    #imagePreview img {
-        width: 100%;
-        height: auto;
-    }
-</style>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <a asp-action="Index" class="btn btn-secondary">İptal</a>
+        </form>
 
-<script>
-    function previewImage(event) {
-        const file = event.target.files[0];
-        const preview = document.getElementById('imagePreview');
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function (e) {
-                preview.innerHTML = `<img src="${e.target.result}" alt="Önizleme" class="img-fluid rounded">`;
-            };
-            reader.readAsDataURL(file);
+        <style>
+            #imagePreview {
+                max-width: 300px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            #imagePreview img {
+                width: 100%;
+                height: auto;
+            }
+        </style>
+
+@section Scripts {
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        function previewImage(event) {
+            const file = event.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.innerHTML = `<img src="${e.target.result}" alt="Önizleme" class="img-fluid rounded">`;
+                };
+                reader.readAsDataURL(file);
+            }
         }
-    }
-</script>
+
+        let html5QrcodeScanner = null;
+
+        // Barkod okuyucu tabancanın Enter tuşunu yakalama
+        document.addEventListener("DOMContentLoaded", function() {
+            const parserField = document.getElementById('barcodeParserInput');
+            if (parserField) {
+                parserField.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); // Ana formun gönderilmesini engelle
+                        parseBarcodeString();
+                    }
+                });
+            }
+        });
+
+        // Kamera vizörünü açma/kapatma
+        function toggleCameraScanner() {
+            const scannerDiv = document.getElementById('interactive-camera-scanner');
+            if (scannerDiv.classList.contains('d-none')) {
+                scannerDiv.classList.remove('d-none');
+                startCameraScanner();
+            } else {
+                stopCameraScanner();
+            }
+        }
+
+        // Kamerayı başlatma
+        function startCameraScanner() {
+            const feedback = document.getElementById('barcodeParserFeedback');
+            feedback.classList.add('d-none');
+
+            html5QrcodeScanner = new Html5Qrcode("scanner-reader");
+            
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 280, height: 160 }
+            };
+
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                console.error("Kamera başlatılamadı:", err);
+                feedback.textContent = "Kamera başlatılamadı. Kamera izni verdiğinizden emin olun.";
+                feedback.classList.remove('d-none');
+                document.getElementById('interactive-camera-scanner').classList.add('d-none');
+            });
+        }
+
+        // Kamera başarılı bir tarama yaptığında
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById('barcodeParserInput').value = decodedText;
+            parseBarcodeString();
+            stopCameraScanner();
+        }
+
+        function onScanFailure(error) {
+            // Sürekli tarama yapıldığı için yoksayılır
+        }
+
+        // Kamerayı kapatma
+        function stopCameraScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner = null;
+                    document.getElementById('interactive-camera-scanner').classList.add('d-none');
+                }).catch(err => {
+                    console.error("Kamera durdurulamadı:", err);
+                    document.getElementById('interactive-camera-scanner').classList.add('d-none');
+                });
+            } else {
+                document.getElementById('interactive-camera-scanner').classList.add('d-none');
+            }
+        }
+
+        // Barkod çözümleme ve görsel indirme mantığı
+        function parseBarcodeString() {
+            const input = document.getElementById('barcodeParserInput').value.trim();
+            const feedback = document.getElementById('barcodeParserFeedback');
+            
+            if (!input) return;
+
+            // Regex - Görsel URL içeren format (Son alan isteğe bağlıdır)
+            const regex = /^(\d+)-([A-Za-z0-9_\s\.\-\/\(\)]+)-([A-Za-z0-9_\s\.\-\/\(\)]+)-(\d+(?:\.\d+)?)-(\d+(?:\.\d+)?)(?:-(https?:\/\/[^\s]+))?$/;
+            const match = input.match(regex);
+
+            if (!match) {
+                feedback.textContent = "Geçersiz format! Format: [Miktar]-[Ürünİsmi]-[Seri]-[AlışFiyatı]-[SatışFiyatı]-[GörselURL (İsteğe Bağlı)] olmalıdır.";
+                feedback.classList.remove('d-none');
+                return;
+            }
+
+            feedback.classList.add('d-none');
+
+            const quantity = match[1];
+            const name = match[2];
+            const series = match[3];
+            const purchasePrice = match[4];
+            const salePrice = match[5];
+            const imageUrl = match[6]; // İsteğe bağlı görsel adresi
+
+            // Form alanlarını doldur
+            document.getElementById('Barcode').value = input;
+            document.getElementById('Name').value = name.replace(/_/g, ' ');
+            document.getElementById('Description').value = `Seri/Model: ${series.replace(/_/g, ' ')}`;
+            document.getElementById('PurchasePrice').value = purchasePrice;
+            document.getElementById('SalePrice').value = salePrice;
+            document.getElementById('Quantity').value = quantity;
+            
+            // Kritik stok eşiğini otomatik olarak miktarın %10'u yap (Minimum 5)
+            document.getElementById('LowStockThreshold').value = Math.max(5, Math.round(quantity * 0.1));
+
+            // Eğer barkod içerisinde görsel adresi varsa, resmi indirip forma yükle
+            if (imageUrl) {
+                fetch(imageUrl)
+                    .then(res => {
+                        if (!res.ok) throw new Error("Görsel indirilemedi");
+                        return res.blob();
+                    })
+                    .then(blob => {
+                        // Blob verisini dosya nesnesine dönüştür
+                        const file = new File([blob], "barcode_downloaded_image.jpg", { type: blob.type || "image/jpeg" });
+                        
+                        // Formdaki dosya girdisine ata
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        document.getElementById('imageFile').files = dataTransfer.files;
+                        
+                        // Görsel önizlemesini güncelle
+                        const preview = document.getElementById('imagePreview');
+                        preview.innerHTML = `<img src="${imageUrl}" alt="Önizleme" class="img-fluid rounded">`;
+                    })
+                    .catch(err => {
+                        console.warn("Görsel otomatik indirilemedi:", err);
+                    });
+            }
+
+            alert("Barkod başarıyla çözümlendi! Alanlar otomatik dolduruldu.");
+        }
+    </script>
+}
