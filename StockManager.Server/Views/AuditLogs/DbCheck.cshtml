@@ -1,0 +1,330 @@
+@{
+    ViewData["Title"] = "Veritabanı Sağlık Kontrolü";
+    
+    // ViewBag üzerinden gelen dinamik listeleri alıyoruz
+    var productIssues = ViewBag.ProductIssues as List<dynamic> ?? new List<dynamic>();
+    var lowStockProducts = ViewBag.LowStockProducts as List<StockManager.Server.Models.Product> ?? new List<StockManager.Server.Models.Product>();
+    var customerIssues = ViewBag.CustomerIssues as List<dynamic> ?? new List<dynamic>();
+    var supplierIssues = ViewBag.SupplierIssues as List<dynamic> ?? new List<dynamic>();
+    var modificationLogs = ViewBag.ModificationLogs as List<StockManager.Server.Models.AuditLog> ?? new List<StockManager.Server.Models.AuditLog>();
+}
+
+<div class="mb-4 d-flex align-items-center justify-content-between">
+    <h2><i class="bi bi-heart-pulse-fill text-danger me-2"></i>Veritabanı Sağlık Kontrolü</h2>
+    <a asp-action="DbCheck" class="btn btn-outline-primary btn-sm">
+        <i class="bi bi-arrow-clockwise"></i> Yeniden Tara
+    </a>
+</div>
+
+<!-- Özet Kartları (KPIs) -->
+<div class="row g-3 mb-4 text-dark">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm glass-card p-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-warning bg-opacity-25 text-warning p-2.5 rounded-3 me-3">
+                    <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1">Eksik Verili Ürünler</h6>
+                    <h4 class="mb-0 fw-bold">@productIssues.Count</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm glass-card p-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-danger bg-opacity-25 text-danger p-2.5 rounded-3 me-3">
+                    <i class="bi bi-graph-down-arrow fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1">Kritik Stok Altındakiler</h6>
+                    <h4 class="mb-0 fw-bold">@lowStockProducts.Count</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm glass-card p-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-info bg-opacity-25 text-info p-2.5 rounded-3 me-3">
+                    <i class="bi bi-people-fill fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1">Eksik İletişim Verileri</h6>
+                    <h4 class="mb-0 fw-bold">@(customerIssues.Count + supplierIssues.Count)</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm glass-card p-3">
+            <div class="d-flex align-items-center">
+                <div class="bg-primary bg-opacity-25 text-primary p-2.5 rounded-3 me-3">
+                    <i class="bi bi-arrow-repeat fs-4"></i>
+                </div>
+                <div>
+                    <h6 class="text-muted small mb-1">Silme ve Güncellemeler</h6>
+                    <h4 class="mb-0 fw-bold">@modificationLogs.Count</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detay Panelleri -->
+<div class="accordion border-0 shadow-sm rounded-4 overflow-hidden" id="dbDiagnostics">
+    
+    <!-- 1. Ürün Eksikleri -->
+    <div class="accordion-item border-0 border-bottom">
+        <h2 class="accordion-header">
+            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseProducts">
+                <i class="bi bi-box-seam me-2 text-warning"></i> Ürün Veri Eksikleri Teşhisi (@productIssues.Count)
+            </button>
+        </h2>
+        <div id="collapseProducts" class="accordion-collapse collapse show" data-bs-parent="#dbDiagnostics">
+            <div class="accordion-body bg-white p-0">
+                @if (!productIssues.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                        Harika! Veritabanındaki tüm ürünlerin veri alanları eksiksiz.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive text-dark">
+                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ürün Adı</th>
+                                    <th>Eksik Olan Alanlar</th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in productIssues)
+                                {
+                                    <tr>
+                                        <td class="fw-semibold">@item.ProductName</td>
+                                        <td>
+                                            @foreach (var field in item.MissingFields)
+                                            {
+                                                <span class="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-25 me-1">@field Eksik</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-controller="Products" asp-action="Edit" asp-route-id="@item.ProductId" class="btn btn-xs btn-outline-primary">
+                                                <i class="bi bi-pencil"></i> Düzenle
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Kritik Stok Limitleri -->
+    <div class="accordion-item border-0 border-bottom">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStok">
+                <i class="bi bi-graph-down-arrow me-2 text-danger"></i> Kritik Seviyedeki Ürünler (@lowStockProducts.Count)
+            </button>
+        </h2>
+        <div id="collapseStok" class="accordion-collapse collapse" data-bs-parent="#dbDiagnostics">
+            <div class="accordion-body bg-white p-0">
+                @if (!lowStockProducts.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        <i class="bi bi-check-circle-fill text-success fs-3 d-block mb-2"></i>
+                        Tüm ürünleriniz kritik stok eşiğinin üzerinde.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive text-dark">
+                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ürün Adı</th>
+                                    <th>Mevcut Stok</th>
+                                    <th>Kritik Eşik</th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in lowStockProducts)
+                                {
+                                    <tr class="table-danger table-opacity-10">
+                                        <td class="fw-semibold text-danger">@item.Name</td>
+                                        <td><span class="badge bg-danger rounded-pill">@item.Quantity Adet</span></td>
+                                        <td>@item.LowStockThreshold Adet</td>
+                                        <td class="text-end">
+                                            <a asp-controller="StockMovements" asp-action="Create" class="btn btn-xs btn-primary">
+                                                <i class="bi bi-plus-circle"></i> Stok Ekle
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Rehber Eksikleri -->
+    <div class="accordion-item border-0 border-bottom">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseContacts">
+                <i class="bi bi-people me-2 text-info"></i> Rehber (Müşteri & Tedarikçi) Eksikleri (@(customerIssues.Count + supplierIssues.Count))
+            </button>
+        </h2>
+        <div id="collapseContacts" class="accordion-collapse collapse" data-bs-parent="#dbDiagnostics">
+            <div class="accordion-body bg-white p-3 text-dark">
+                
+                <h6 class="fw-bold text-muted mb-2"><i class="bi bi-people-fill text-success me-1"></i> Müşteri Eksikleri</h6>
+                @if (!customerIssues.Any())
+                {
+                    <p class="text-muted small">Tüm müşterilerin iletişim bilgileri tamam.</p>
+                }
+                else
+                {
+                    <div class="table-responsive mb-4">
+                        <table class="table table-sm table-hover align-middle" style="font-size:0.85rem;">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Müşteri Adı</th>
+                                    <th>Eksik Veri</th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in customerIssues)
+                                {
+                                    <tr>
+                                        <td>@item.CustomerName</td>
+                                        <td>
+                                            @foreach (var f in item.MissingFields)
+                                            {
+                                                <span class="badge bg-light text-dark border me-1">@f</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-controller="Customers" asp-action="Edit" asp-route-id="@item.CustomerId" class="btn btn-xs btn-outline-secondary">Düzenle</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <h6 class="fw-bold text-muted mb-2"><i class="bi bi-truck text-warning me-1"></i> Tedarikçi Eksikleri</h6>
+                @if (!supplierIssues.Any())
+                {
+                    <p class="text-muted small">Tüm tedarikçilerin iletişim bilgileri tamam.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle" style="font-size:0.85rem;">
+                            <thead>
+                                <tr class="table-light">
+                                    <th>Tedarikçi Adı</th>
+                                    <th>Eksik Veri</th>
+                                    <th class="text-end">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in supplierIssues)
+                                {
+                                    <tr>
+                                        <td>@item.SupplierName</td>
+                                        <td>
+                                            @foreach (var f in item.MissingFields)
+                                            {
+                                                <span class="badge bg-light text-dark border me-1">@f</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <a asp-controller="Suppliers" asp-action="Edit" asp-route-id="@item.SupplierId" class="btn btn-xs btn-outline-secondary">Düzenle</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Silme ve Güncelleme Hareketleri -->
+    <div class="accordion-item border-0">
+        <h2 class="accordion-header">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseLogs">
+                <i class="bi bi-clock-history me-2 text-primary"></i> Yapılan Silme ve Güncelleme Logları (@modificationLogs.Count)
+            </button>
+        </h2>
+        <div id="collapseLogs" class="accordion-collapse collapse" data-bs-parent="#dbDiagnostics">
+            <div class="accordion-body bg-white p-0">
+                @if (!modificationLogs.Any())
+                {
+                    <div class="p-4 text-center text-muted">
+                        Yakın zamanda herhangi bir silme veya güncelleme işlemi kaydedilmemiş.
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive text-dark">
+                        <table class="table table-hover align-middle mb-0" style="font-size:0.85rem;">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Tarih</th>
+                                    <th>Kullanıcı</th>
+                                    <th>Eylem</th>
+                                    <th>Detay</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in modificationLogs)
+                                {
+                                    <tr>
+                                        <td class="text-muted">@item.Timestamp.ToString("g")</td>
+                                        <td>@item.UserEmail</td>
+                                        <td>
+                                            @if (item.Action != null && (item.Action.Contains("Delete") || item.Action.Contains("Remove") || item.Action.Contains("Clear") || item.Action.Contains("Reset")))
+                                            {
+                                                <span class="badge bg-danger">@item.Action</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info text-dark">@item.Action</span>
+                                            }
+                                        </td>
+                                        <td class="text-truncate" style="max-width: 300px;">@item.Details</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .btn-xs {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 0.25rem;
+    }
+</style>
