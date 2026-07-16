@@ -1,0 +1,153 @@
+@model StockManager.Server.Models.Warehouse
+
+@{
+    ViewData["Title"] = $"{Model.Name} - Depo Detayı ve Stok Listesi";
+    var warehouseItems = ViewBag.WarehouseItems as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Depo Listesine Dön
+    </a>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-12 col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="badge bg-light text-dark font-monospace border fs-6 px-3 py-2">@Model.Code</span>
+                    <div>
+                        @if (Model.IsDefault)
+                        {
+                            <span class="badge bg-primary rounded-pill px-3 py-2"><i class="bi bi-star-fill me-1"></i>Varsayılan Depo</span>
+                        }
+                        else if (Model.IsActive)
+                        {
+                            <span class="badge bg-success-subtle text-success rounded-pill px-3 py-2">Aktif</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary rounded-pill px-3 py-2">Pasif</span>
+                        }
+                    </div>
+                </div>
+
+                <h3 class="fw-bold mb-2">@Model.Name</h3>
+                <p class="text-muted small mb-4">@(string.IsNullOrWhiteSpace(Model.Description) ? "Depo açıklaması bulunmuyor." : Model.Description)</p>
+
+                <div class="border-top pt-3 d-flex flex-column gap-2 small text-muted mb-4">
+                    @if (!string.IsNullOrWhiteSpace(Model.Address))
+                    {
+                        <div>
+                            <i class="bi bi-geo-alt text-secondary me-2"></i><strong>Adres:</strong> @Model.Address
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.Phone))
+                    {
+                        <div>
+                            <i class="bi bi-telephone text-secondary me-2"></i><strong>Tel:</strong> @Model.Phone
+                        </div>
+                    }
+                    <div>
+                        <i class="bi bi-calendar3 text-secondary me-2"></i><strong>Oluşturulma:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <a asp-controller="StockTransfers" asp-action="Create" asp-route-sourceWarehouseId="@Model.Id" class="btn btn-outline-primary rounded-pill">
+                        <i class="bi bi-box-arrow-right me-1"></i> Bu Depodan Transfer Yap
+                    </a>
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-light rounded-pill">
+                        <i class="bi bi-pencil me-1"></i> Depoyu Düzenle
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-lg-8">
+        <div class="card border-0 shadow-sm rounded-4 h-100">
+            <div class="card-header bg-transparent border-bottom p-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold mb-0"><i class="bi bi-boxes text-primary me-2"></i>Bu Depodaki Ürün Stokları</h5>
+                    <span class="text-muted small">@Model.Name deposunda yer alan mevcut stok dağılımı</span>
+                </div>
+                <div class="badge bg-light text-dark border px-3 py-2 fs-6">
+                    Toplam @warehouseItems.Count() Ürün Kalemi
+                </div>
+            </div>
+            <div class="card-body p-0">
+                @if (!warehouseItems.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="bi bi-inbox text-muted opacity-50 display-3 d-block mb-3"></i>
+                        <h5 class="fw-bold">Bu Depoda Stok Bulunmuyor</h5>
+                        <p class="text-muted mb-3">Henüz bu depoya ürün tanımlanmamış veya transfer edilmemiş.</p>
+                        <a asp-controller="StockTransfers" asp-action="Create" class="btn btn-primary btn-sm rounded-pill px-4 py-2">
+                            <i class="bi bi-arrow-left-right me-1"></i> Başka Depodan Transfer Al
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Barkod</th>
+                                    <th>Ürün Adı</th>
+                                    <th>Depo Stoğu</th>
+                                    <th>Toplam Şirket Stoğu</th>
+                                    <th>Durum</th>
+                                    <th class="text-end pe-4">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in warehouseItems)
+                                {
+                                    var p = (StockManager.Server.Models.Product)item.Product;
+                                    var qty = (int)item.Quantity;
+                                    var lowStock = (bool)item.LowStock;
+
+                                    <tr>
+                                        <td class="ps-4 font-monospace small">@(p.Barcode ?? "-")</td>
+                                        <td>
+                                            <div class="fw-bold">@p.Name</div>
+                                            <div class="small text-muted">@p.Description</div>
+                                        </td>
+                                        <td>
+                                            <span class="fs-6 fw-bold @(qty > 0 ? "text-dark" : "text-danger")">@qty Adet</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark border font-monospace">@p.Quantity Adet</span>
+                                        </td>
+                                        <td>
+                                            @if (qty <= 0)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger rounded-pill px-2 py-1"><i class="bi bi-x-circle me-1"></i>Tükendi</span>
+                                            }
+                                            else if (lowStock)
+                                            {
+                                                <span class="badge bg-warning-subtle text-warning-emphasis rounded-pill px-2 py-1"><i class="bi bi-exclamation-triangle me-1"></i>Kritik</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-success-subtle text-success rounded-pill px-2 py-1"><i class="bi bi-check-circle me-1"></i>Yeterli</span>
+                                            }
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a asp-controller="Products" asp-action="Edit" asp-route-id="@p.Id" class="btn btn-light btn-sm rounded-pill" title="Ürünü Düzenle">
+                                                <i class="bi bi-pencil text-secondary"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -36,6 +36,14 @@ public class Sale
     [BsonElement("stripeStatus")]
     public string? StripeStatus { get; set; }
 
+    [BsonElement("warehouseId")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? WarehouseId { get; set; }
+
+    [BsonElement("warehouseName")]
+    public string? WarehouseName { get; set; }
+
     [BsonElement("items")]
     public List<SaleItem> Items { get; set; } = new();
 }
+

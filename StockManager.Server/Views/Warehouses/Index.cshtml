@@ -1,0 +1,188 @@
+@model IEnumerable<StockManager.Server.Models.Warehouse>
+
+@{
+    ViewData["Title"] = "Depolar ve Şubeler";
+    var stockCounts = ViewBag.StockCounts as Dictionary<string, int> ?? new Dictionary<string, int>();
+    var totalQuantities = ViewBag.TotalQuantities as Dictionary<string, int> ?? new Dictionary<string, int>();
+}
+
+<style>
+    .wh-card {
+        border: none;
+        border-radius: 16px;
+        transition: transform .25s ease, box-shadow .25s ease;
+        overflow: hidden;
+        background: var(--bs-card-bg, #ffffff);
+        box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+    .wh-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 14px 32px rgba(0,0,0,.12) !important;
+    }
+    .wh-accent {
+        height: 6px;
+        width: 100%;
+    }
+    .wh-icon-circle {
+        width: 56px;
+        height: 56px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+    }
+    .wh-stat-badge {
+        background: rgba(99, 102, 241, 0.08);
+        border: 1px solid rgba(99, 102, 241, 0.15);
+        border-radius: 10px;
+        padding: 8px 14px;
+    }
+</style>
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri
+    </a>
+</div>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-buildings text-primary me-2"></i>Depo & Şube Yönetimi</h2>
+        <p class="text-muted mb-0">Ana depolarınızı, mağaza şubelerinizi ve yedek depolarınızı tek ekrandan yönetin ve stok dağılımlarını takip edin.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-controller="StockTransfers" asp-action="Create" class="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2">
+            <i class="bi bi-arrow-left-right"></i>
+            <span>Stok Transferi Yap</span>
+        </a>
+        <a asp-action="Create" class="btn btn-primary d-flex align-items-center gap-2 shadow-sm rounded-pill px-4 py-2">
+            <i class="bi bi-plus-lg"></i>
+            <span>Yeni Depo / Şube Ekle</span>
+        </a>
+    </div>
+</div>
+
+@if (TempData["success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show rounded-4 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (!Model.Any())
+{
+    <div class="card border-0 shadow-sm rounded-4 text-center py-5">
+        <div class="card-body">
+            <i class="bi bi-building-slash display-1 text-muted opacity-50 mb-3 d-block"></i>
+            <h4 class="fw-bold">Henüz Depo veya Şube Tanımlanmamış</h4>
+            <p class="text-muted mb-4">Stoklarınızı yerinde takip etmek için ilk deponuzu veya şubenizi ekleyin.</p>
+            <a asp-action="Create" class="btn btn-primary rounded-pill px-4 py-2">
+                <i class="bi bi-plus-lg me-2"></i>İlk Depoyu Oluştur
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+        @foreach (var wh in Model)
+        {
+            var uniqueCount = wh.Id != null && stockCounts.ContainsKey(wh.Id) ? stockCounts[wh.Id] : 0;
+            var totalQty = wh.Id != null && totalQuantities.ContainsKey(wh.Id) ? totalQuantities[wh.Id] : 0;
+            var accentColor = wh.IsDefault ? "#6366f1" : (wh.IsActive ? "#10b981" : "#64748b");
+            var iconBg = wh.IsDefault ? "rgba(99, 102, 241, 0.15)" : (wh.IsActive ? "rgba(16, 185, 129, 0.15)" : "rgba(100, 116, 139, 0.15)");
+            var iconColor = wh.IsDefault ? "#6366f1" : (wh.IsActive ? "#10b981" : "#64748b");
+
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card wh-card h-100 d-flex flex-column">
+                    <div class="wh-accent" style="background: @accentColor;"></div>
+                    <div class="card-body p-4 d-flex flex-column flex-grow-1">
+                        <div class="d-flex align-items-start justify-content-between mb-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="wh-icon-circle" style="background: @iconBg; color: @iconColor;">
+                                    <i class="bi @(wh.IsDefault ? "bi-building-fill-check" : "bi-shop")"></i>
+                                </div>
+                                <div>
+                                    <h5 class="fw-bold mb-1">@wh.Name</h5>
+                                    <span class="badge bg-light text-dark border font-monospace px-2 py-1">@wh.Code</span>
+                                </div>
+                            </div>
+                            <div>
+                                @if (wh.IsDefault)
+                                {
+                                    <span class="badge rounded-pill bg-primary px-3 py-2"><i class="bi bi-star-fill me-1"></i>Varsayılan</span>
+                                }
+                                else if (wh.IsActive)
+                                {
+                                    <span class="badge rounded-pill bg-success-subtle text-success px-3 py-2">Aktif</span>
+                                }
+                                else
+                                {
+                                    <span class="badge rounded-pill bg-secondary px-3 py-2">Pasif</span>
+                                }
+                            </div>
+                        </div>
+
+                        <p class="text-muted small mb-3 flex-grow-1">@(string.IsNullOrWhiteSpace(wh.Description) ? "Depo açıklaması bulunmuyor." : wh.Description)</p>
+
+                        <div class="d-flex flex-column gap-1 mb-3 small text-muted">
+                            @if (!string.IsNullOrWhiteSpace(wh.Address))
+                            {
+                                <div class="text-truncate" title="Adres: @wh.Address">
+                                    <i class="bi bi-geo-alt text-secondary me-2"></i>@wh.Address
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(wh.Phone))
+                            {
+                                <div>
+                                    <i class="bi bi-telephone text-secondary me-2"></i>@wh.Phone
+                                </div>
+                            }
+                        </div>
+
+                        <div class="wh-stat-badge d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <div class="text-muted small">Çeşit Sayısı</div>
+                                <div class="fw-bold fs-6 text-primary">@uniqueCount Ürün</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small">Toplam Stok Miktarı</div>
+                                <div class="fw-bold fs-5 text-dark">@totalQty Adet</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center justify-content-between pt-2 border-top gap-2 mt-auto">
+                            <a asp-action="Details" asp-route-id="@wh.Id" class="btn btn-outline-primary btn-sm rounded-pill flex-grow-1">
+                                <i class="bi bi-boxes me-1"></i> Stokları İncele
+                            </a>
+                            <div class="btn-group">
+                                <a asp-action="Edit" asp-route-id="@wh.Id" class="btn btn-light btn-sm rounded-pill" title="Düzenle">
+                                    <i class="bi bi-pencil-square text-secondary"></i>
+                                </a>
+                                @if (!wh.IsDefault)
+                                {
+                                    <form asp-action="Delete" asp-route-id="@wh.Id" method="post" class="d-inline" onsubmit="return confirm('\'@wh.Name\' deposunu silmek istediğinize emin misiniz? (İçinde stok bulunmuyorsa silinecektir.)');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-light btn-sm rounded-pill ms-1" title="Sil">
+                                            <i class="bi bi-trash text-danger"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

@@ -4,7 +4,9 @@ public enum StockMovementType
 {
     StockIn,
     StockOut,
-    Adjustment
+    Adjustment,
+    TransferOut,
+    TransferIn
 }
 
 public enum PaymentType
@@ -12,4 +14,11 @@ public enum PaymentType
     Cash,
     Card,
     Debt
+}
+
+public enum StockTransferStatus
+{
+    Completed,
+    Pending,
+    Cancelled
 }

@@ -107,6 +107,21 @@
                     <!-- Dinamik olarak JS ile üretilecek gizli inputlar buraya gelecek -->
                     <div id="hidden-cart-inputs"></div>
 
+                    <!-- Depo / Şube Seçimi -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Satış Yapılan Şube / Depo <span class="text-danger">*</span></label>
+                        <select name="WarehouseId" id="warehouse-select" class="form-select" required>
+                            <option value="">Depo Seçiniz...</option>
+                            @if (ViewBag.Warehouses != null)
+                            {
+                                @foreach (var wh in (IEnumerable<StockManager.Server.Models.Warehouse>)ViewBag.Warehouses)
+                                {
+                                    <option value="@wh.Id" selected="@(wh.IsDefault ? "selected" : null)">@wh.Name [@wh.Code]</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
                     <!-- Ödeme Tipi Seçimi -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Ödeme Yöntemi</label>

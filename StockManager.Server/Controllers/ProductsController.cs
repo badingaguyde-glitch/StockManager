@@ -181,6 +181,28 @@ public class ProductsController : Controller
 
             product.Id ??= MongoDB.Bson.ObjectId.GenerateNewId().ToString();
 
+            // 🆕 Depo stok ataması
+            var defaultWarehouse = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync() 
+                                   ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+
+            if (model.WarehouseStocks != null && model.WarehouseStocks.Any(ws => ws.Quantity > 0))
+            {
+                product.WarehouseStocks = model.WarehouseStocks.Where(ws => ws.Quantity > 0).ToList();
+                product.Quantity = product.WarehouseStocks.Sum(ws => ws.Quantity);
+            }
+            else if (defaultWarehouse != null && product.Quantity > 0)
+            {
+                product.WarehouseStocks = new List<WarehouseStock>
+                {
+                    new WarehouseStock
+                    {
+                        WarehouseId = defaultWarehouse.Id!,
+                        WarehouseName = defaultWarehouse.Name,
+                        Quantity = product.Quantity
+                    }
+                };
+            }
+
             await _context.Products.InsertOneAsync(product);
 
             if (product.Quantity > 0)
@@ -192,12 +214,15 @@ public class ProductsController : Controller
                     Quantity = product.Quantity,
                     Type = StockMovementType.Adjustment,
                     Date = DateTime.UtcNow,
+                    WarehouseId = defaultWarehouse?.Id,
+                    WarehouseName = defaultWarehouse?.Name,
                     Notes = "Ürün oluşturulurken otomatik kaydedilen başlangıç stoğu."
                 };
                 await _context.StockMovements.InsertOneAsync(initialMovement);
             }
 
             if (product.Quantity <= product.LowStockThreshold)
+
             {
                 var notification = new Notification
                 {
@@ -240,24 +265,9 @@ public class ProductsController : Controller
             CategoryId = product.CategoryId,
             SupplierId = product.SupplierId,
             // 🆕 Görsel bilgisi
-            ExistingImageUrl = product.ImageUrl
+            ExistingImageUrl = product.ImageUrl,
+            WarehouseStocks = product.WarehouseStocks
         };
-
-        int oldQuantity = product.Quantity;
-        int newQuantity = model.Quantity;
-
-        if (oldQuantity != newQuantity)
-        {
-            var stockMovement = new StockMovement
-            {
-                ProductId = product.Id,
-                Quantity = newQuantity - oldQuantity,
-                Type = StockMovementType.Adjustment,
-                Date = DateTime.UtcNow,
-                Notes = $"Ürün düzenleşe ekranında otomatik miktar ayarı(Eski Stok: {oldQuantity}, Yeni Stok: {newQuantity})"
-            };
-            await _context.StockMovements.InsertOneAsync(stockMovement);
-        }
 
         await PopulateDropdowns();
         return View(model);
@@ -308,16 +318,28 @@ public class ProductsController : Controller
         }
 
         int oldQty = product.Quantity;
+
+        if (model.WarehouseStocks != null && model.WarehouseStocks.Any(ws => ws.Quantity >= 0))
+        {
+            product.WarehouseStocks = model.WarehouseStocks.Where(ws => ws.Quantity >= 0).ToList();
+            model.Quantity = product.WarehouseStocks.Sum(ws => ws.Quantity);
+        }
+
         int newQty = model.Quantity;
 
         if (oldQty != newQty)
         {
+            var defaultWarehouse = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync()
+                                   ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+
             var adjustmentMovement = new StockMovement
             {
                 ProductId = product.Id ?? string.Empty,
-                Quantity = newQty,
+                Quantity = newQty - oldQty,
                 Type = StockMovementType.Adjustment,
                 Date = DateTime.UtcNow,
+                WarehouseId = defaultWarehouse?.Id,
+                WarehouseName = defaultWarehouse?.Name,
                 Notes = $"Ürün düzenleme ekranından otomatik miktar ayarı (Eski Stok: {oldQty}, Yeni Stok: {newQty})."
             };
             await _context.StockMovements.InsertOneAsync(adjustmentMovement);
@@ -335,6 +357,7 @@ public class ProductsController : Controller
         var updateResult = await _context.Products.ReplaceOneAsync(
             p => p.Id == id,
             product);
+
 
         if (updateResult.ModifiedCount > 0 && product.Quantity <= product.LowStockThreshold)
         {
@@ -408,7 +431,14 @@ public class ProductsController : Controller
             .SortBy(s => s.CompanyName)
             .ToListAsync();
 
+        var warehouses = await _context.Warehouses
+            .Find(w => w.IsActive)
+            .SortBy(w => w.Name)
+            .ToListAsync();
+
         ViewBag.Categories = new SelectList(categories, "Id", "Name");
         ViewBag.Suppliers = new SelectList(suppliers, "Id", "CompanyName");
+        ViewBag.Warehouses = warehouses;
     }
 }
+
