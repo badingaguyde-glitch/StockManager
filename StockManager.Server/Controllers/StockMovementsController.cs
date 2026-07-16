@@ -187,6 +187,36 @@ namespace StockManager.Server.Controllers
                         whStock.Quantity -= movement.Quantity;
                         await _context.Products.ReplaceOneAsync(session, productFilter, checkProduct);
 
+                        // Parti/Seri/SKT takibi aktifse FIFO/FEFO yöntemiyle partilerden stok düş ve durumu güncelle
+                        if (checkProduct.HasBatchTracking || checkProduct.HasSerialTracking || checkProduct.HasExpiryTracking)
+                        {
+                            var activeBatches = await _context.ProductBatches
+                                .Find(session, b => b.ProductId == checkProduct.Id && b.Status == ProductBatchStatus.Active && (string.IsNullOrEmpty(movement.WarehouseId) || b.WarehouseId == movement.WarehouseId))
+                                .SortBy(b => b.ExpiryDate)
+                                .ToListAsync();
+
+                            int remainingToDeduct = movement.Quantity;
+                            foreach (var batch in activeBatches)
+                            {
+                                if (remainingToDeduct <= 0) break;
+
+                                if (batch.Quantity <= remainingToDeduct)
+                                {
+                                    remainingToDeduct -= batch.Quantity;
+                                    batch.Quantity = 0;
+                                    batch.Status = ProductBatchStatus.Sold;
+                                }
+                                else
+                                {
+                                    batch.Quantity -= remainingToDeduct;
+                                    remainingToDeduct = 0;
+                                }
+
+                                var batchFilter = Builders<ProductBatch>.Filter.Eq(b => b.Id, batch.Id);
+                                await _context.ProductBatches.ReplaceOneAsync(session, batchFilter, batch);
+                            }
+                        }
+
                         if (!string.IsNullOrEmpty(movement.SupplierId))
                         {
                             var totalCost = checkProduct.PurchasePrice * movement.Quantity;

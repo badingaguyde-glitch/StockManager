@@ -1,0 +1,191 @@
+@model StockManager.Server.Models.PurchaseOrder
+
+@{
+    ViewData["Title"] = $"Satın Alma Siparişi #{Model.OrderNumber}";
+    var supplier = ViewBag.Supplier as StockManager.Server.Models.Supplier;
+}
+
+<style>
+    .po-card {
+        border: none;
+        border-radius: 16px;
+        background: var(--bs-card-bg, #ffffff);
+        box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+    .status-badge {
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 0.95rem;
+    }
+</style>
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Sipariş Listesine Dön
+    </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>Satın Alma Siparişi: @Model.OrderNumber</h2>
+        <p class="text-muted mb-0">Oluşturulma Tarihi: @Model.OrderDate.ToLocalTime().ToString("dd.MM.yyyy HH:mm") | Oluşturan: @Model.CreatedBy</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <a asp-action="DownloadPdf" asp-route-id="@Model.Id" class="btn btn-outline-primary px-3 rounded-3 shadow-sm d-flex align-items-center">
+            <i class="bi bi-file-earmark-pdf me-2"></i> PDF İndir
+        </a>
+        @if (!string.IsNullOrEmpty(Model.SupplierEmail))
+        {
+            <form asp-action="SendEmail" asp-route-id="@Model.Id" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-info px-3 rounded-3 shadow-sm d-flex align-items-center"
+                        onclick="return confirm('@Model.SupplierEmail adresine sipariş formu tekrar gönderilsin mi?')">
+                    <i class="bi bi-envelope-paper me-2"></i> E-Postayı Gönder / Tekrar İlet
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Tedarikçi Bilgileri -->
+    <div class="col-md-4">
+        <div class="po-card p-4 h-100 border-top border-primary border-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-truck text-primary me-2"></i>Tedarikçi Bilgileri</h5>
+            <div class="fw-bold fs-5 text-primary mb-1">@Model.SupplierName</div>
+            <p class="text-muted mb-2 small"><i class="bi bi-envelope me-2"></i>@(Model.SupplierEmail ?? supplier?.Email ?? "E-Posta Belirtilmedi")</p>
+            <p class="text-muted mb-2 small"><i class="bi bi-person me-2"></i>Yetkili: @(supplier?.ContactName ?? "-")</p>
+            <p class="text-muted mb-0 small"><i class="bi bi-telephone me-2"></i>Tel: @(supplier?.Phone ?? "-")</p>
+        </div>
+    </div>
+
+    <!-- Teslimat & Depo Bilgileri -->
+    <div class="col-md-4">
+        <div class="po-card p-4 h-100 border-top border-info border-4">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-building text-info me-2"></i>Teslimat ve Depo</h5>
+            <div class="fw-bold fs-5 text-dark mb-1">@Model.TargetWarehouseName</div>
+            <p class="text-muted mb-2 small"><i class="bi bi-calendar-check me-2"></i>Beklenen Teslimat: @(Model.ExpectedDeliveryDate?.ToLocalTime().ToString("dd.MM.yyyy") ?? "Acil / Asap")</p>
+            @if (Model.EmailSentAt.HasValue)
+            {
+                <p class="text-success mb-0 small"><i class="bi bi-send-check me-2"></i>Son E-Posta: @Model.EmailSentAt.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</p>
+            }
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="mt-3 p-2 bg-light rounded small text-muted font-monospace">Not: @Model.Notes</div>
+            }
+        </div>
+    </div>
+
+    <!-- Durum ve İşlemler -->
+    <div class="col-md-4">
+        <div class="po-card p-4 h-100 border-top border-success border-4 d-flex flex-column justify-content-between">
+            <div>
+                <h5 class="fw-bold text-dark mb-3"><i class="bi bi-flag text-success me-2"></i>Sipariş Durumu & Akış</h5>
+                <div class="mb-3">
+                    @switch (Model.Status)
+                    {
+                        case StockManager.Server.Models.PurchaseOrderStatus.Draft:
+                            <span class="status-badge bg-secondary bg-opacity-10 text-secondary"><i class="bi bi-pencil me-2"></i>Taslak (Draft)</span>
+                            break;
+                        case StockManager.Server.Models.PurchaseOrderStatus.Sent:
+                            <span class="status-badge bg-primary bg-opacity-10 text-primary"><i class="bi bi-send me-2"></i>E-Posta Gönderildi</span>
+                            break;
+                        case StockManager.Server.Models.PurchaseOrderStatus.Approved:
+                            <span class="status-badge bg-info bg-opacity-10 text-info"><i class="bi bi-check-circle me-2"></i>Tedarikçi Onayladı</span>
+                            break;
+                        case StockManager.Server.Models.PurchaseOrderStatus.Completed:
+                            <span class="status-badge bg-success bg-opacity-10 text-success"><i class="bi bi-box-seam me-2"></i>Teslim Alındı / Stoklara Eklendi</span>
+                            break;
+                        case StockManager.Server.Models.PurchaseOrderStatus.Cancelled:
+                            <span class="status-badge bg-danger bg-opacity-10 text-danger"><i class="bi bi-x-circle me-2"></i>İptal Edildi</span>
+                            break;
+                    }
+                </div>
+            </div>
+
+            @if (Model.Status != StockManager.Server.Models.PurchaseOrderStatus.Completed && Model.Status != StockManager.Server.Models.PurchaseOrderStatus.Cancelled)
+            {
+                <div class="d-flex flex-column gap-2 mt-3">
+                    @if (Model.Status != StockManager.Server.Models.PurchaseOrderStatus.Approved)
+                    {
+                        <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="status" value="Approved" />
+                            <button type="submit" class="btn btn-outline-info w-100 rounded-3 text-start d-flex align-items-center justify-content-between">
+                                <span><i class="bi bi-check-circle me-2"></i>Tedarikçi Onayladı Yap</span>
+                                <i class="bi bi-chevron-right"></i>
+                            </button>
+                        </form>
+                    }
+
+                    <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="status" value="Completed" />
+                        <button type="submit" class="btn btn-success w-100 rounded-3 text-start d-flex align-items-center justify-content-between shadow-sm"
+                                onclick="return confirm('Sipariş teslime alındı olarak işaretlendiğinde, listedeki tüm ürünlerin miktarları @Model.TargetWarehouseName deposuna otomatik eklenecek ve stok hareketi oluşacaktır. Devam edilsin mi?')">
+                            <span><i class="bi bi-box-arrow-in-down me-2"></i>Teslim Alındı (Stoklara İşle)</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </form>
+
+                    <form asp-action="UpdateStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="status" value="Cancelled" />
+                        <button type="submit" class="btn btn-outline-danger w-100 rounded-3 text-start d-flex align-items-center justify-content-between"
+                                onclick="return confirm('Bu siparişi iptal etmek istediğinize emin misiniz?')">
+                            <span><i class="bi bi-x-circle me-2"></i>Siparişi İptal Et</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Sipariş Kalemleri -->
+<div class="po-card p-4">
+    <h5 class="fw-bold text-dark mb-4"><i class="bi bi-boxes text-primary me-2"></i>Sipariş Edilen Ürün Kalemleri</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="bg-light text-muted">
+                <tr>
+                    <th class="ps-3">#</th>
+                    <th>Barkod</th>
+                    <th>Ürün Adı</th>
+                    <th class="text-end">Mevcut / Kritik Eşik</th>
+                    <th class="text-end">Sipariş Adedi</th>
+                    <th class="text-end">Birim Fiyat</th>
+                    <th class="text-end pe-3">Toplam Tutar</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int idx = 1; }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td class="ps-3 text-muted">@idx</td>
+                        <td><span class="font-monospace">@(item.Barcode ?? "-")</span></td>
+                        <td class="fw-bold text-dark">@item.ProductName</td>
+                        <td class="text-end">
+                            <span class="text-danger fw-semibold">@item.CurrentStock</span> / <span class="text-muted">@item.LowStockThreshold</span>
+                        </td>
+                        <td class="text-end fw-bold text-primary fs-6">@item.OrderedQuantity Adet</td>
+                        <td class="text-end">@item.UnitPrice.ToString("N2") ₺</td>
+                        <td class="text-end pe-3 fw-bold text-dark">@item.TotalPrice.ToString("N2") ₺</td>
+                    </tr>
+                    idx++;
+                }
+            </tbody>
+            <tfoot class="bg-light">
+                <tr>
+                    <td colspan="4" class="text-end fw-bold ps-3 py-3">GENEL TOPLAM:</td>
+                    <td class="text-end fw-bold text-primary fs-6">@Model.Items.Sum(i => i.OrderedQuantity) Adet</td>
+                    <td></td>
+                    <td class="text-end fw-bold text-primary pe-3 fs-5">@Model.TotalAmount.ToString("N2") ₺</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>

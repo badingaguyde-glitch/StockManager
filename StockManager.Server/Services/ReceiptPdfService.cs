@@ -14,6 +14,7 @@ public class ReceiptPdfService
 
     public byte[] GenerateReceiptPdf(Sale sale, Customer? customer = null)
     {
+        QuestPDF.Settings.License = LicenseType.Community;
         var currency = sale.Currency?.ToUpperInvariant() ?? "TRY";
 
         var document = Document.Create(container =>

@@ -1,0 +1,109 @@
+@model StockManager.Server.Models.ProductBatch
+
+@{
+    ViewData["Title"] = "Yeni Parti, Lot veya IMEI / Seri No Kaydet";
+    var products = ViewBag.Products as List<StockManager.Server.Models.Product> ?? new List<StockManager.Server.Models.Product>();
+    var warehouses = ViewBag.Warehouses as List<StockManager.Server.Models.Warehouse> ?? new List<StockManager.Server.Models.Warehouse>();
+}
+
+<style>
+    .batch-card {
+        border: none;
+        border-radius: 16px;
+        background: var(--bs-card-bg, #ffffff);
+        box-shadow: 0 4px 15px rgba(0,0,0,.05);
+    }
+</style>
+
+<div class="mb-3">
+    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Listeye Dön
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="batch-card p-4 p-md-5">
+            <h3 class="fw-bold mb-1"><i class="bi bi-plus-circle-fill text-primary me-2"></i>Yeni Parti / Seri No & SKT Kaydı</h3>
+            <p class="text-muted mb-4">Gıda, eczane ürünleri için Parti/Lot ve SKT; elektronik ürünler için ise benzersiz IMEI veya Seri numarası tanımlayın.</p>
+
+            <form asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark">Ürün Seçimi <span class="text-danger">*</span></label>
+                        <select asp-for="ProductId" class="form-select rounded-3 border bg-light py-2" required>
+                            <option value="">-- Ürün Seçiniz --</option>
+                            @foreach (var p in products)
+                            {
+                                <option value="@p.Id" selected="@(Model.ProductId == p.Id ? "selected" : null)">
+                                    @p.Name (@p.Barcode) @(p.HasExpiryTracking ? " [⏰ SKT Takipli]" : "") @(p.HasSerialTracking ? " [📱 IMEI Takipli]" : "")
+                                </option>
+                            }
+                        </select>
+                        <span asp-validation-for="ProductId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold text-dark">Hedef Depo / Şube</label>
+                        <select asp-for="WarehouseId" class="form-select rounded-3 border bg-light py-2">
+                            @foreach (var w in warehouses)
+                            {
+                                <option value="@w.Id">@w.Name (@w.Code)</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4 p-3 bg-light rounded-3 border">
+                    <div class="col-md-6">
+                        <label asp-for="BatchNumber" class="form-label fw-semibold text-dark"><i class="bi bi-box-seam text-primary me-1"></i>Parti / Lot Numarası</label>
+                        <input asp-for="BatchNumber" class="form-control bg-white rounded-3 py-2" placeholder="Örn: LOT-2026-A1" />
+                        <span class="form-text text-muted small">Gıda, kozmetik veya eczane ürün grupları için</span>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label asp-for="SerialNumber" class="form-label fw-semibold text-dark"><i class="bi bi-phone text-success me-1"></i>IMEI / Seri Numarası</label>
+                        <input asp-for="SerialNumber" class="form-control bg-white rounded-3 py-2 font-monospace" placeholder="Örn: 358912048192301" />
+                        <span class="form-text text-muted small">Elektronik ve tekil takipli cihazlar için</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label asp-for="ManufactureDate" class="form-label fw-semibold text-dark"><i class="bi bi-calendar-check text-info me-1"></i>Üretim Tarihi</label>
+                        <input asp-for="ManufactureDate" type="date" class="form-control bg-light rounded-3 py-2" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="ExpiryDate" class="form-label fw-semibold text-dark"><i class="bi bi-calendar-x text-danger me-1"></i>Son Kullanma Tarihi (SKT)</label>
+                        <input asp-for="ExpiryDate" type="date" class="form-control bg-light rounded-3 py-2" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label asp-for="Quantity" class="form-label fw-semibold text-dark">Parti Miktarı <span class="text-danger">*</span></label>
+                        <input asp-for="Quantity" type="number" class="form-control bg-light rounded-3 py-2 text-end fw-bold text-primary" value="10" min="1" required />
+                        <span class="form-text text-muted small">IMEI girilirse otomatik 1 kabul edilir.</span>
+                    </div>
+                </div>
+
+                <div class="mb-4 p-3 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="updateProductStock" value="true" id="updateStockChk" checked />
+                        <label class="form-check-label fw-semibold text-dark" for="updateStockChk">
+                            Bu partideki miktar seçili depoya ve ürünün genel stok sayısına otomatik olarak eklensin (Stok Giriş Hareketi oluşturulsun).
+                        </label>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="Index" class="btn btn-light px-4 py-2 rounded-3">İptal</a>
+                    <button type="submit" class="btn btn-primary px-5 py-2 rounded-3 shadow-sm fw-bold">
+                        <i class="bi bi-check-lg me-2"></i> Parti / Seri No Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

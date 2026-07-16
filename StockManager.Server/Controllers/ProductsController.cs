@@ -176,7 +176,11 @@ public class ProductsController : Controller
                 // 🆕 Görsel alanları
                 ImageUrl = imageUrl,
                 CloudinaryPublicId = cloudinaryPublicId,
-                ImageUploadedAt = DateTime.UtcNow
+                ImageUploadedAt = DateTime.UtcNow,
+                // 🆕 Parti, Seri ve SKT Takibi anahtarları
+                HasBatchTracking = model.HasBatchTracking,
+                HasSerialTracking = model.HasSerialTracking,
+                HasExpiryTracking = model.HasExpiryTracking
             };
 
             product.Id ??= MongoDB.Bson.ObjectId.GenerateNewId().ToString();
@@ -277,7 +281,11 @@ public class ProductsController : Controller
             SupplierId = product.SupplierId,
             // 🆕 Görsel bilgisi
             ExistingImageUrl = product.ImageUrl,
-            WarehouseStocks = product.WarehouseStocks
+            WarehouseStocks = product.WarehouseStocks,
+            // 🆕 Parti, Seri ve SKT Takibi anahtarları
+            HasBatchTracking = product.HasBatchTracking,
+            HasSerialTracking = product.HasSerialTracking,
+            HasExpiryTracking = product.HasExpiryTracking
         };
 
         await PopulateDropdowns();
@@ -364,6 +372,9 @@ public class ProductsController : Controller
         product.LowStockThreshold = model.LowStockThreshold;
         product.CategoryId = model.CategoryId;
         product.SupplierId = model.SupplierId;
+        product.HasBatchTracking = model.HasBatchTracking;
+        product.HasSerialTracking = model.HasSerialTracking;
+        product.HasExpiryTracking = model.HasExpiryTracking;
 
         var updateResult = await _context.Products.ReplaceOneAsync(
             p => p.Id == id,

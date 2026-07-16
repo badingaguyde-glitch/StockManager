@@ -1,0 +1,174 @@
+@model IEnumerable<StockManager.Server.Models.PurchaseOrder>
+
+@{
+    ViewData["Title"] = "Satın Alma Siparişleri (PO)";
+    var suppliers = ViewBag.Suppliers as List<StockManager.Server.Models.Supplier> ?? new List<StockManager.Server.Models.Supplier>();
+    var currentStatus = ViewBag.CurrentStatus as string;
+    var currentSupplierId = ViewBag.CurrentSupplierId as string;
+}
+
+<style>
+    .po-card {
+        border: none;
+        border-radius: 16px;
+        background: var(--bs-card-bg, #ffffff);
+        box-shadow: 0 4px 15px rgba(0,0,0,.05);
+        transition: transform .25s ease, box-shadow .25s ease;
+    }
+    .po-card:hover {
+        box-shadow: 0 10px 25px rgba(0,0,0,.09);
+    }
+    .status-badge {
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(37, 99, 235, 0.03);
+    }
+</style>
+
+<div class="mb-3">
+    <a href="javascript:history.back()" class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-arrow-left"></i> Geri Dön
+    </a>
+</div>
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold mb-1"><i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i>Satın Alma Siparişleri (PO)</h2>
+        <p class="text-muted mb-0">Tedarikçilere verilen siparişlerin ve otomatik PDF/E-Posta bildirimlerinin takibi.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="LowStock" class="btn btn-primary px-4 py-2 rounded-3 shadow-sm d-flex align-items-center">
+            <i class="bi bi-magic me-2"></i> Düşük Stoktan Otomatik / Manuel PO Oluştur
+        </a>
+    </div>
+</div>
+
+<div class="po-card p-4 mb-4">
+    <form asp-action="Index" method="get" class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label text-muted fw-semibold">Tedarikçi Filtresi</label>
+            <select name="supplierId" class="form-select border-0 bg-light rounded-3" onchange="this.form.submit()">
+                <option value="">Tüm Tedarikçiler</option>
+                @foreach (var s in suppliers)
+                {
+                    <option value="@s.Id" selected="@(currentSupplierId == s.Id ? "selected" : null)">@s.CompanyName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-muted fw-semibold">Sipariş Durumu</label>
+            <select name="statusFilter" class="form-select border-0 bg-light rounded-3" onchange="this.form.submit()">
+                <option value="">Tüm Durumlar</option>
+                <option value="Draft" selected="@(currentStatus == "Draft" ? "selected" : null)">Taslak (Draft)</option>
+                <option value="Sent" selected="@(currentStatus == "Sent" ? "selected" : null)">E-Posta Gönderildi (Sent)</option>
+                <option value="Approved" selected="@(currentStatus == "Approved" ? "selected" : null)">Tedarikçi Onayladı (Approved)</option>
+                <option value="Completed" selected="@(currentStatus == "Completed" ? "selected" : null)">Teslim Alındı (Completed)</option>
+                <option value="Cancelled" selected="@(currentStatus == "Cancelled" ? "selected" : null)">İptal Edildi (Cancelled)</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex gap-2">
+            <a asp-action="Index" class="btn btn-light rounded-3 px-3"><i class="bi bi-x-circle me-1"></i>Temizle</a>
+        </div>
+    </form>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="po-card p-5 text-center my-4">
+        <div class="py-4">
+            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+            <h4 class="mt-3 fw-bold text-dark">Satın Alma Siparişi Bulunamadı</h4>
+            <p class="text-muted mx-auto" style="max-width: 450px;">Henüz kayıtlı bir satın alma siparişi bulunmuyor. Düşük stoklu ürünlerinizi inceleyip tek tıkla otomatik PO oluşturabilirsiniz.</p>
+            <a asp-action="LowStock" class="btn btn-primary px-4 py-2 rounded-3 mt-2">
+                <i class="bi bi-plus-circle me-2"></i> Düşük Stok Ürünlerini Görüntüle
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="po-card overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="bg-light text-muted">
+                    <tr>
+                        <th class="ps-4 py-3">Sipariş No</th>
+                        <th>Tedarikçi</th>
+                        <th>Teslim Deposu</th>
+                        <th>Kalem & Tutar</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th class="text-end pe-4">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var po in Model)
+                    {
+                        <tr>
+                            <td class="ps-4 fw-bold text-primary">
+                                <a asp-action="Details" asp-route-id="@po.Id" class="text-decoration-none">@po.OrderNumber</a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">@po.SupplierName</div>
+                                @if (!string.IsNullOrEmpty(po.SupplierEmail))
+                                {
+                                    <small class="text-muted"><i class="bi bi-envelope me-1"></i>@po.SupplierEmail</small>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-building me-1"></i>@po.TargetWarehouseName</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">@po.TotalAmount.ToString("N2") ₺</div>
+                                <small class="text-muted">@po.Items.Count Çeşit Ürün</small>
+                            </td>
+                            <td>
+                                <div>@po.OrderDate.ToLocalTime().ToString("dd.MM.yyyy")</div>
+                                <small class="text-muted">@po.OrderDate.ToLocalTime().ToString("HH:mm")</small>
+                            </td>
+                            <td>
+                                @switch (po.Status)
+                                {
+                                    case StockManager.Server.Models.PurchaseOrderStatus.Draft:
+                                        <span class="status-badge bg-secondary bg-opacity-10 text-secondary"><i class="bi bi-pencil me-1"></i>Taslak</span>
+                                        break;
+                                    case StockManager.Server.Models.PurchaseOrderStatus.Sent:
+                                        <span class="status-badge bg-primary bg-opacity-10 text-primary"><i class="bi bi-send me-1"></i>E-Posta İletildi</span>
+                                        break;
+                                    case StockManager.Server.Models.PurchaseOrderStatus.Approved:
+                                        <span class="status-badge bg-info bg-opacity-10 text-info"><i class="bi bi-check me-1"></i>Onaylandı</span>
+                                        break;
+                                    case StockManager.Server.Models.PurchaseOrderStatus.Completed:
+                                        <span class="status-badge bg-success bg-opacity-10 text-success"><i class="bi bi-check-circle-fill me-1"></i>Teslim Alındı</span>
+                                        break;
+                                    case StockManager.Server.Models.PurchaseOrderStatus.Cancelled:
+                                        <span class="status-badge bg-danger bg-opacity-10 text-danger"><i class="bi bi-x-circle me-1"></i>İptal</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a asp-action="Details" asp-route-id="@po.Id" class="btn btn-outline-primary btn-sm rounded-start" title="Detaylar"><i class="bi bi-eye"></i></a>
+                                    <a asp-action="DownloadPdf" asp-route-id="@po.Id" class="btn btn-outline-secondary btn-sm" title="PDF İndir"><i class="bi bi-file-earmark-pdf"></i></a>
+                                    @if (!string.IsNullOrEmpty(po.SupplierEmail))
+                                    {
+                                        <form asp-action="SendEmail" asp-route-id="@po.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-outline-info btn-sm rounded-end" title="PDF E-Posta Gönder / Tekrarla" onclick="return confirm('@po.SupplierEmail adresine sipariş belgesi gönderilsin mi?')">
+                                                <i class="bi bi-envelope-paper"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

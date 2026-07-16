@@ -32,6 +32,8 @@ namespace StockManager.Server.Data
         public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
         public IMongoCollection<Warehouse> Warehouses => _database.GetCollection<Warehouse>("Warehouses");
         public IMongoCollection<StockTransfer> StockTransfers => _database.GetCollection<StockTransfer>("StockTransfers");
+        public IMongoCollection<PurchaseOrder> PurchaseOrders => _database.GetCollection<PurchaseOrder>("PurchaseOrders");
+        public IMongoCollection<ProductBatch> ProductBatches => _database.GetCollection<ProductBatch>("ProductBatches");
 
         private void SeedData()
         {

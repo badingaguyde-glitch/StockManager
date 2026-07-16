@@ -28,6 +28,11 @@ namespace StockManager.Server.Controllers
                 .Find(s => s.SaleDate >= todayStart && s.SaleDate <= todayEnd)
                 .ToListAsync();
 
+            var now = DateTime.UtcNow;
+            var expiredCount = (int)await _context.ProductBatches.CountDocumentsAsync(b => b.ExpiryDate != null && b.Status == ProductBatchStatus.Active && b.ExpiryDate < now);
+            var expiringSoonCount = (int)await _context.ProductBatches.CountDocumentsAsync(b => b.ExpiryDate != null && b.Status == ProductBatchStatus.Active && b.ExpiryDate >= now && b.ExpiryDate <= now.AddDays(30));
+            var pendingPOCount = (int)await _context.PurchaseOrders.CountDocumentsAsync(po => po.Status != PurchaseOrderStatus.Completed && po.Status != PurchaseOrderStatus.Cancelled);
+
             var viewModel = new HomeDashboardViewModel
             {
                 CategoryCount = (int)await _context.Categories.CountDocumentsAsync(FilterDefinition<Category>.Empty),
@@ -37,7 +42,10 @@ namespace StockManager.Server.Controllers
                 SalesCount = (int)await _context.Sales.CountDocumentsAsync(FilterDefinition<Sale>.Empty),
                 TotalStockValue = products.Sum(p => p.Quantity * p.PurchasePrice),
                 LowStockCount = products.Count(p => p.Quantity <= p.LowStockThreshold),
-                TodaySalesTotal = todaySales.Sum(s => s.TotalAmount)
+                TodaySalesTotal = todaySales.Sum(s => s.TotalAmount),
+                ExpiredBatchCount = expiredCount,
+                ExpiringBatchCount = expiringSoonCount,
+                PendingPOCount = pendingPOCount
             };
 
             return View(viewModel);
