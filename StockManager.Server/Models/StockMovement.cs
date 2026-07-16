@@ -30,6 +30,18 @@ public class StockMovement
     [BsonRepresentation(BsonType.ObjectId)]
     public string? CustomerId { get; set; }
 
+    [BsonElement("warehouseId")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? WarehouseId { get; set; }
+
+    [BsonElement("warehouseName")]
+    public string? WarehouseName { get; set; }
+
+    [BsonElement("stockTransferId")]
+    [BsonRepresentation(BsonType.ObjectId)]
+    public string? StockTransferId { get; set; }
+
     [BsonElement("notes")]
     public string? Notes { get; set; }
 }
+

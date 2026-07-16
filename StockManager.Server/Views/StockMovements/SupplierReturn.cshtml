@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Tedarikci Stok Iadesi";
 }
 
@@ -48,6 +48,17 @@
                             @foreach (var item in (IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Products)
                             {
                                 <option value="@item.Value">@item.Text</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Depo / Şube <span class="text-danger">*</span></label>
+                        <select name="warehouseId" class="form-select" required>
+                            <option value="">Depo Secin...</option>
+                            @foreach (var wh in ViewBag.Warehouses as IEnumerable<StockManager.Server.Models.Warehouse> ?? new List<StockManager.Server.Models.Warehouse>())
+                            {
+                                <option value="@wh.Id" selected="@(wh.IsDefault ? "selected" : null)">@wh.Name [@wh.Code]</option>
                             }
                         </select>
                     </div>

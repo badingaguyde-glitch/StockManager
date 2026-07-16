@@ -25,6 +25,19 @@
         <span asp-validation-for="ProductId" class="text-danger"></span>
     </div>
 
+    <!-- Depo Seçimi -->
+    <div class="mb-3">
+        <label asp-for="WarehouseId" class="form-label fw-bold">Depo / Şube</label>
+        <select asp-for="WarehouseId" class="form-select" required>
+            <option value="">Depo Seçiniz...</option>
+            @foreach (var wh in ViewBag.Warehouses as IEnumerable<StockManager.Server.Models.Warehouse> ?? new List<StockManager.Server.Models.Warehouse>())
+            {
+                <option value="@wh.Id" selected="@(wh.IsDefault ? "selected" : null)">@wh.Name [@wh.Code]</option>
+            }
+        </select>
+        <span asp-validation-for="WarehouseId" class="text-danger"></span>
+    </div>
+
     <!-- Hareket Türü -->
     <div class="mb-3">
         <label asp-for="Type" class="form-label fw-bold">Hareket Türü</label>

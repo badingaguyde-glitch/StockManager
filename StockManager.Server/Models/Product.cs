@@ -56,4 +56,8 @@ public class Product
     // 🆕 Cloudinary Image ID (silme işlemleri için)
     [BsonElement("cloudinaryPublicId")]
     public string? CloudinaryPublicId { get; set; }
-}
+
+    // 🆕 Depo / Şube bazlı stok miktarları
+    [BsonElement("warehouseStocks")]
+    public List<WarehouseStock> WarehouseStocks { get; set; } = new();
+}

@@ -30,6 +30,8 @@ namespace StockManager.Server.Data
         public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
         public IMongoCollection<Notification> Notifications => _database.GetCollection<Notification>("Notifications");
         public IMongoCollection<AuditLog> AuditLogs => _database.GetCollection<AuditLog>("AuditLogs");
+        public IMongoCollection<Warehouse> Warehouses => _database.GetCollection<Warehouse>("Warehouses");
+        public IMongoCollection<StockTransfer> StockTransfers => _database.GetCollection<StockTransfer>("StockTransfers");
 
         private void SeedData()
         {
@@ -55,6 +57,36 @@ namespace StockManager.Server.Data
                 defaultAdmin.PasswordHash = hasher.HashPassword(defaultAdmin, "admin123");
                 Users.InsertOne(defaultAdmin);
             }
+            if (Warehouses.EstimatedDocumentCount() == 0)
+            {
+                var defaultWarehouses = new List<Warehouse>
+                {
+                    new Warehouse { Name = "Ana Depo", Code = "ANA", Description = "Merkez Ana Depo", IsDefault = true, IsActive = true },
+                    new Warehouse { Name = "Mağaza 1", Code = "MGZ1", Description = "Perakende Satış Mağazası", IsDefault = false, IsActive = true },
+                    new Warehouse { Name = "Yedek Depo", Code = "YDK", Description = "Yedek ve Lojistik Deposu", IsDefault = false, IsActive = true }
+                };
+                Warehouses.InsertMany(defaultWarehouses);
+
+                var anaDepo = Warehouses.Find(w => w.IsDefault).FirstOrDefault() ?? defaultWarehouses.First();
+                if (anaDepo != null && !string.IsNullOrEmpty(anaDepo.Id))
+                {
+                    var existingProducts = Products.Find(p => p.WarehouseStocks == null || p.WarehouseStocks.Count == 0).ToList();
+                    foreach (var product in existingProducts)
+                    {
+                        product.WarehouseStocks = new List<WarehouseStock>
+                        {
+                            new WarehouseStock
+                            {
+                                WarehouseId = anaDepo.Id,
+                                WarehouseName = anaDepo.Name,
+                                Quantity = product.Quantity
+                            }
+                        };
+                        Products.ReplaceOne(p => p.Id == product.Id, product);
+                    }
+                }
+            }
         }
     }
 }
+

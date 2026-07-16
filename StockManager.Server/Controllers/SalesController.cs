@@ -42,6 +42,11 @@ namespace StockManager.Server.Controllers
                 .Find(FilterDefinition<Customer>.Empty)
                 .ToListAsync();
 
+            ViewBag.Warehouses = await _context.Warehouses
+                .Find(w => w.IsActive)
+                .SortBy(w => w.Name)
+                .ToListAsync();
+
             return View();
         }
 
@@ -84,7 +89,19 @@ namespace StockManager.Server.Controllers
                 return RedirectToAction(nameof(POS));
             }
 
-            // 1. Contrôle préalable de la disponibilité (hors transaction pour éviter de bloquer inutilement des ressources)
+            if (string.IsNullOrEmpty(sale.WarehouseId))
+            {
+                var defaultWh = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync() ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+                sale.WarehouseId = defaultWh?.Id;
+                sale.WarehouseName = defaultWh?.Name;
+            }
+            else if (string.IsNullOrEmpty(sale.WarehouseName))
+            {
+                var wh = await _context.Warehouses.Find(w => w.Id == sale.WarehouseId).FirstOrDefaultAsync();
+                sale.WarehouseName = wh?.Name;
+            }
+
+            // 1. Contrôle préalable de la disponibilité
             foreach (var item in sale.Items)
             {
                 var product = await _context.Products.Find(p => p.Id == item.ProductId).FirstOrDefaultAsync();
@@ -94,7 +111,10 @@ namespace StockManager.Server.Controllers
                     return RedirectToAction(nameof(POS));
                 }
 
-                if (product.Quantity < item.Quantity)
+                if (product.WarehouseStocks == null) product.WarehouseStocks = new List<WarehouseStock>();
+                var whStock = product.WarehouseStocks.FirstOrDefault(ws => ws.WarehouseId == sale.WarehouseId);
+
+                if (product.Quantity < item.Quantity || whStock == null || whStock.Quantity < item.Quantity)
                 {
                     var hasUnreadNotification = await _context.Notifications
                         .Find(n => n.ProductId == product.Id && n.Message.Contains("yetersiz") && !n.IsRead)
@@ -104,7 +124,7 @@ namespace StockManager.Server.Controllers
                     {
                         var notification = new Notification
                         {
-                            Message = $"{product.Name} stoğunda yeterli ürün bulunmamaktadır! Satılmak İstenen: {item.Quantity}, Mevcut Stok: {product.Quantity}",
+                            Message = $"{product.Name} stoğunda yeterli ürün bulunmamaktadır! Satılmak İstenen: {item.Quantity}, Mevcut Stok: {product.Quantity} ({sale.WarehouseName}: {whStock?.Quantity ?? 0})",
                             IsRead = false,
                             CreatedAt = DateTime.UtcNow,
                             ProductId = product.Id
@@ -112,7 +132,7 @@ namespace StockManager.Server.Controllers
                         await _context.Notifications.InsertOneAsync(notification);
                     }
 
-                    TempData["error"] = $"{product.Name} ürününün stoğunda yeterli ürün bulunmamaktadır. (Mevcut Stok: {product.Quantity})";
+                    TempData["error"] = $"{product.Name} ürününün '{sale.WarehouseName ?? "Seçilen Depo"}' stoğunda yeterli ürün bulunmamaktadır. (Mevcut Depo Stoğu: {whStock?.Quantity ?? 0})";
                     return RedirectToAction(nameof(POS));
                 }
             }
@@ -147,7 +167,7 @@ namespace StockManager.Server.Controllers
             sale.StripePaymentIntentId = paymentIntent.Id;
             sale.StripeStatus = paymentIntent.Status;
 
-            // Liste temporaire pour différer l'envoi d'e-mails (on n'envoie les e-mails qu'APRES la confirmation de la transaction)
+            // Liste temporaire pour différer l'envoi d'e-mails
             var notificationsToSend = new List<(Product product, Notification notification)>();
 
             // 🔄 DÉBUT DE LA TRANSACTION
@@ -156,36 +176,54 @@ namespace StockManager.Server.Controllers
                 session.StartTransaction();
                 try
                 {
-                    // a. Enregistrer la vente (en passant le paramètre session)
+                    // a. Enregistrer la vente
                     await _context.Sales.InsertOneAsync(session, sale);
 
-                    // b. Décrémenter les stocks pour chaque article
+                    // b. Décrémenter les stocks pour chaque article et logger le mouvement
                     foreach (var item in sale.Items)
                     {
                         var productFilter = Builders<Product>.Filter.Eq(p => p.Id, item.ProductId);
-                        var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -item.Quantity);
-
-                        await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
-
-                        // Récupérer l'état du produit pour vérifier le seuil critique (en passant le paramètre session)
                         var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
-                        if (product != null && product.Quantity <= product.LowStockThreshold)
+                        if (product != null)
                         {
-                            var notification = new Notification
-                            {
-                                Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
-                                IsRead = false,
-                                CreatedAt = DateTime.UtcNow,
-                                ProductId = product.Id
-                            };
+                            product.Quantity -= item.Quantity;
+                            if (product.WarehouseStocks == null) product.WarehouseStocks = new List<WarehouseStock>();
+                            var ws = product.WarehouseStocks.FirstOrDefault(w => w.WarehouseId == sale.WarehouseId);
+                            if (ws != null) ws.Quantity -= item.Quantity;
 
-                            // Enregistrer la notification (en passant le paramètre session)
-                            await _context.Notifications.InsertOneAsync(session, notification);
-                            notificationsToSend.Add((product, notification));
+                            await _context.Products.ReplaceOneAsync(session, productFilter, product);
+
+                            var stockMovement = new StockMovement
+                            {
+                                ProductId = item.ProductId,
+                                Quantity = item.Quantity,
+                                Type = StockMovementType.StockOut,
+                                Date = DateTime.UtcNow,
+                                CustomerId = sale.CustomerId,
+                                WarehouseId = sale.WarehouseId,
+                                WarehouseName = sale.WarehouseName,
+                                Notes = $"POS Satışı - Fatura: {sale.InvoiceNumber}"
+                            };
+                            await _context.StockMovements.InsertOneAsync(session, stockMovement);
+
+                            if (product.Quantity <= product.LowStockThreshold)
+                            {
+                                var notification = new Notification
+                                {
+                                    Message = $"{product.Name} (Barkod: {product.Barcode}) kritik stok limitinin altına düştü! Kalan: {product.Quantity}",
+                                    IsRead = false,
+                                    CreatedAt = DateTime.UtcNow,
+                                    ProductId = product.Id
+                                };
+
+                                await _context.Notifications.InsertOneAsync(session, notification);
+                                notificationsToSend.Add((product, notification));
+                            }
                         }
                     }
 
-                    // c. Mettre à jour le solde du client s'il y a une dette (en passant le paramètre session)
+                    // c. Mettre à jour le solde du client s'il y a une dette
+
                     if (!string.IsNullOrEmpty(sale.CustomerId))
                     {
                         var customerFilter = Builders<Customer>.Filter.Eq(c => c.Id, sale.CustomerId);

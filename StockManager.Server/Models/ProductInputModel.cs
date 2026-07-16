@@ -18,6 +18,9 @@ public class ProductInputModel
     public IFormFile? ImageFile { get; set; }
     public string? ExistingImageUrl { get; set; }
 
+    // 🆕 Depo stokları
+    public List<WarehouseStock> WarehouseStocks { get; set; } = new();
+
     // Görsel validation
     public bool ValidateImage()
     {

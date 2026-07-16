@@ -88,9 +88,11 @@ namespace StockManager.Server.Controllers
             var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
             var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
             var customers = await _context.Customers.Find(FilterDefinition<Customer>.Empty).SortBy(c => c.FullName).ToListAsync();
+            var warehouses = await _context.Warehouses.Find(w => w.IsActive).SortBy(w => w.Name).ToListAsync();
             ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity})", p.Id)).ToList();
             ViewBag.Suppliers = suppliers.Select(s => new SelectListItem(s.CompanyName, s.Id)).ToList();
             ViewBag.Customers = customers.Select(c => new SelectListItem(c.FullName, c.Id)).ToList();
+            ViewBag.Warehouses = warehouses;
             return View();
         }
 
@@ -103,7 +105,20 @@ namespace StockManager.Server.Controllers
                 ViewBag.Products = new SelectList(await _context.Products.Find(_ => true).ToListAsync(), "Id", "Name", movement.ProductId);
                 ViewBag.Suppliers = new SelectList(await _context.Suppliers.Find(_ => true).ToListAsync(), "Id", "CompanyName", movement.SupplierId);
                 ViewBag.Customers = new SelectList(await _context.Customers.Find(_ => true).ToListAsync(), "Id", "FullName", movement.CustomerId);
+                ViewBag.Warehouses = await _context.Warehouses.Find(w => w.IsActive).SortBy(w => w.Name).ToListAsync();
                 return View(movement);
+            }
+
+            if (string.IsNullOrEmpty(movement.WarehouseId))
+            {
+                var defaultWh = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync() ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+                movement.WarehouseId = defaultWh?.Id;
+                movement.WarehouseName = defaultWh?.Name;
+            }
+            else if (string.IsNullOrEmpty(movement.WarehouseName))
+            {
+                var wh = await _context.Warehouses.Find(w => w.Id == movement.WarehouseId).FirstOrDefaultAsync();
+                movement.WarehouseName = wh?.Name;
             }
 
             Product? checkProduct = null;
@@ -117,57 +132,94 @@ namespace StockManager.Server.Controllers
                 {
                     movement.Date = DateTime.UtcNow;
 
-                    // a. Enregistrer le mouvement (en passant le paramètre session)
-                    await _context.StockMovements.InsertOneAsync(session, movement);
-
                     var productFilter = Builders<Product>.Filter.Eq(p => p.Id, movement.ProductId);
+                    checkProduct = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
+                    if (checkProduct == null)
+                    {
+                        await session.AbortTransactionAsync();
+                        TempData["error"] = "Seçilen ürün bulunamadı.";
+                        return RedirectToAction(nameof(Create));
+                    }
+
+                    if (checkProduct.WarehouseStocks == null) checkProduct.WarehouseStocks = new List<WarehouseStock>();
+                    var whStock = checkProduct.WarehouseStocks.FirstOrDefault(ws => ws.WarehouseId == movement.WarehouseId);
 
                     // b. Appliquer le mouvement sur la quantité du produit
                     if (movement.Type == StockMovementType.StockIn)
                     {
-                        var increaseQty = Builders<Product>.Update.Inc(p => p.Quantity, movement.Quantity);
-                        await _context.Products.UpdateOneAsync(session, productFilter, increaseQty);
+                        checkProduct.Quantity += movement.Quantity;
+                        if (whStock != null)
+                        {
+                            whStock.Quantity += movement.Quantity;
+                            whStock.WarehouseName = movement.WarehouseName ?? whStock.WarehouseName;
+                        }
+                        else
+                        {
+                            checkProduct.WarehouseStocks.Add(new WarehouseStock
+                            {
+                                WarehouseId = movement.WarehouseId!,
+                                WarehouseName = movement.WarehouseName ?? "Depo",
+                                Quantity = movement.Quantity
+                            });
+                        }
+
+                        await _context.Products.ReplaceOneAsync(session, productFilter, checkProduct);
 
                         // c. Ajuster la dette/crédit chez le fournisseur (si applicable)
                         if (!string.IsNullOrEmpty(movement.SupplierId))
                         {
-                            var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
-                            if (product != null)
-                            {
-                                var totalCost = product.PurchasePrice * movement.Quantity;
-                                var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
-                                var increaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, totalCost);
-
-                                await _context.Suppliers.UpdateOneAsync(session, supplierFilter, increaseBalance);
-                            }
+                            var totalCost = checkProduct.PurchasePrice * movement.Quantity;
+                            var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
+                            var increaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, totalCost);
+                            await _context.Suppliers.UpdateOneAsync(session, supplierFilter, increaseBalance);
                         }
                     }
                     else if (movement.Type == StockMovementType.StockOut)
                     {
-                        var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -movement.Quantity);
-                        await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+                        if (whStock == null || whStock.Quantity < movement.Quantity)
+                        {
+                            await session.AbortTransactionAsync();
+                            TempData["error"] = $"'{checkProduct.Name}' ürününün '{movement.WarehouseName}' deposunda yeterli stoğu yok! (Mevcut: {whStock?.Quantity ?? 0})";
+                            return RedirectToAction(nameof(Create));
+                        }
+
+                        checkProduct.Quantity -= movement.Quantity;
+                        whStock.Quantity -= movement.Quantity;
+                        await _context.Products.ReplaceOneAsync(session, productFilter, checkProduct);
 
                         if (!string.IsNullOrEmpty(movement.SupplierId))
                         {
-                            var product = await _context.Products.Find(session, productFilter).FirstOrDefaultAsync();
-                            if (product != null)
-                            {
-                                var totalCost = product.PurchasePrice * movement.Quantity;
-                                var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
-                                var decreaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, -totalCost);
-                                await _context.Suppliers.UpdateOneAsync(session, supplierFilter, decreaseBalance);
-                            }
+                            var totalCost = checkProduct.PurchasePrice * movement.Quantity;
+                            var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, movement.SupplierId);
+                            var decreaseBalance = Builders<Supplier>.Update.Inc(s => s.Balance, -totalCost);
+                            await _context.Suppliers.UpdateOneAsync(session, supplierFilter, decreaseBalance);
                         }
                     }
                     else if (movement.Type == StockMovementType.Adjustment)
                     {
-                        var setQty = Builders<Product>.Update.Set(p => p.Quantity, movement.Quantity);
-                        await _context.Products.UpdateOneAsync(session, productFilter, setQty);
+                        if (whStock != null)
+                        {
+                            whStock.Quantity = movement.Quantity;
+                            whStock.WarehouseName = movement.WarehouseName ?? whStock.WarehouseName;
+                        }
+                        else
+                        {
+                            checkProduct.WarehouseStocks.Add(new WarehouseStock
+                            {
+                                WarehouseId = movement.WarehouseId!,
+                                WarehouseName = movement.WarehouseName ?? "Depo",
+                                Quantity = movement.Quantity
+                            });
+                        }
+                        checkProduct.Quantity = checkProduct.WarehouseStocks.Sum(ws => ws.Quantity);
+                        await _context.Products.ReplaceOneAsync(session, productFilter, checkProduct);
                     }
 
-                    // Récupérer le produit final pour vérifier le stock
-                    checkProduct = await _context.Products.Find(session, p => p.Id == movement.ProductId).FirstOrDefaultAsync();
-                    if (checkProduct != null && checkProduct.Quantity <= checkProduct.LowStockThreshold)
+                    // a. Enregistrer le mouvement
+                    await _context.StockMovements.InsertOneAsync(session, movement);
+
+                    if (checkProduct.Quantity <= checkProduct.LowStockThreshold)
+
                     {
                         lowStockNotification = new Notification
                         {
@@ -247,20 +299,30 @@ namespace StockManager.Server.Controllers
         {
             var products = await _context.Products.Find(FilterDefinition<Product>.Empty).SortBy(p => p.Name).ToListAsync();
             var suppliers = await _context.Suppliers.Find(FilterDefinition<Supplier>.Empty).SortBy(s => s.CompanyName).ToListAsync();
+            var warehouses = await _context.Warehouses.Find(w => w.IsActive).SortBy(w => w.Name).ToListAsync();
             ViewBag.Products = products.Select(p => new SelectListItem($"{p.Name} (Stok: {p.Quantity} | Alış: {p.PurchasePrice:N2} ₺)", p.Id)).ToList();
             ViewBag.Suppliers = suppliers.Select(s => new SelectListItem($"{s.CompanyName} (Bakiye: {s.Balance:N2} ₺)", s.Id)).ToList();
+            ViewBag.Warehouses = warehouses;
             return View();
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SupplierReturn(string productId, string supplierId, int quantity, string? notes)
+        public async Task<IActionResult> SupplierReturn(string productId, string supplierId, int quantity, string? notes, string? warehouseId)
         {
             if (string.IsNullOrEmpty(productId) || string.IsNullOrEmpty(supplierId) || quantity <= 0)
             {
                 TempData["error"] = "Lütfen ürün, tedarikçi ve geçerli bir miktar seçiniz.";
                 return RedirectToAction(nameof(SupplierReturn));
             }
+
+            if (string.IsNullOrEmpty(warehouseId))
+            {
+                var defaultWh = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync() ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+                warehouseId = defaultWh?.Id;
+            }
+
+            var warehouse = await _context.Warehouses.Find(w => w.Id == warehouseId).FirstOrDefaultAsync();
 
             Product? product = null;
             using (var session = await _context.Client.StartSessionAsync())
@@ -276,9 +338,12 @@ namespace StockManager.Server.Controllers
                         return RedirectToAction(nameof(SupplierReturn));
                     }
 
-                    if (product.Quantity < quantity)
+                    if (product.WarehouseStocks == null) product.WarehouseStocks = new List<WarehouseStock>();
+                    var whStock = product.WarehouseStocks.FirstOrDefault(ws => ws.WarehouseId == warehouseId);
+
+                    if (whStock == null || whStock.Quantity < quantity)
                     {
-                        TempData["error"] = $"Yetersiz stok! Mevcut stok: {product.Quantity}, İade edilmek istenen: {quantity}";
+                        TempData["error"] = $"'{product.Name}' ürününün '{warehouse?.Name ?? "Seçilen Depo"}' deposunda yeterli stoğu yok! (Mevcut: {whStock?.Quantity ?? 0})";
                         await session.AbortTransactionAsync();
                         return RedirectToAction(nameof(SupplierReturn));
                     }
@@ -290,14 +355,17 @@ namespace StockManager.Server.Controllers
                         Quantity = quantity,
                         Type = StockMovementType.StockOut,
                         Date = DateTime.UtcNow,
-                        Notes = string.IsNullOrWhiteSpace(notes) ? "Tedarikçiye Stok İadesi" : notes
+                        WarehouseId = warehouseId,
+                        WarehouseName = warehouse?.Name,
+                        Notes = string.IsNullOrWhiteSpace(notes) ? $"Tedarikçiye Stok İadesi ({warehouse?.Name})" : notes
                     };
 
                     await _context.StockMovements.InsertOneAsync(session, movement);
 
+                    product.Quantity -= quantity;
+                    whStock.Quantity -= quantity;
                     var productFilter = Builders<Product>.Filter.Eq(p => p.Id, productId);
-                    var decreaseQty = Builders<Product>.Update.Inc(p => p.Quantity, -quantity);
-                    await _context.Products.UpdateOneAsync(session, productFilter, decreaseQty);
+                    await _context.Products.ReplaceOneAsync(session, productFilter, product);
 
                     var totalReturnCost = product.PurchasePrice * quantity;
                     var supplierFilter = Builders<Supplier>.Filter.Eq(s => s.Id, supplierId);
@@ -315,10 +383,10 @@ namespace StockManager.Server.Controllers
             }
 
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Tedarikçi Stok İadesi", $"Tedarikçiye stok iadesi yapıldı. Ürün: {product?.Name}, Miktar: {quantity}, Düşülen Tutar: {(product?.PurchasePrice * quantity):N2} ₺");
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Tedarikçi Stok İadesi", $"Tedarikçiye stok iadesi yapıldı ({warehouse?.Name}). Ürün: {product?.Name}, Miktar: {quantity}, Düşülen Tutar: {(product?.PurchasePrice * quantity):N2} ₺");
 
-            TempData["success"] = $"Stok iadesi başarıyla tamamlandı. {product?.Name} ürününden {quantity} adet çıkış yapıldı ve tedarikçi bakiyesinden {(product?.PurchasePrice * quantity):N2} ₺ düşüldü.";
+            TempData["success"] = $"Stok iadesi ({warehouse?.Name}) başarıyla tamamlandı. {product?.Name} ürününden {quantity} adet çıkış yapıldı ve tedarikçi bakiyesinden {(product?.PurchasePrice * quantity):N2} ₺ düşüldü.";
             return RedirectToAction(nameof(Index));
         }
     }
-}
+}

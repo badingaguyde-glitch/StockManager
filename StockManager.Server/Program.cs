@@ -46,6 +46,8 @@ builder.Services.AddSingleton<StripePaymentService>(sp =>
 });
 
 builder.Services.AddSingleton<ReceiptPdfService>();
+builder.Services.AddSingleton<TransferPdfService>();
+
 
 // 🆕 Add Cloudinary Image Upload Service
 builder.Services.AddScoped<IImageUploadService, CloudinaryImageService>();
