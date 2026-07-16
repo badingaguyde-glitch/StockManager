@@ -191,4 +191,56 @@ public class SmtpEmailService : IEmailService
 
         await SendEmailAsync(to, subject, body);
     }
+
+    public async Task SendEmailWithAttachmentAsync(string to, string subject, string body, byte[] attachmentData, string attachmentFileName, string contentType = "application/pdf")
+    {
+        try
+        {
+            var smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST") ?? _configuration["SmtpSettings:Host"] ?? "smtp.mailtrap.io";
+            var smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? _configuration["SmtpSettings:Port"] ?? "2525");
+            var smtpUser = Environment.GetEnvironmentVariable("SMTP_USER") ?? Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? _configuration["SmtpSettings:Username"] ?? "";
+            var smtpPass = Environment.GetEnvironmentVariable("SMTP_PASS") ?? Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? _configuration["SmtpSettings:Password"] ?? "";
+            var fromAddress = Environment.GetEnvironmentVariable("SMTP_FROM") ?? _configuration["SmtpSettings:From"] ?? "noreply@stockmanager.com";
+
+            if (!fromAddress.Contains("@"))
+            {
+                fromAddress = smtpUser.Contains("@") ? smtpUser : "noreply@stockmanager.com";
+            }
+
+            if (string.IsNullOrEmpty(smtpUser) || string.IsNullOrEmpty(smtpPass))
+            {
+                _logger.LogWarning($"[EMAIL WITH ATTACHMENT SIMULATION] SMTP credentials missing. To: {to}, Subject: {subject}, Attachment: {attachmentFileName} ({attachmentData?.Length ?? 0} bytes)");
+                return;
+            }
+
+            _logger.LogInformation($"Attempting to send email with attachment ({attachmentFileName}) via SMTP to {to} using host {smtpHost}:{smtpPort}...");
+
+            using var client = new SmtpClient(smtpHost, smtpPort)
+            {
+                Credentials = new NetworkCredential(smtpUser, smtpPass),
+                EnableSsl = true
+            };
+
+            var fromMailAddress = new MailAddress(fromAddress, "StockManager");
+            using var mailMessage = new MailMessage(fromMailAddress, new MailAddress(to))
+            {
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = true
+            };
+
+            if (attachmentData != null && attachmentData.Length > 0)
+            {
+                var stream = new MemoryStream(attachmentData);
+                mailMessage.Attachments.Add(new Attachment(stream, attachmentFileName, contentType));
+            }
+
+            await client.SendMailAsync(mailMessage);
+            _logger.LogInformation($"Email with attachment successfully sent to {to}.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"E-posta ekli gönderim hatası (SMTP Error): {ex.Message}");
+        }
+    }
 }

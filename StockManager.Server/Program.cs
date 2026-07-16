@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using QuestPDF.Infrastructure;
 using StockManager.Server.Data;
 using StockManager.Server.Models;
 using StockManager.Server.Services;
@@ -6,6 +7,9 @@ using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
 DotEnv.Load();
+
+// Configure QuestPDF Community License
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -47,6 +51,7 @@ builder.Services.AddSingleton<StripePaymentService>(sp =>
 
 builder.Services.AddSingleton<ReceiptPdfService>();
 builder.Services.AddSingleton<TransferPdfService>();
+builder.Services.AddSingleton<PurchaseOrderPdfService>();
 
 
 // 🆕 Add Cloudinary Image Upload Service

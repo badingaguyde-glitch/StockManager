@@ -21,6 +21,11 @@ public class ProductInputModel
     // 🆕 Depo stokları
     public List<WarehouseStock> WarehouseStocks { get; set; } = new();
 
+    // 🆕 Parti, Seri No ve SKT Takibi anahtarları
+    public bool HasBatchTracking { get; set; }
+    public bool HasSerialTracking { get; set; }
+    public bool HasExpiryTracking { get; set; }
+
     // Görsel validation
     public bool ValidateImage()
     {

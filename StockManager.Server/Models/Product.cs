@@ -60,4 +60,16 @@ public class Product
     // 🆕 Depo / Şube bazlı stok miktarları
     [BsonElement("warehouseStocks")]
     public List<WarehouseStock> WarehouseStocks { get; set; } = new();
+
+    // 🆕 Parti / Lot No takibi
+    [BsonElement("hasBatchTracking")]
+    public bool HasBatchTracking { get; set; }
+
+    // 🆕 Seri Numarası / IMEI takibi
+    [BsonElement("hasSerialTracking")]
+    public bool HasSerialTracking { get; set; }
+
+    // 🆕 Son Kullanma Tarihi (SKT / Expiry) takibi
+    [BsonElement("hasExpiryTracking")]
+    public bool HasExpiryTracking { get; set; }
 }

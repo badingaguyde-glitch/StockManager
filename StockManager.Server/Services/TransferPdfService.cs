@@ -9,6 +9,7 @@ public class TransferPdfService
 {
     public byte[] GenerateTransferPdf(StockTransfer transfer, Warehouse? sourceWarehouse = null, Warehouse? targetWarehouse = null)
     {
+        QuestPDF.Settings.License = LicenseType.Community;
         var document = Document.Create(container =>
         {
             container.Page(page =>

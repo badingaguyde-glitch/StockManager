@@ -9,4 +9,5 @@ public interface IEmailService
     Task SendPasswordResetCodeAsync(string to, string code);
     Task SendPasswordResetCodeAsync(string to, string code, int validityMinutes);
     Task SendNewTemporaryPasswordAsync(string to, string newPassword);
+    Task SendEmailWithAttachmentAsync(string to, string subject, string body, byte[] attachmentData, string attachmentFileName, string contentType = "application/pdf");
 }

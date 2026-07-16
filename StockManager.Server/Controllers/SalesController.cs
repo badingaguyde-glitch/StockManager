@@ -193,6 +193,36 @@ namespace StockManager.Server.Controllers
 
                             await _context.Products.ReplaceOneAsync(session, productFilter, product);
 
+                            // Parti/Seri/SKT takibi aktifse FIFO/FEFO yöntemiyle partelerden stok düş ve durumu güncelle
+                            if (product.HasBatchTracking || product.HasSerialTracking || product.HasExpiryTracking)
+                            {
+                                var activeBatches = await _context.ProductBatches
+                                    .Find(session, b => b.ProductId == product.Id && b.Status == ProductBatchStatus.Active && (string.IsNullOrEmpty(sale.WarehouseId) || b.WarehouseId == sale.WarehouseId))
+                                    .SortBy(b => b.ExpiryDate)
+                                    .ToListAsync();
+
+                                int remainingToDeduct = item.Quantity;
+                                foreach (var batch in activeBatches)
+                                {
+                                    if (remainingToDeduct <= 0) break;
+
+                                    if (batch.Quantity <= remainingToDeduct)
+                                    {
+                                        remainingToDeduct -= batch.Quantity;
+                                        batch.Quantity = 0;
+                                        batch.Status = ProductBatchStatus.Sold;
+                                    }
+                                    else
+                                    {
+                                        batch.Quantity -= remainingToDeduct;
+                                        remainingToDeduct = 0;
+                                    }
+
+                                    var batchFilter = Builders<ProductBatch>.Filter.Eq(b => b.Id, batch.Id);
+                                    await _context.ProductBatches.ReplaceOneAsync(session, batchFilter, batch);
+                                }
+                            }
+
                             var stockMovement = new StockMovement
                             {
                                 ProductId = item.ProductId,
