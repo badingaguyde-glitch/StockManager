@@ -1,0 +1,245 @@
+@if (User.Identity != null && User.Identity.IsAuthenticated)
+{
+    <!-- Yüzen Yapay Zeka Stok Asistanı Bileşeni -->
+    <div id="ai-widget-container" class="no-print" style="position: fixed; bottom: 25px; right: 25px; z-index: 99999;">
+        
+        <!-- Yüzen Robot Butonu -->
+        <button id="ai-widget-btn" class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center" 
+                style="width: 60px; height: 60px; border: none; outline: none; background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4) !important; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);">
+            <i class="bi bi-robot fs-2 text-white"></i>
+        </button>
+
+        <!-- Sürüklenebilir Sohbet Penceresi (Varsayılan olarak gizli) -->
+        <div id="ai-chat-window" class="glass-card shadow-2xl rounded-4 overflow-hidden d-none" 
+             style="position: absolute; bottom: 75px; right: 0; width: 340px; height: 460px; display: flex; flex-direction: column; border: 1px solid rgba(255, 255, 255, 0.22); background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.18) !important;">
+            
+            <!-- Başlık Alanı (Sürükleme Alanı) -->
+            <div id="ai-chat-header" class="py-3 px-3 d-flex align-items-center justify-content-between border-bottom" style="cursor: move; user-select: none; background: rgba(99, 102, 241, 0.08);">
+                <div class="d-flex align-items-center">
+                    <span class="badge bg-success rounded-pill p-1 me-2"><span class="visually-hidden">Aktif</span></span>
+                    <span class="fw-semibold text-primary" style="font-size: 0.9rem;"><i class="bi bi-cpu-fill me-1"></i>AI Stok Danışmanı</span>
+                </div>
+                <button type="button" id="ai-chat-close-btn" class="btn-close" style="font-size: 0.75rem;"></button>
+            </div>
+
+            <!-- Mesaj Listesi -->
+            <div id="ai-chat-body" class="p-3 flex-grow-1 overflow-y-auto" style="font-size: 0.85rem; background: rgba(255, 255, 255, 0.35); color: #000000;">
+                <div class="d-flex align-items-start mb-3">
+                    <div class="bg-primary text-white rounded-circle p-1.5 me-2 d-flex align-items-center justify-content-center" style="width:28px; height:28px; font-size: 0.75rem;">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="p-2.5 rounded-3 bg-white border shadow-sm text-dark" style="max-width: 80%;">
+                        Merhaba! Ben Yapay Zeka Stok Asistanınızım. Stok miktarları ve kritik seviyeler hakkında bana soru sorabilirsiniz.
+                        <br><small class="text-muted mt-1 d-block" style="font-size: 0.7rem;"><i>Not: Kurallarım gereği gelecek tahminleri yapamam.</i></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Giriş Kutusu -->
+            <div class="p-2 border-top bg-white">
+                <form id="ai-chat-form" onsubmit="sendWidgetMessage(event)">
+                    @Html.AntiForgeryToken()
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="ai-user-input" class="form-control rounded-start-pill py-2 px-3 border-end-0 bg-light" placeholder="Sorunuzu buraya yazın..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary rounded-end-pill px-3" id="ai-send-btn">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sürükleme ve Sohbet Yönetim Betikleri -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const widgetBtn = document.getElementById("ai-widget-btn");
+            const chatWindow = document.getElementById("ai-chat-window");
+            const closeBtn = document.getElementById("ai-chat-close-btn");
+            const chatHeader = document.getElementById("ai-chat-header");
+
+            if (!widgetBtn || !chatWindow) return;
+
+            // Aç / Kapat Tetikleyicisi
+            widgetBtn.addEventListener("click", function () {
+                if (chatWindow.classList.contains("d-none")) {
+                    chatWindow.classList.remove("d-none");
+                    widgetBtn.style.transform = "scale(0.8) rotate(45deg)";
+                    document.getElementById("ai-user-input").focus();
+                } else {
+                    closeWidget();
+                }
+            });
+
+            closeBtn.addEventListener("click", closeWidget);
+
+            function closeWidget() {
+                chatWindow.classList.add("d-none");
+                widgetBtn.style.transform = "scale(1) rotate(0deg)";
+            }
+
+            // Sürükleme Fonksiyonunu Başlat
+            makeWidgetDraggable(chatWindow, chatHeader);
+        });
+
+        // Mesaj Gönderme İşlemi
+        async function sendWidgetMessage(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById("ai-user-input");
+            const message = inputEl.value.trim();
+            if (!message) return;
+
+            inputEl.value = "";
+            appendWidgetMessage(message, "user");
+
+            // Yükleniyor balonu ekle
+            const chatBody = document.getElementById("ai-chat-body");
+            const loadingId = 'loading-' + Date.now();
+            const loadingDiv = document.createElement("div");
+            loadingDiv.className = "d-flex align-items-start mb-3";
+            loadingDiv.id = loadingId;
+            loadingDiv.innerHTML = `
+                <div class="bg-primary text-white rounded-circle p-1.5 me-2 d-flex align-items-center justify-content-center" style="width:28px; height:28px; font-size: 0.75rem;"><i class="bi bi-robot"></i></div>
+                <div class="p-2.5 rounded-3 bg-white border shadow-sm text-dark"><span class="spinner-border spinner-border-sm text-primary" role="status"></span> Düşünüyor...</div>
+            `;
+            chatBody.appendChild(loadingDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            try {
+                // Antiforgery Token'ı al
+                const token = document.querySelector('#ai-chat-window input[name="__RequestVerificationToken"]')?.value || "";
+
+                const res = await fetch("/StockAi/Ask", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "RequestVerificationToken": token
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const data = await res.json();
+                
+                // Yükleniyor balonunu sil
+                const lEl = document.getElementById(loadingId);
+                if (lEl) lEl.remove();
+
+                if (data.reply) {
+                    appendWidgetMessage(data.reply, "ai");
+                } else {
+                    appendWidgetMessage("Üzgünüm, şu anda yanıt alamıyorum.", "ai");
+                }
+            } catch (err) {
+                const lEl = document.getElementById(loadingId);
+                if (lEl) lEl.remove();
+                appendWidgetMessage("Bağlantı hatası oluştu.", "ai");
+            }
+        }
+
+        function appendWidgetMessage(text, sender) {
+            const chatBody = document.getElementById("ai-chat-body");
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `d-flex align-items-start mb-3 ${sender === 'user' ? 'justify-content-end' : ''}`;
+
+            const iconHtml = sender === 'ai' 
+                ? `<div class="bg-primary text-white rounded-circle p-1.5 me-2 d-flex align-items-center justify-content-center" style="width:28px; height:28px; font-size: 0.75rem;"><i class="bi bi-robot"></i></div>`
+                : '';
+
+            const bgClass = sender === 'ai' ? 'bg-white border text-dark' : 'bg-primary text-white';
+            const shadowClass = sender === 'ai' ? 'shadow-sm' : '';
+
+            messageDiv.innerHTML = `
+                ${iconHtml}
+                <div class="p-2.5 rounded-3 ${bgClass} ${shadowClass}" style="max-width: 80%; white-space: pre-wrap;">
+                    ${text}
+                </div>
+            `;
+            chatBody.appendChild(messageDiv);
+            chatBody.scrollTop = chatBody.scrollHeight;
+        }
+
+        // Draggable Sürükleme Mantığı (Ekran sınır korumalı)
+        function makeWidgetDraggable(elmnt, header) {
+            var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            if (header) {
+                header.onmousedown = dragMouseDown;
+                header.ontouchstart = dragTouchStart;
+            }
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function dragTouchStart(e) {
+                if (e.touches.length === 1) {
+                    pos3 = e.touches[0].clientX;
+                    pos4 = e.touches[0].clientY;
+                    document.ontouchend = closeDragElement;
+                    document.ontouchmove = elementTouchDrag;
+                }
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+
+                let newTop = elmnt.offsetTop - pos2;
+                let newLeft = elmnt.offsetLeft - pos1;
+
+                const maxLeft = window.innerWidth - elmnt.offsetWidth - 15;
+                const maxTop = window.innerHeight - elmnt.offsetHeight - 15;
+
+                if (newLeft < 15) newLeft = 15;
+                if (newTop < 15) newTop = 15;
+                if (newLeft > maxLeft) newLeft = maxLeft;
+                if (newTop > maxTop) newTop = maxTop;
+
+                elmnt.style.top = newTop + "px";
+                elmnt.style.left = newLeft + "px";
+                elmnt.style.bottom = "auto";
+                elmnt.style.right = "auto";
+            }
+
+            function elementTouchDrag(e) {
+                if (e.touches.length === 1) {
+                    pos1 = pos3 - e.touches[0].clientX;
+                    pos2 = pos4 - e.touches[0].clientY;
+                    pos3 = e.touches[0].clientX;
+                    pos4 = e.touches[0].clientY;
+
+                    let newTop = elmnt.offsetTop - pos2;
+                    let newLeft = elmnt.offsetLeft - pos1;
+
+                    const maxLeft = window.innerWidth - elmnt.offsetWidth - 15;
+                    const maxTop = window.innerHeight - elmnt.offsetHeight - 15;
+
+                    if (newLeft < 15) newLeft = 15;
+                    if (newTop < 15) newTop = 15;
+                    if (newLeft > maxLeft) newLeft = maxLeft;
+                    if (newTop > maxTop) newTop = maxTop;
+
+                    elmnt.style.top = newTop + "px";
+                    elmnt.style.left = newLeft + "px";
+                    elmnt.style.bottom = "auto";
+                    elmnt.style.right = "auto";
+                }
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
+        }
+    </script>
+}

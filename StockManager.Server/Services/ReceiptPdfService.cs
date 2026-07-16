@@ -7,6 +7,11 @@ namespace StockManager.Server.Services;
 
 public class ReceiptPdfService
 {
+    static ReceiptPdfService()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+    }
+
     public byte[] GenerateReceiptPdf(Sale sale, Customer? customer = null)
     {
         var currency = sale.Currency?.ToUpperInvariant() ?? "TRY";

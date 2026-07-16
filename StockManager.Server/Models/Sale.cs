@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace StockManager.Server.Models;
 
+[BsonIgnoreExtraElements]
 public class Sale
 {
     [BsonId]
