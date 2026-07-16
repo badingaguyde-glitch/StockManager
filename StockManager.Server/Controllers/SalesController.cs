@@ -67,7 +67,7 @@ namespace StockManager.Server.Controllers
                 return Json(new { success = false, message = "Ürün stokta yok." });
             }
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Sepete Ürün Ekleme", $"Ürün sepete eklendi: {product.Name} (ID: {product.Id})");
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name ?? "Belirtilmedi", "Sepete Ürün Ekleme", $"Ürün sepete eklendi: {product.Name} (ID: {product.Id})");
 
             return Json(new
             {
@@ -279,7 +279,7 @@ namespace StockManager.Server.Controllers
             }
 
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Satış Yapma", $"Satış yapıldı: {sale.InvoiceNumber}, Tutar: {sale.TotalAmount} {sale.Currency}, Ödeme Tipi: {sale.PaymentType}");
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name ?? "Belirtilmedi", "Satış Yapma", $"Satış yapıldı: {sale.InvoiceNumber}, Tutar: {sale.TotalAmount} {sale.Currency}, Ödeme Tipi: {sale.PaymentType}");
 
             return RedirectToAction(nameof(Invoice), new { id = sale.Id });
         }

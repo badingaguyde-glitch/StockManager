@@ -233,10 +233,21 @@ public class ProductsController : Controller
                 };
                 await _context.Notifications.InsertOneAsync(notification);
             }
+            if (string.IsNullOrEmpty(product.ImageUrl))
+        {
+            var notification = new Notification
+            {
+                Message = $"{product.Name} (Barkod: {product.Barcode}) için görsel yüklenmedi.",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow,
+                ProductId = product.Id
+            };
+            await _context.Notifications.InsertOneAsync(notification);
+        }
 
             TempData["success"] = "Ürün başarıyla eklendi.";
             var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
+            await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name ?? "Belirtilmedi", "Ürün Ekleme", $"Yeni ürün eklendi: {product.Name} (ID: {product.Id})");
             return RedirectToAction(nameof(Index));
         }
 
@@ -330,7 +341,7 @@ public class ProductsController : Controller
         if (oldQty != newQty)
         {
             var defaultWarehouse = await _context.Warehouses.Find(w => w.IsDefault).FirstOrDefaultAsync()
-                                   ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
+                                    ?? await _context.Warehouses.Find(_ => true).FirstOrDefaultAsync();
 
             var adjustmentMovement = new StockMovement
             {
@@ -388,7 +399,7 @@ public class ProductsController : Controller
         }
 
         var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Güncelleme", $"Ürün güncellendi: {product.Name} (ID: {product.Id})");
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name ?? "Belirtilmedi", "Ürün Güncelleme", $"Ürün güncellendi: {product.Name} (ID: {product.Id})");
 
         return RedirectToAction(nameof(Index));
     }
@@ -413,7 +424,7 @@ public class ProductsController : Controller
         await _context.Products.DeleteOneAsync(p => p.Id == id);
 
         var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "Belirtilmedi";
-        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name, "Ürün Silme", $"Ürün silindi: {product.Name} (ID: {product.Id})");
+        await _auditLogService.LogActionAsync(userEmail, User.Identity?.Name ?? "Belirtilmedi", "Ürün Silme", $"Ürün silindi: {product.Name} (ID: {product.Id})");
 
         TempData["success"] = "Ürün başarıyla silindi.";
         return RedirectToAction(nameof(Index));
