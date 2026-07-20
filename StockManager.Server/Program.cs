@@ -6,7 +6,10 @@ using StockManager.Server.Services;
 using dotenv.net;
 
 var builder = WebApplication.CreateBuilder(args);
-DotEnv.Load();
+DotEnv.Load(options: new DotEnvOptions(
+    probeForEnv: true,
+    probeLevelsToSearch: 4
+));
 
 // Configure QuestPDF Community License
 QuestPDF.Settings.License = LicenseType.Community;

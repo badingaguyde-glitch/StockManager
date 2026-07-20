@@ -44,6 +44,7 @@ public class SmtpEmailService : IEmailService
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
+                UseDefaultCredentials = false,
                 Credentials = new NetworkCredential(smtpUser, smtpPass),
                 EnableSsl = true
             };
@@ -217,6 +218,7 @@ public class SmtpEmailService : IEmailService
 
             using var client = new SmtpClient(smtpHost, smtpPort)
             {
+                UseDefaultCredentials = false,
                 Credentials = new NetworkCredential(smtpUser, smtpPass),
                 EnableSsl = true
             };
